@@ -14,6 +14,7 @@ const CreatePaymentLink = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [linkCreated, setLinkCreated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [linkId, setLinkId] = useState("");
   const [formData, setFormData] = useState({
     amount: "",
     description: "",
@@ -22,11 +23,16 @@ const CreatePaymentLink = () => {
     clientEmail: "",
   });
 
-  const generatedLink = "https://fidexa.app/pay/abc123xyz789";
+  // Generate the payment link using the current origin
+  const generatedLink = `${window.location.origin}/pay/${linkId}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
+    
+    // Generate a unique link ID
+    const newLinkId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    setLinkId(newLinkId);
     
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -68,6 +74,7 @@ const CreatePaymentLink = () => {
 
   const resetForm = () => {
     setLinkCreated(false);
+    setLinkId("");
     setFormData({
       amount: "",
       description: "",
