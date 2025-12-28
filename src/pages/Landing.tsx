@@ -135,7 +135,7 @@ const Landing = () => {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Logo />
+          <Logo showSlogan={false} />
           <div className="hidden items-center gap-8 md:flex">
             <a
               href="#features"
@@ -191,9 +191,8 @@ const Landing = () => {
             </motion.div>
             
             <h1 className="mb-6 font-display text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
-              Confiance.{" "}
-              <span className="text-primary">Sécurité.</span>{" "}
-              Services.
+              Payer et livrer{" "}
+              <span className="text-secondary">en toute sérénité.</span>
             </h1>
             
             <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl">
@@ -486,7 +485,7 @@ const Landing = () => {
       <footer className="border-t border-border py-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <Logo />
+            <Logo showSlogan />
             <p className="text-sm text-muted-foreground">
               © 2024 FIDEXA. Tous droits réservés.
             </p>
