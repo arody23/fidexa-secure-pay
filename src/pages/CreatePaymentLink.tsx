@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const CreatePaymentLink = () => {
   const { toast } = useToast();
@@ -32,18 +33,39 @@ const CreatePaymentLink = () => {
     
     // Generate a unique link ID
     const newLinkId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    setLinkId(newLinkId);
     
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setIsCreating(false);
-    setLinkCreated(true);
-    
-    toast({
-      title: "Lien créé avec succès!",
-      description: "Votre lien de paiement est prêt à être partagé.",
-    });
+    try {
+      // Save to database
+      const { error } = await supabase.from("payment_links").insert({
+        link_id: newLinkId,
+        amount: parseFloat(formData.amount),
+        description: formData.description,
+        delivery_days: parseInt(formData.deliveryDays),
+        client_name: formData.clientName || null,
+        client_email: formData.clientEmail || null,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setLinkId(newLinkId);
+      setLinkCreated(true);
+      
+      toast({
+        title: "Lien créé avec succès!",
+        description: "Votre lien de paiement est prêt à être partagé.",
+      });
+    } catch (error) {
+      console.error("Error creating payment link:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le lien de paiement.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const copyLink = () => {

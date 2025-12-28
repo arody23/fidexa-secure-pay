@@ -14,7 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      payment_links: {
+        Row: {
+          amount: number
+          client_email: string | null
+          client_name: string | null
+          created_at: string
+          delivery_days: number
+          description: string
+          id: string
+          is_paid: boolean
+          link_id: string
+          provider_avatar: string | null
+          provider_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_email?: string | null
+          client_name?: string | null
+          created_at?: string
+          delivery_days?: number
+          description: string
+          id?: string
+          is_paid?: boolean
+          link_id: string
+          provider_avatar?: string | null
+          provider_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_email?: string | null
+          client_name?: string | null
+          created_at?: string
+          delivery_days?: number
+          description?: string
+          id?: string
+          is_paid?: boolean
+          link_id?: string
+          provider_avatar?: string | null
+          provider_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
