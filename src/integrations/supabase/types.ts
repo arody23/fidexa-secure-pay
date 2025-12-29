@@ -29,6 +29,7 @@ export type Database = {
           provider_name: string
           status: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -44,6 +45,7 @@ export type Database = {
           provider_name?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -59,6 +61,64 @@ export type Database = {
           provider_name?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          monthly_limit: number | null
+          monthly_volume: number | null
+          phone: string | null
+          rating: number | null
+          reviews_count: number | null
+          skills: string[] | null
+          subscription_plan: string | null
+          subscription_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          monthly_limit?: number | null
+          monthly_volume?: number | null
+          phone?: string | null
+          rating?: number | null
+          reviews_count?: number | null
+          skills?: string[] | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          monthly_limit?: number | null
+          monthly_volume?: number | null
+          phone?: string | null
+          rating?: number | null
+          reviews_count?: number | null
+          skills?: string[] | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

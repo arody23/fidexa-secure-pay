@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Package, Search, Filter, MoreVertical, Check, X, AlertTriangle } from "lucide-react";
+import { Package, Search, MoreVertical, Check, X, AlertTriangle, Link2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,116 +14,97 @@ import {
 import DashboardLayout from "@/components/DashboardLayout";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface Order {
+interface PaymentLink {
   id: string;
-  client: string;
-  email: string;
+  link_id: string;
+  client_name: string | null;
+  client_email: string | null;
   amount: number;
-  status: OrderStatus;
-  date: string;
+  status: string;
+  created_at: string;
   description: string;
-  deliveryDate: string;
+  delivery_days: number;
 }
 
-const mockOrders: Order[] = [
-  {
-    id: "ORD-001",
-    client: "Sophie Martin",
-    email: "sophie@email.com",
-    amount: 250,
-    status: "pending",
-    date: "2024-01-15",
-    description: "Design logo entreprise",
-    deliveryDate: "2024-01-22",
-  },
-  {
-    id: "ORD-002",
-    client: "Pierre Dupont",
-    email: "pierre@email.com",
-    amount: 1500,
-    status: "delivered",
-    date: "2024-01-14",
-    description: "Développement site web",
-    deliveryDate: "2024-01-28",
-  },
-  {
-    id: "ORD-003",
-    client: "Marie Claire",
-    email: "marie@email.com",
-    amount: 89,
-    status: "dispute",
-    date: "2024-01-13",
-    description: "Création flyer événement",
-    deliveryDate: "2024-01-16",
-  },
-  {
-    id: "ORD-004",
-    client: "Jean Petit",
-    email: "jean@email.com",
-    amount: 450,
-    status: "delivered",
-    date: "2024-01-12",
-    description: "Montage vidéo promotionnel",
-    deliveryDate: "2024-01-19",
-  },
-  {
-    id: "ORD-005",
-    client: "Claire Dubois",
-    email: "claire@email.com",
-    amount: 320,
-    status: "cancelled",
-    date: "2024-01-11",
-    description: "Refonte identité visuelle",
-    deliveryDate: "2024-01-25",
-  },
-  {
-    id: "ORD-006",
-    client: "Lucas Bernard",
-    email: "lucas@email.com",
-    amount: 780,
-    status: "pending",
-    date: "2024-01-10",
-    description: "Application mobile MVP",
-    deliveryDate: "2024-02-10",
-  },
-  {
-    id: "ORD-007",
-    client: "Emma Wilson",
-    email: "emma@email.com",
-    amount: 150,
-    status: "delivered",
-    date: "2024-01-09",
-    description: "Rédaction articles blog",
-    deliveryDate: "2024-01-16",
-  },
-];
-
-const statusFilters: { value: OrderStatus | "all"; label: string }[] = [
+const statusFilters: { value: string; label: string }[] = [
   { value: "all", label: "Toutes" },
-  { value: "pending", label: "En cours" },
+  { value: "pending", label: "En attente" },
+  { value: "paid", label: "Payées" },
   { value: "delivered", label: "Livrées" },
   { value: "cancelled", label: "Annulées" },
-  { value: "dispute", label: "En litige" },
+  { value: "disputed", label: "En litige" },
 ];
 
 const Orders = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [orders, setOrders] = useState<PaymentLink[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredOrders = mockOrders.filter((order) => {
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("payment_links")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        setOrders(data);
+      }
+
+      setLoading(false);
+    };
+
+    fetchOrders();
+  }, [user]);
+
+  const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.client_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      order.link_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusCount = (status: OrderStatus | "all") => {
-    if (status === "all") return mockOrders.length;
-    return mockOrders.filter((o) => o.status === status).length;
+  const getStatusCount = (status: string) => {
+    if (status === "all") return orders.length;
+    return orders.filter((o) => o.status === status).length;
   };
+
+  const mapStatus = (status: string): OrderStatus => {
+    switch (status) {
+      case "pending":
+        return "pending";
+      case "paid":
+        return "pending";
+      case "delivered":
+        return "delivered";
+      case "cancelled":
+        return "cancelled";
+      case "disputed":
+        return "dispute";
+      default:
+        return "pending";
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-pulse text-muted-foreground">Chargement...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -181,7 +163,18 @@ const Orders = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredOrders.length === 0 ? (
+            {orders.length === 0 ? (
+              <div className="py-12 text-center">
+                <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
+                <p className="text-muted-foreground mb-4">Aucune commande pour le moment</p>
+                <Button variant="hero" asChild>
+                  <Link to="/dashboard/create-link">
+                    <Link2 className="mr-2 h-4 w-4" />
+                    Créer votre premier lien
+                  </Link>
+                </Button>
+              </div>
+            ) : filteredOrders.length === 0 ? (
               <div className="py-12 text-center">
                 <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
                 <p className="text-muted-foreground">Aucune commande trouvée</p>
@@ -204,14 +197,14 @@ const Orders = () => {
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <p className="font-semibold">{order.client}</p>
-                            <StatusBadge status={order.status} />
+                            <p className="font-semibold">{order.client_name || "Client"}</p>
+                            <StatusBadge status={mapStatus(order.status)} />
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {order.id} • {order.description}
+                            {order.link_id} • {order.description}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Créé le {order.date} • Livraison prévue: {order.deliveryDate}
+                            Créé le {new Date(order.created_at).toLocaleDateString("fr-FR")} • Livraison: {order.delivery_days} jours
                           </p>
                         </div>
                       </div>
@@ -219,7 +212,7 @@ const Orders = () => {
                       {/* Amount & Actions */}
                       <div className="flex items-center gap-4">
                         <p className="font-display text-xl font-bold">
-                          ${order.amount}
+                          {order.amount.toLocaleString()} FCFA
                         </p>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -228,7 +221,17 @@ const Orders = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {order.status === "pending" && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  `${window.location.origin}/pay/${order.link_id}`
+                                );
+                              }}
+                            >
+                              <Link2 className="mr-2 h-4 w-4" />
+                              Copier le lien
+                            </DropdownMenuItem>
+                            {(order.status === "pending" || order.status === "paid") && (
                               <>
                                 <DropdownMenuItem className="text-success">
                                   <Check className="mr-2 h-4 w-4" />
@@ -244,16 +247,12 @@ const Orders = () => {
                                 </DropdownMenuItem>
                               </>
                             )}
-                            {order.status === "dispute" && (
+                            {order.status === "disputed" && (
                               <DropdownMenuItem>
                                 <AlertTriangle className="mr-2 h-4 w-4" />
                                 Voir le litige
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem>
-                              <Package className="mr-2 h-4 w-4" />
-                              Voir les détails
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

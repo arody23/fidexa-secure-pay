@@ -158,10 +158,10 @@ const Landing = () => {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" asChild>
-              <Link to="/login">Connexion</Link>
+              <Link to="/auth">Connexion</Link>
             </Button>
             <Button variant="hero" asChild>
-              <Link to="/dashboard">Commencer</Link>
+              <Link to="/auth">Commencer</Link>
             </Button>
           </div>
         </div>
@@ -193,13 +193,10 @@ const Landing = () => {
             
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button variant="hero" size="xl" asChild>
-                <Link to="/dashboard">
+                <Link to="/auth">
                   Créer mon compte gratuit
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-              </Button>
-              <Button variant="hero-outline" size="xl" asChild>
-                <Link to="/pay/demo">Voir une démo</Link>
               </Button>
             </div>
             
@@ -383,8 +380,9 @@ const Landing = () => {
                     <Button
                       variant={plan.highlight ? "hero" : "outline"}
                       className="w-full"
+                      asChild
                     >
-                      Commencer
+                      <Link to="/auth">Commencer</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -463,7 +461,7 @@ const Landing = () => {
               className="bg-primary text-primary-foreground hover:bg-primary/90"
               asChild
             >
-              <Link to="/dashboard">
+              <Link to="/auth">
                 Créer mon compte gratuit
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>

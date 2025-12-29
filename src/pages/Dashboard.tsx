@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -15,57 +16,102 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardLayout from "@/components/DashboardLayout";
 import StatCard from "@/components/StatCard";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Mock data
-const stats = {
-  pending: 12,
-  delivered: 48,
-  cancelled: 3,
-  dispute: 2,
-  monthlyVolume: 15420,
-  monthlyLimit: 20000,
-};
+interface PaymentLink {
+  id: string;
+  link_id: string;
+  client_name: string | null;
+  amount: number;
+  status: string;
+  created_at: string;
+  description: string;
+}
 
-const recentOrders = [
-  {
-    id: "ORD-001",
-    client: "Sophie Martin",
-    amount: 250,
-    status: "pending" as OrderStatus,
-    date: "2024-01-15",
-  },
-  {
-    id: "ORD-002",
-    client: "Pierre Dupont",
-    amount: 1500,
-    status: "delivered" as OrderStatus,
-    date: "2024-01-14",
-  },
-  {
-    id: "ORD-003",
-    client: "Marie Claire",
-    amount: 89,
-    status: "dispute" as OrderStatus,
-    date: "2024-01-13",
-  },
-  {
-    id: "ORD-004",
-    client: "Jean Petit",
-    amount: 450,
-    status: "delivered" as OrderStatus,
-    date: "2024-01-12",
-  },
-  {
-    id: "ORD-005",
-    client: "Claire Dubois",
-    amount: 320,
-    status: "cancelled" as OrderStatus,
-    date: "2024-01-11",
-  },
-];
+interface ProfileData {
+  monthly_volume: number | null;
+  monthly_limit: number | null;
+  display_name: string | null;
+}
 
 const Dashboard = () => {
-  const volumePercentage = (stats.monthlyVolume / stats.monthlyLimit) * 100;
+  const { user } = useAuth();
+  const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([]);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+
+      const [linksResult, profileResult] = await Promise.all([
+        supabase
+          .from("payment_links")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("profiles")
+          .select("monthly_volume, monthly_limit, display_name")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+
+      if (linksResult.data) {
+        setPaymentLinks(linksResult.data);
+      }
+
+      if (profileResult.data) {
+        setProfile(profileResult.data);
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [user]);
+
+  const stats = {
+    pending: paymentLinks.filter((l) => l.status === "pending").length,
+    delivered: paymentLinks.filter((l) => l.status === "delivered").length,
+    cancelled: paymentLinks.filter((l) => l.status === "cancelled").length,
+    dispute: paymentLinks.filter((l) => l.status === "disputed").length,
+    monthlyVolume: profile?.monthly_volume || 0,
+    monthlyLimit: profile?.monthly_limit || 500000,
+  };
+
+  const volumePercentage = stats.monthlyLimit > 0 
+    ? (stats.monthlyVolume / stats.monthlyLimit) * 100 
+    : 0;
+
+  const mapStatus = (status: string): OrderStatus => {
+    switch (status) {
+      case "pending":
+        return "pending";
+      case "paid":
+        return "pending";
+      case "delivered":
+        return "delivered";
+      case "cancelled":
+        return "cancelled";
+      case "disputed":
+        return "dispute";
+      default:
+        return "pending";
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-pulse text-muted-foreground">Chargement...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -77,7 +123,7 @@ const Dashboard = () => {
               Tableau de bord
             </h1>
             <p className="text-muted-foreground">
-              Bienvenue! Voici un aperçu de votre activité.
+              Bienvenue{profile?.display_name ? `, ${profile.display_name}` : ""}! Voici un aperçu de votre activité.
             </p>
           </div>
           <Button variant="hero" asChild>
@@ -101,7 +147,6 @@ const Dashboard = () => {
             value={stats.delivered}
             icon={<CheckCircle className="h-6 w-6" />}
             variant="success"
-            trend={{ value: 12, label: "ce mois" }}
           />
           <StatCard
             title="Annulées"
@@ -138,10 +183,10 @@ const Dashboard = () => {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="font-display text-4xl font-bold">
-                        ${stats.monthlyVolume.toLocaleString()}
+                        {stats.monthlyVolume.toLocaleString()} FCFA
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        sur ${stats.monthlyLimit.toLocaleString()} disponibles
+                        sur {stats.monthlyLimit.toLocaleString()} FCFA disponibles
                       </p>
                     </div>
                     <div className="text-right">
@@ -154,7 +199,7 @@ const Dashboard = () => {
                   <div className="h-4 w-full overflow-hidden rounded-full bg-secondary">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${volumePercentage}%` }}
+                      animate={{ width: `${Math.min(volumePercentage, 100)}%` }}
                       transition={{ duration: 1, ease: "easeOut" }}
                       className="h-full rounded-full bg-primary"
                     />
@@ -212,35 +257,51 @@ const Dashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentOrders.map((order, index) => (
-                  <motion.div
-                    key={order.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                    className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
-                        <Package className="h-5 w-5 text-muted-foreground" />
+              {paymentLinks.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                  <p className="mt-4 text-muted-foreground">
+                    Aucune commande pour le moment
+                  </p>
+                  <Button variant="hero" className="mt-4" asChild>
+                    <Link to="/dashboard/create-link">
+                      Créer votre premier lien
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {paymentLinks.map((order, index) => (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+                          <Package className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {order.client_name || "Client"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {order.link_id} • {new Date(order.created_at).toLocaleDateString("fr-FR")}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{order.client}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.id} • {order.date}
+                      <div className="flex items-center gap-4">
+                        <p className="font-display font-semibold">
+                          {order.amount.toLocaleString()} FCFA
                         </p>
+                        <StatusBadge status={mapStatus(order.status)} />
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <p className="font-display font-semibold">
-                        ${order.amount}
-                      </p>
-                      <StatusBadge status={order.status} />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
