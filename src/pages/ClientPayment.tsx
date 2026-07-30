@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { createGeniusPayPayment, verifyGeniusPayPayment } from "@/lib/geniuspay";
 import { GENIUSPAY_ENABLED } from "@/config";
+import { SITE } from "@/config/site";
 import { formatAmount } from "@/lib/currency";
 import OrderTracker from "@/components/OrderTracker";
 
@@ -575,19 +576,81 @@ const ClientPayment = () => {
 
                 {!paymentData.is_paid ? (
                   <>
-                    <div className="flex items-start gap-3 rounded-lg border border-border p-4">
-                      <Checkbox
-                        id="terms"
-                        checked={acceptedTerms}
-                        onCheckedChange={(v) => setAcceptedTerms(v === true)}
-                      />
-                      <label htmlFor="terms" className="cursor-pointer text-sm leading-relaxed text-muted-foreground">
-                        J&apos;accepte les{' '}
-                        <Link to="/legal/terms" className="text-primary underline" target="_blank">
-                          conditions générales
-                        </Link>{' '}
-                        et autorise FidexaPay à séquestrer les fonds jusqu&apos;à validation de la livraison.
-                      </label>
+                    <div className="space-y-3 rounded-lg border border-border p-3 sm:p-4">
+                      <p className="text-sm font-medium text-foreground">
+                        Conditions applicables avant le paiement
+                      </p>
+                      <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                        En cliquant sur « Payer en sécurité », vous confirmez avoir lu et accepté les{' '}
+                        <Link
+                          to={SITE.legal.prePayment}
+                          className="text-primary underline"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          conditions applicables avant le paiement
+                        </Link>
+                        .
+                      </p>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="terms"
+                          checked={acceptedTerms}
+                          onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                          className="mt-0.5 shrink-0"
+                        />
+                        <label
+                          htmlFor="terms"
+                          className="min-w-0 cursor-pointer text-xs leading-relaxed text-muted-foreground sm:text-sm"
+                        >
+                          J&apos;ai lu et j&apos;accepte les{' '}
+                          <Link
+                            to={SITE.legal.terms}
+                            className="text-primary underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Conditions d&apos;utilisation
+                          </Link>
+                          , la{' '}
+                          <Link
+                            to={SITE.legal.privacy}
+                            className="text-primary underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Politique de confidentialité
+                          </Link>
+                          , la{' '}
+                          <Link
+                            to={SITE.legal.escrow}
+                            className="text-primary underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Politique de paiement sécurisé
+                          </Link>
+                          , la{' '}
+                          <Link
+                            to={SITE.legal.refund}
+                            className="text-primary underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Politique de remboursement
+                          </Link>{' '}
+                          et la{' '}
+                          <Link
+                            to={SITE.legal.disputes}
+                            className="text-primary underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Politique de gestion des litiges
+                          </Link>{' '}
+                          de FidexaPay.
+                        </label>
+                      </div>
                     </div>
 
                     <Button

@@ -183,309 +183,285 @@ export function Profile() {
 
   if (loading) {
     return (
-              <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Chargement du profil...</p>
-          </div>
+      <div className="flex min-h-[50vh] items-center justify-center p-4">
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500" />
+          <p className="mt-4 text-gray-600">Chargement du profil...</p>
         </div>
-          );
+      </div>
+    );
   }
 
   return (
-          <div className="space-y-6 p-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Mon Profil</h1>
-          <p className="text-gray-600 mt-1">Gérez les informations de votre compte</p>
-        </div>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert className="border-green-200 bg-green-50">
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Avatar Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Photo de Profil</CardTitle>
-            <CardDescription>Cliquez sur l'avatar pour changer votre photo</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <Label htmlFor="avatar-upload" className="cursor-pointer group relative">
-                <Avatar className="h-24 w-24 transition-all duration-200 group-hover:opacity-80 group-hover:ring-4 group-hover:ring-blue-500">
-                  <AvatarImage 
-                    src={profile?.avatar_url || ''} 
-                    alt="Photo de profil"
-                    onError={(e) => {
-                      console.error('Error loading avatar:', profile?.avatar_url);
-                      e.currentTarget.src = '';
-                    }}
-                  />
-                  <AvatarFallback className="text-2xl font-bold">
-                    {profile?.full_name?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                {/* Overlay avec icône caméra au survol */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-50 rounded-full transition-all duration-200">
-                  <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                </div>
-              </Label>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-gray-700 mb-3">
-                {uploading ? '⏳ Téléchargement en cours...' : 'Cliquez sur l\'avatar ou utilisez le bouton ci-dessous'}
-              </p>
-              <Label htmlFor="avatar-upload" className="cursor-pointer">
-                <Button asChild variant="outline" disabled={uploading}>
-                  <span>
-                    <Camera className="mr-2 h-4 w-4" />
-                    {uploading ? 'Upload...' : 'Changer la photo'}
-                  </span>
-                </Button>
-              </Label>
-              <Input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarUpload}
-                disabled={uploading}
-              />
-              <p className="text-xs text-gray-500 mt-2">JPG, PNG ou GIF (max 5MB)</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Informations Personnelles */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informations Personnelles</CardTitle>
-            <CardDescription>Mettez à jour vos informations de compte</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Email (readonly) */}
-            <div>
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                value={profile?.email || ''}
-                disabled
-                className="bg-gray-50 cursor-not-allowed"
-              />
-              <p className="text-xs text-gray-500 mt-1">Non modifiable</p>
-            </div>
-
-            {/* Nom */}
-            <div>
-              <Label htmlFor="full_name" className="text-sm font-medium">
-                Nom Complet
-              </Label>
-              <Input
-                id="full_name"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleInputChange}
-                placeholder="Votre nom complet"
-              />
-            </div>
-
-            {/* Téléphone */}
-            <div>
-              <Label htmlFor="phone_number" className="text-sm font-medium">
-                Numéro de Téléphone
-              </Label>
-              <Input
-                id="phone_number"
-                name="phone_number"
-                type="tel"
-                value={formData.phone_number}
-                onChange={handleInputChange}
-                placeholder="+243 123 456 789"
-              />
-              <p className="text-xs text-gray-500 mt-1">Avec code pays</p>
-            </div>
-
-            {/* Pays */}
-            <div>
-              <Label htmlFor="country" className="text-sm font-medium">
-                Pays
-              </Label>
-              <Select value={formData.country} onValueChange={handleCountryChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez votre pays" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(COUNTRIES_DATA).map(([code, country]) => (
-                    <SelectItem key={code} value={code}>
-                      {country.flag} {country.nameFR}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Devise */}
-            <div>
-              <Label htmlFor="currency" className="text-sm font-medium">
-                Devise Préférée
-              </Label>
-              <Select value={formData.currency} onValueChange={handleCurrencyChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez votre devise" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CDF">CDF — Franc congolais</SelectItem>
-                  <SelectItem value="XAF">XAF — Franc CFA BEAC</SelectItem>
-                  <SelectItem value="XOF">XOF — Franc CFA WAEMU</SelectItem>
-                  <SelectItem value="FCFA">FCFA — Franc CFA</SelectItem>
-                  <SelectItem value="USD">USD — Dollar américain</SelectItem>
-                  <SelectItem value="EUR">EUR — Euro</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                Cette devise sera utilisée pour tous vos paiements
-              </p>
-            </div>
-
-            {/* Bio */}
-            <div>
-              <Label htmlFor="bio" className="text-sm font-medium">
-                Bio/Description
-              </Label>
-              <textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                placeholder="Décrivez votre entreprise..."
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg resize-none"
-                rows={4}
-              />
-              <p className="text-xs text-gray-500 mt-1">Visible sur votre page de paiement</p>
-            </div>
-
-            {/* Compétences */}
-            <div>
-              <Label htmlFor="skills" className="text-sm font-medium">
-                Compétences
-              </Label>
-              <Input
-                id="skills"
-                name="skills"
-                value={formData.skills}
-                onChange={handleInputChange}
-                placeholder="Ex: Web Design, E-commerce, Consulting"
-              />
-            </div>
-
-            {/* Save Button */}
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full"
-              size="lg"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="w-full gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Déconnexion
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* KYC Status */}
-        {profile && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Statut KYC</CardTitle>
-              <CardDescription>Vérification d'identité pour les retraits</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Statut Actuel */}
-              <div className="flex items-start gap-4">
-                <div className="flex-1">
-                  <p className="font-medium mb-2">Status:</p>
-                  <div className="flex items-center gap-2">
-                    {profile.kyc_status === 'verified' && (
-                      <>
-                        <CheckCircle2 className="text-green-600" size={20} />
-                        <span className="text-green-600 font-semibold">Vérifié</span>
-                      </>
-                    )}
-                    {profile.kyc_status === 'pending' && (
-                      <>
-                        <Clock className="text-yellow-600" size={20} />
-                        <span className="text-yellow-600 font-semibold">En attente</span>
-                      </>
-                    )}
-                    {profile.kyc_status === 'rejected' && (
-                      <>
-                        <AlertCircle className="text-red-600" size={20} />
-                        <span className="text-red-600 font-semibold">Rejeté</span>
-                      </>
-                    )}
-                    {profile.kyc_status === 'not_submitted' && (
-                      <>
-                        <AlertCircle className="text-gray-600" size={20} />
-                        <span className="text-gray-600 font-semibold">Non soumis</span>
-                      </>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    {profile.kyc_status === 'verified' && 'Vous pouvez effectuer des retraits sans limitation.'}
-                    {profile.kyc_status === 'pending' && 'Votre demande est en cours de vérification. Vous serez notifié dans 24-48h.'}
-                    {profile.kyc_status === 'rejected' && 'Veuillez soumettre de nouveaux documents valides.'}
-                    {profile.kyc_status === 'not_submitted' && 'Vérifiez votre identité pour effectuer des retraits.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Bouton Vérifier le profil - redirige vers page KYC */}
-              {(profile.kyc_status === 'rejected' || profile.kyc_status === 'not_submitted') && (
-                <Button
-                  onClick={() => navigate('/dashboard/kyc')}
-                  className="w-full"
-                  size="lg"
-                >
-                  <FileUp className="mr-2 h-4 w-4" />
-                  Vérifier le profil (KYC)
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Image Cropper Dialog */}
-        {imageToCrop && (
-          <ImageCropper
-            image={imageToCrop}
-            onCropComplete={handleCropComplete}
-            onCancel={handleCropCancel}
-            open={showCropper}
-          />
-        )}
+    <div className="mx-auto w-full max-w-3xl space-y-4 overflow-x-hidden p-4 sm:space-y-6 sm:p-6">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-bold sm:text-3xl">Mon Profil</h1>
+        <p className="mt-1 text-sm text-gray-600 sm:text-base">
+          Gérez les informations de votre compte
+        </p>
       </div>
-      );
+
+      {error && (
+        <Alert variant="destructive" className="min-w-0 break-words">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <AlertDescription className="break-words">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="min-w-0 break-words border-green-200 bg-green-50">
+          <AlertDescription className="break-words text-green-800">{success}</AlertDescription>
+        </Alert>
+      )}
+
+      <Card className="min-w-0 overflow-hidden">
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl">Photo de Profil</CardTitle>
+          <CardDescription>Cliquez sur l&apos;avatar pour changer votre photo</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-4 px-4 sm:flex-row sm:items-start sm:gap-6 sm:px-6">
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            <Label htmlFor="avatar-upload" className="group relative cursor-pointer">
+              <Avatar className="h-20 w-20 transition-all duration-200 group-hover:opacity-80 group-hover:ring-4 group-hover:ring-blue-500 sm:h-24 sm:w-24">
+                <AvatarImage
+                  src={profile?.avatar_url || ''}
+                  alt="Photo de profil"
+                  onError={(e) => {
+                    console.error('Error loading avatar:', profile?.avatar_url);
+                    e.currentTarget.src = '';
+                  }}
+                />
+                <AvatarFallback className="text-2xl font-bold">
+                  {profile?.full_name?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black bg-opacity-0 transition-all duration-200 group-hover:bg-opacity-50">
+                <Camera className="h-8 w-8 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+              </div>
+            </Label>
+          </div>
+          <div className="min-w-0 w-full flex-1 text-center sm:text-left">
+            <p className="mb-3 text-sm text-gray-700">
+              {uploading ? 'Téléchargement en cours...' : 'Cliquez sur l\'avatar ou utilisez le bouton ci-dessous'}
+            </p>
+            <Label htmlFor="avatar-upload" className="inline-block cursor-pointer">
+              <Button asChild variant="outline" disabled={uploading} className="w-full sm:w-auto">
+                <span>
+                  <Camera className="mr-2 h-4 w-4" />
+                  {uploading ? 'Upload...' : 'Changer la photo'}
+                </span>
+              </Button>
+            </Label>
+            <Input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+              disabled={uploading}
+            />
+            <p className="mt-2 text-xs text-gray-500">JPG, PNG ou GIF (max 5MB)</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="min-w-0 overflow-hidden">
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl">Informations Personnelles</CardTitle>
+          <CardDescription>Mettez à jour vos informations de compte</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 px-4 sm:space-y-6 sm:px-6">
+          <div className="min-w-0">
+            <Label htmlFor="email" className="text-sm font-medium">
+              Email
+            </Label>
+            <Input
+              id="email"
+              value={profile?.email || ''}
+              disabled
+              className="mt-1.5 min-w-0 truncate bg-gray-50 cursor-not-allowed"
+            />
+            <p className="mt-1 text-xs text-gray-500">Non modifiable</p>
+          </div>
+
+          <div className="min-w-0">
+            <Label htmlFor="full_name" className="text-sm font-medium">
+              Nom Complet
+            </Label>
+            <Input
+              id="full_name"
+              name="full_name"
+              value={formData.full_name}
+              onChange={handleInputChange}
+              placeholder="Votre nom complet"
+              className="mt-1.5 min-w-0"
+            />
+          </div>
+
+          <div className="min-w-0">
+            <Label htmlFor="phone_number" className="text-sm font-medium">
+              Numéro de Téléphone
+            </Label>
+            <Input
+              id="phone_number"
+              name="phone_number"
+              type="tel"
+              value={formData.phone_number}
+              onChange={handleInputChange}
+              placeholder="+243 123 456 789"
+              className="mt-1.5 min-w-0"
+            />
+            <p className="mt-1 text-xs text-gray-500">Avec code pays</p>
+          </div>
+
+          <div className="min-w-0">
+            <Label htmlFor="country" className="text-sm font-medium">
+              Pays
+            </Label>
+            <Select value={formData.country} onValueChange={handleCountryChange}>
+              <SelectTrigger className="mt-1.5 min-w-0 w-full">
+                <SelectValue placeholder="Sélectionnez votre pays" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(COUNTRIES_DATA).map(([code, country]) => (
+                  <SelectItem key={code} value={code}>
+                    {country.flag} {country.nameFR}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="min-w-0">
+            <Label htmlFor="currency" className="text-sm font-medium">
+              Devise Préférée
+            </Label>
+            <Select value={formData.currency} onValueChange={handleCurrencyChange}>
+              <SelectTrigger className="mt-1.5 min-w-0 w-full">
+                <SelectValue placeholder="Sélectionnez votre devise" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CDF">CDF — Franc congolais</SelectItem>
+                <SelectItem value="XAF">XAF — Franc CFA BEAC</SelectItem>
+                <SelectItem value="XOF">XOF — Franc CFA WAEMU</SelectItem>
+                <SelectItem value="FCFA">FCFA — Franc CFA</SelectItem>
+                <SelectItem value="USD">USD — Dollar américain</SelectItem>
+                <SelectItem value="EUR">EUR — Euro</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-gray-500">
+              Cette devise sera utilisée pour tous vos paiements
+            </p>
+          </div>
+
+          <div className="min-w-0">
+            <Label htmlFor="bio" className="text-sm font-medium">
+              Bio/Description
+            </Label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formData.bio}
+              onChange={handleInputChange}
+              placeholder="Décrivez votre entreprise..."
+              className="mt-1.5 w-full min-w-0 max-w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              rows={4}
+            />
+            <p className="mt-1 text-xs text-gray-500">Visible sur votre page de paiement</p>
+          </div>
+
+          <div className="min-w-0">
+            <Label htmlFor="skills" className="text-sm font-medium">
+              Compétences
+            </Label>
+            <Input
+              id="skills"
+              name="skills"
+              value={formData.skills}
+              onChange={handleInputChange}
+              placeholder="Ex: Web Design, E-commerce, Consulting"
+              className="mt-1.5 min-w-0"
+            />
+          </div>
+
+          <Button onClick={handleSave} disabled={saving} className="w-full" size="lg">
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+          </Button>
+
+          <Button variant="outline" onClick={handleLogout} className="w-full gap-2">
+            <LogOut className="h-4 w-4" />
+            Déconnexion
+          </Button>
+        </CardContent>
+      </Card>
+
+      {profile && (
+        <Card className="min-w-0 overflow-hidden">
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl">Statut KYC</CardTitle>
+            <CardDescription>Vérification d&apos;identité pour les retraits</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 px-4 sm:px-6">
+            <div className="min-w-0">
+              <p className="mb-2 font-medium">Status:</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {profile.kyc_status === 'verified' && (
+                  <>
+                    <CheckCircle2 className="shrink-0 text-green-600" size={20} />
+                    <span className="font-semibold text-green-600">Vérifié</span>
+                  </>
+                )}
+                {profile.kyc_status === 'pending' && (
+                  <>
+                    <Clock className="shrink-0 text-yellow-600" size={20} />
+                    <span className="font-semibold text-yellow-600">En attente</span>
+                  </>
+                )}
+                {profile.kyc_status === 'rejected' && (
+                  <>
+                    <AlertCircle className="shrink-0 text-red-600" size={20} />
+                    <span className="font-semibold text-red-600">Rejeté</span>
+                  </>
+                )}
+                {profile.kyc_status === 'not_submitted' && (
+                  <>
+                    <AlertCircle className="shrink-0 text-gray-600" size={20} />
+                    <span className="font-semibold text-gray-600">Non soumis</span>
+                  </>
+                )}
+              </div>
+              <p className="mt-2 break-words text-sm text-gray-600">
+                {profile.kyc_status === 'verified' && 'Vous pouvez effectuer des retraits sans limitation.'}
+                {profile.kyc_status === 'pending' &&
+                  'Votre demande est en cours de vérification. Vous serez notifié dans 24-48h.'}
+                {profile.kyc_status === 'rejected' && 'Veuillez soumettre de nouveaux documents valides.'}
+                {profile.kyc_status === 'not_submitted' &&
+                  'Vérifiez votre identité pour effectuer des retraits.'}
+              </p>
+            </div>
+
+            {(profile.kyc_status === 'rejected' || profile.kyc_status === 'not_submitted') && (
+              <Button onClick={() => navigate('/dashboard/kyc')} className="w-full" size="lg">
+                <FileUp className="mr-2 h-4 w-4 shrink-0" />
+                <span className="truncate">Vérifier le profil (KYC)</span>
+                <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          open={showCropper}
+        />
+      )}
+    </div>
+  );
 }
 
 export default Profile;

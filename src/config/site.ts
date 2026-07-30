@@ -21,6 +21,11 @@ export const SITE = {
     privacy: '/legal/confidentialite',
     terms: '/legal/conditions',
     cookies: '/legal/cookies',
+    escrow: '/legal/paiement-securise',
+    refund: '/legal/remboursement',
+    disputes: '/legal/litiges',
+    kycAml: '/legal/kyc-aml',
+    prePayment: '/legal/avant-paiement',
   },
   commissionBasic: 15,
 } as const;

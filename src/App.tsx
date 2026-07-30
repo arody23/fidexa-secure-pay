@@ -41,6 +41,11 @@ import ResetPassword from "./pages/Auth/ResetPassword";
 import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
 import TermsOfService from "./pages/Legal/TermsOfService";
 import CookiePolicy from "./pages/Legal/CookiePolicy";
+import EscrowPolicy from "./pages/Legal/EscrowPolicy";
+import RefundPolicy from "./pages/Legal/RefundPolicy";
+import DisputePolicy from "./pages/Legal/DisputePolicy";
+import KYCAMLPolicy from "./pages/Legal/KYCAMLPolicy";
+import PrePaymentConditions from "./pages/Legal/PrePaymentConditions";
 import ProviderRoute from "./components/ProviderRoute";
 
 const queryClient = new QueryClient();
@@ -62,6 +67,12 @@ const App = () => (
             <Route path="/legal/confidentialite" element={<PrivacyPolicy />} />
             <Route path="/legal/conditions" element={<TermsOfService />} />
             <Route path="/legal/cookies" element={<CookiePolicy />} />
+            <Route path="/legal/paiement-securise" element={<EscrowPolicy />} />
+            <Route path="/legal/remboursement" element={<RefundPolicy />} />
+            <Route path="/legal/litiges" element={<DisputePolicy />} />
+            <Route path="/legal/kyc-aml" element={<KYCAMLPolicy />} />
+            <Route path="/legal/avant-paiement" element={<PrePaymentConditions />} />
+            <Route path="/legal/terms" element={<TermsOfService />} />
             <Route path="/dashboard" element={<ProviderRoute />}>
               <Route index element={<Dashboard />} />
               <Route path="create-link" element={<CreatePaymentLink />} />

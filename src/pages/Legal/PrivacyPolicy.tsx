@@ -3,8 +3,8 @@ import { SITE } from '@/config/site';
 
 export default function PrivacyPolicy() {
   return (
-    <LegalPageLayout title="Politique de confidentialité">
-      <p><strong>Dernière mise à jour :</strong> {new Date().toLocaleDateString('fr-FR')}</p>
+    <LegalPageLayout title="Politique de Confidentialité">
+      <p><strong>Dernière mise à jour :</strong> Juillet 2026</p>
       <p>
         {SITE.name} (« nous ») s&apos;engage à protéger vos données personnelles conformément aux réglementations
         applicables en matière de protection des données.

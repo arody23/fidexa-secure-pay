@@ -10,18 +10,21 @@ interface LegalPageProps {
 
 export function LegalPageLayout({ title, children }: LegalPageProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-hidden bg-background">
       <header className="border-b border-border bg-card/80 backdrop-blur-xl">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4">
           <Logo />
-          <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/"
+            className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" />
             Accueil
           </Link>
         </div>
       </header>
-      <main className="container mx-auto max-w-3xl px-4 py-12 prose prose-neutral dark:prose-invert">
-        <h1>{title}</h1>
+      <main className="prose prose-neutral dark:prose-invert container mx-auto max-w-3xl overflow-x-hidden break-words px-4 py-8 prose-headings:scroll-mt-20 prose-p:leading-relaxed sm:py-12">
+        <h1 className="text-2xl sm:text-3xl">{title}</h1>
         {children}
       </main>
       <SiteFooter />
