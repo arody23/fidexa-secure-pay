@@ -55,7 +55,9 @@ export default function AdminNotifications() {
 
       toast({
         title: 'Notification envoyée',
-        description: `${data.users ?? 0} utilisateur(s) · ${data.pushSent ?? 0} push délivré(s)`,
+        description: data.warning
+          ? data.warning
+          : `${data.users ?? 0} utilisateur(s) · ${data.pushSent ?? 0} push délivré(s)`,
       });
       setTitle('');
       setBody('');

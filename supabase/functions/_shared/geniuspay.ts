@@ -34,7 +34,11 @@ export function getGeniusPayHeaders(): Record<string, string> {
   };
 }
 
-/** Unités de devise pour 1 USD (taux mid-market internationaux). */
+/**
+ * Unités de devise pour 1 USD (pivot).
+ * GeniusPay n'accepte que XOF/FCFA — une seule conversion ici vers XOF.
+ * CDF ≈ 2850 / USD, XOF ≈ 605 / USD → 1 XOF ≈ 4,71 CDF.
+ */
 const UNITS_PER_USD: Record<string, number> = {
   USD: 1,
   EUR: 0.92,
@@ -45,13 +49,29 @@ const UNITS_PER_USD: Record<string, number> = {
   CDF: 2850,
 };
 
-function normalizeCurrencyCode(currency?: string | null): string {
-  const c = (currency || 'FCFA').toUpperCase();
-  if (c === 'XOF' || c === 'XAF') return 'FCFA';
-  return c;
+const KNOWN_CURRENCIES = new Set(Object.keys(UNITS_PER_USD));
+
+/** Extrait un code devise connu (ex. "CDF — Franc" → CDF). */
+export function normalizeCurrencyCode(currency?: string | null): string {
+  const raw = String(currency || 'FCFA').trim().toUpperCase();
+  if (!raw) return 'FCFA';
+  const token = raw.split(/[\s|/,_-]+/)[0] || raw;
+  if (token === 'XOF' || token === 'XAF' || token === 'FCFA') return 'FCFA';
+  if (KNOWN_CURRENCIES.has(token)) return token;
+  for (const code of KNOWN_CURRENCIES) {
+    if (raw.includes(code)) {
+      if (code === 'XOF' || code === 'XAF') return 'FCFA';
+      return code;
+    }
+  }
+  console.warn('[GeniusPay] devise inconnue, fallback FCFA:', currency);
+  return 'FCFA';
 }
 
-/** Convertit le montant local vers XOF (GeniusPay). Minimum 200 XOF. */
+/**
+ * Une seule conversion vers XOF pour GeniusPay (devise API = XOF).
+ * FCFA/XOF/XAF → montant inchangé. Autres devises → via USD pivot.
+ */
 export function amountForGeniusPay(
   amount: number,
   currency?: string | null
@@ -59,34 +79,67 @@ export function amountForGeniusPay(
   amountXof: number;
   originalAmount: number;
   originalCurrency: string;
+  rateUsed: string;
 } {
   const originalCurrency = normalizeCurrencyCode(currency);
   const n = Number(amount);
 
-  if (originalCurrency === 'FCFA') {
-    const amountXof = Math.max(200, Math.round(n));
-    return { amountXof, originalAmount: n, originalCurrency };
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`Montant invalide pour GeniusPay: ${amount}`);
   }
 
-  const fromUnits = UNITS_PER_USD[originalCurrency] ?? UNITS_PER_USD.USD;
+  if (originalCurrency === 'FCFA') {
+    const amountXof = Math.max(200, Math.round(n));
+    console.log('[GeniusPay] conversion', {
+      originalAmount: n,
+      originalCurrency,
+      rateUsed: '1:1 (FCFA/XOF)',
+      amountXof,
+    });
+    return { amountXof, originalAmount: n, originalCurrency, rateUsed: '1:1' };
+  }
+
+  const fromUnits = UNITS_PER_USD[originalCurrency];
+  if (!fromUnits) {
+    throw new Error(`Taux manquant pour devise ${originalCurrency}`);
+  }
   const usd = n / fromUnits;
   const amountXof = Math.max(200, Math.round(usd * UNITS_PER_USD.XOF));
-  return { amountXof, originalAmount: n, originalCurrency };
+  const rateUsed = `${originalCurrency}->USD(/${fromUnits})->XOF(*${UNITS_PER_USD.XOF})`;
+  console.log('[GeniusPay] conversion', {
+    originalAmount: n,
+    originalCurrency,
+    usd,
+    rateUsed,
+    amountXof,
+  });
+  return { amountXof, originalAmount: n, originalCurrency, rateUsed };
 }
 
+/** Devise du lien d'abord (source de vérité du paiement), sinon profil prestataire. */
 export async function resolveLinkCurrency(
   supabase: ReturnType<typeof createClient>,
   link: { currency?: string | null; provider_id?: string | null }
 ): Promise<string> {
+  if (link.currency) {
+    const fromLink = normalizeCurrencyCode(link.currency);
+    console.log('[GeniusPay] currency from payment_links:', link.currency, '→', fromLink);
+    return fromLink;
+  }
   if (link.provider_id) {
     const { data: provider } = await supabase
       .from('users')
       .select('currency')
       .eq('id', link.provider_id)
       .maybeSingle();
-    if (provider?.currency) return provider.currency;
+    if (provider?.currency) {
+      const fromProvider = normalizeCurrencyCode(provider.currency);
+      console.log('[GeniusPay] currency from provider:', provider.currency, '→', fromProvider);
+      return fromProvider;
+    }
   }
-  return link.currency || 'FCFA';
+  console.warn('[GeniusPay] currency fallback FCFA');
+  return 'FCFA';
 }
 
 export async function verifyWebhookSignature(payload: string, signature: string | null): Promise<boolean> {

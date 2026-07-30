@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Bell, CheckCircle, AlertCircle, Clock, DollarSign, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { isPushSupported, subscribeToPush } from '@/lib/webPush';
+import { useToast } from '@/hooks/use-toast';
 
 interface Notification {
   id: string;
@@ -20,9 +22,39 @@ interface Notification {
 
 export default function Notifications() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [loading, setLoading] = useState(true);
+  const [pushLoading, setPushLoading] = useState(false);
+
+  async function enablePush() {
+    if (!isPushSupported()) {
+      toast({ title: 'Non supporté', description: 'Ce navigateur ne gère pas les notifications push.', variant: 'destructive' });
+      return;
+    }
+    setPushLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Session requise');
+      const ok = await subscribeToPush(user.id);
+      toast({
+        title: ok ? 'Notifications activées' : 'Non activé',
+        description: ok
+          ? 'Cet appareil recevra les alertes push.'
+          : 'Autorisez les notifications dans les paramètres du navigateur.',
+        variant: ok ? 'default' : 'destructive',
+      });
+    } catch (err) {
+      toast({
+        title: 'Erreur',
+        description: err instanceof Error ? err.message : 'Activation impossible',
+        variant: 'destructive',
+      });
+    } finally {
+      setPushLoading(false);
+    }
+  }
 
   useEffect(() => {
     loadNotifications();
@@ -179,11 +211,18 @@ export default function Notifications() {
               Restez informé de toutes vos activités
             </p>
           </div>
-          {unreadCount > 0 && (
-            <Button variant="outline" className="shrink-0" onClick={markAllAsRead}>
-              Tout marquer comme lu
-            </Button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {isPushSupported() && (
+              <Button variant="secondary" className="shrink-0" onClick={enablePush} disabled={pushLoading}>
+                {pushLoading ? 'Activation…' : 'Activer les push'}
+              </Button>
+            )}
+            {unreadCount > 0 && (
+              <Button variant="outline" className="shrink-0" onClick={markAllAsRead}>
+                Tout marquer comme lu
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Stats */}

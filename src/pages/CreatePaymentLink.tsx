@@ -10,6 +10,7 @@ import { useProvider } from "@/contexts/ProviderContext";
 import { useToast } from "@/hooks/use-toast";
 import { copyToClipboard } from "@/lib/clipboard";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeCurrency } from "@/lib/currency";
 
 const COUNTRIES = [
   { code: "BJ", name: "Bénin", prefix: "+229" },
@@ -53,11 +54,16 @@ const CreatePaymentLink = () => {
       }
 
       const country = COUNTRIES.find((c) => c.code === formData.countryCode);
+      const linkCurrency = normalizeCurrency(currency || "FCFA");
+      const linkAmount = parseFloat(formData.amount);
+      if (!Number.isFinite(linkAmount) || linkAmount <= 0) {
+        throw new Error("Montant invalide");
+      }
       const insertData = {
         link_id: newLinkId,
         provider_id: user.id,
-        amount: parseFloat(formData.amount),
-        currency,
+        amount: linkAmount,
+        currency: linkCurrency,
         description: formData.description,
         delivery_days: parseInt(formData.deliveryDays),
         client_name: formData.clientName || null,
@@ -66,6 +72,11 @@ const CreatePaymentLink = () => {
           : null,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       };
+
+      console.log("[CreatePaymentLink] insert", {
+        amount: insertData.amount,
+        currency: insertData.currency,
+      });
 
       const { error } = await supabase.from("payment_links").insert(insertData).select();
 

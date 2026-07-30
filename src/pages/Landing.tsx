@@ -89,126 +89,183 @@ const Landing = () => {
 
 
       {/* Hero */}
-
-      <section className="relative pt-28 pb-20 lg:pt-36 lg:pb-28">
-
+      <section className="relative overflow-hidden bg-[hsl(var(--fidexa-navy))] pt-24 pb-16 text-white lg:pt-28 lg:pb-24">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 20% 20%, hsl(152 62% 44% / 0.35), transparent 55%), radial-gradient(ellipse 70% 50% at 90% 80%, hsl(213 58% 35% / 0.8), transparent 50%)',
+          }}
+        />
         <div className="container relative mx-auto px-4">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-[hsl(var(--fidexa-green-light))]"
+              >
+                FidexaPay
+              </motion.p>
+              <motion.h1
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55 }}
+                className="mb-5 text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl"
+              >
+                Payer et livrer en toute sérénité
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08 }}
+                className="mb-8 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
+              >
+                Escrow + Mobile Money : le client paie en sécurité, les fonds sont séquestrés, le prestataire est payé
+                après validation de la livraison — sans compte client obligatoire.
+              </motion.p>
 
-          <div className="mx-auto max-w-4xl text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="mb-8 flex flex-col gap-3 sm:flex-row"
+              >
+                <Button size="lg" className="h-12 bg-[hsl(var(--fidexa-green))] px-8 text-white hover:bg-[hsl(var(--fidexa-green-dark))]" asChild>
+                  <Link to="/auth/signup">
+                    Créer mon compte gratuit
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="h-12 border-white/30 bg-transparent px-8 text-white hover:bg-white/10" asChild>
+                  <a href="#demo">
+                    <Play className="mr-2 h-4 w-4" /> Voir la démo
+                  </a>
+                </Button>
+              </motion.div>
 
-            <motion.h1
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.22 }}
+                className="space-y-5"
+              >
+                <div>
+                  <p className="mb-2 text-xs uppercase tracking-wide text-white/50">Pays couverts</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { flag: '🇧🇯', name: 'Bénin' },
+                      { flag: '🇧🇫', name: 'Burkina' },
+                      { flag: '🇨🇮', name: "Côte d'Ivoire" },
+                      { flag: '🇨🇩', name: 'RD Congo' },
+                      { flag: '🇨🇬', name: 'Congo' },
+                      { flag: '🇲🇱', name: 'Mali' },
+                      { flag: '🇹🇬', name: 'Togo' },
+                    ].map((c) => (
+                      <span
+                        key={c.name}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-white/90"
+                      >
+                        <span className="text-base leading-none">{c.flag}</span>
+                        {c.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
 
-              initial={{ opacity: 0, y: 24 }}
-
-              animate={{ opacity: 1, y: 0 }}
-
-              transition={{ duration: 0.6 }}
-
-              className="mb-6 text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl"
-
-            >
-
-              Le paiement qui protège prestataires & clients
-
-            </motion.h1>
-
-            <motion.p
-
-              initial={{ opacity: 0, y: 20 }}
-
-              animate={{ opacity: 1, y: 0 }}
-
-              transition={{ delay: 0.1 }}
-
-              className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl"
-
-            >
-
-              {SITE.description} Encaissement Mobile Money, fonds séquestrés, libération après validation — sans compte client obligatoire.
-
-            </motion.p>
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-2">
+                    {[
+                      'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=96&h=96&fit=crop&crop=face',
+                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=face',
+                      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=face',
+                      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&h=96&fit=crop&crop=face',
+                      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=96&h=96&fit=crop&crop=face',
+                    ].map((src) => (
+                      <img
+                        key={src}
+                        src={src}
+                        alt=""
+                        className="h-9 w-9 rounded-full border-2 border-[hsl(var(--fidexa-navy))] object-cover"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-sm text-white/75">
+                    <span className="font-semibold text-white">+150 prestataires</span> nous font confiance
+                  </p>
+                </div>
+              </motion.div>
+            </div>
 
             <motion.div
-
-              initial={{ opacity: 0, y: 20 }}
-
-              animate={{ opacity: 1, y: 0 }}
-
-              transition={{ delay: 0.2 }}
-
-              className="flex flex-col items-center justify-center gap-4 sm:flex-row"
-
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.55 }}
+              className="relative"
             >
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm md:p-6">
+                <p className="mb-4 text-sm font-medium text-white/70">Comment FidexaPay protège vos paiements</p>
+                <div className="mb-6 grid gap-3 sm:grid-cols-3">
+                  {[
+                    { step: '1', title: 'Paiement', desc: 'Mobile Money' },
+                    { step: '2', title: 'Escrow', desc: 'Fonds bloqués' },
+                    { step: '3', title: 'Libération', desc: 'Après validation' },
+                  ].map((s) => (
+                    <div key={s.step} className="rounded-xl bg-[hsl(var(--fidexa-navy-dark))]/60 p-3 text-center">
+                      <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--fidexa-green))] text-sm font-bold">
+                        {s.step}
+                      </div>
+                      <p className="text-sm font-semibold">{s.title}</p>
+                      <p className="text-xs text-white/55">{s.desc}</p>
+                    </div>
+                  ))}
+                </div>
 
-              <Button size="lg" className="h-12 px-8" asChild>
+                {/* Carte Afrique simplifiée — pays opérationnels */}
+                <div className="relative mx-auto max-w-sm">
+                  <svg viewBox="0 0 360 400" className="h-auto w-full" aria-label="Afrique — pays FidexaPay">
+                    <path
+                      d="M180 28c22 8 48 18 62 42 14 24 18 48 12 72 8 10 22 28 24 48 2 22-8 40-22 52 6 18 4 40-8 56-14 18-36 28-58 34-10 28-28 52-52 64-18-8-34-22-42-42-16-6-34-18-42-36-8-18-4-40 6-54-14-16-22-36-18-56 4-22 20-38 38-46-4-22 2-48 18-64 18-18 46-28 82-30z"
+                      fill="hsl(213 40% 22%)"
+                      stroke="hsl(213 30% 35%)"
+                      strokeWidth="2"
+                    />
+                    {/* Markers: CI, BJ, TG, BF, ML, CD, CG */}
+                    {[
+                      { x: 128, y: 168, label: "CI" },
+                      { x: 148, y: 172, label: "BJ" },
+                      { x: 158, y: 178, label: "TG" },
+                      { x: 138, y: 148, label: "BF" },
+                      { x: 132, y: 128, label: "ML" },
+                      { x: 198, y: 248, label: "CD" },
+                      { x: 178, y: 238, label: "CG" },
+                    ].map((m) => (
+                      <g key={m.label}>
+                        <circle cx={m.x} cy={m.y} r="7" fill="hsl(152 62% 44%)" />
+                        <circle cx={m.x} cy={m.y} r="11" fill="none" stroke="hsl(152 62% 54%)" strokeWidth="1.5" opacity="0.7" />
+                      </g>
+                    ))}
+                  </svg>
+                  <p className="mt-2 text-center text-xs text-white/50">
+                    Zones actives : Afrique de l&apos;Ouest &amp; Congo
+                  </p>
+                </div>
 
-                <Link to="/auth/signup">
-
-                  Créer mon compte gratuit
-
-                  <ArrowRight className="ml-2 h-5 w-5" />
-
-                </Link>
-
-              </Button>
-
-              <Button size="lg" variant="outline" className="h-12 px-8 gap-2" asChild>
-
-                <a href="#demo"><Play className="h-4 w-4" /> Voir la démo</a>
-
-              </Button>
-
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-3">
+                    <p className="text-xs font-semibold text-red-200">Sans FidexaPay</p>
+                    <p className="mt-1 text-xs text-white/65">Litiges, non-paiement, perte de temps et de confiance.</p>
+                  </div>
+                  <div className="rounded-lg border border-[hsl(var(--fidexa-green))]/30 bg-[hsl(var(--fidexa-green))]/10 p-3">
+                    <p className="text-xs font-semibold text-[hsl(var(--fidexa-green-light))]">Avec FidexaPay</p>
+                    <p className="mt-1 text-xs text-white/65">Paiement protégé, livraison validée, fonds libérés.</p>
+                  </div>
+                </div>
+              </div>
             </motion.div>
-
           </div>
-
-
-
-          {/* Stats */}
-
-          <motion.div
-
-            initial={{ opacity: 0, y: 32 }}
-
-            animate={{ opacity: 1, y: 0 }}
-
-            transition={{ delay: 0.3 }}
-
-            className="mx-auto mt-16 grid max-w-3xl grid-cols-3 gap-6 rounded-2xl border border-border bg-card p-6 md:p-8"
-
-          >
-
-            <div className="text-center">
-
-              <p className="text-2xl font-bold text-primary md:text-3xl"><AnimatedCounter value="100" suffix="%" /></p>
-
-              <p className="text-xs text-muted-foreground md:text-sm">Escrow sécurisé</p>
-
-            </div>
-
-            <div className="text-center border-x border-border">
-
-              <p className="text-2xl font-bold text-primary md:text-3xl"><AnimatedCounter value="2" suffix=" min" /></p>
-
-              <p className="text-xs text-muted-foreground md:text-sm">Créer un lien</p>
-
-            </div>
-
-            <div className="text-center">
-
-              <p className="text-2xl font-bold text-primary md:text-3xl"><AnimatedCounter value="0" suffix=" frais" /></p>
-
-              <p className="text-xs text-muted-foreground md:text-sm">Inscription gratuite</p>
-
-            </div>
-
-          </motion.div>
-
         </div>
-
       </section>
-
-
 
       {/* Mission */}
 

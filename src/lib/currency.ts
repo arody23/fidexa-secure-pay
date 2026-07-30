@@ -29,9 +29,17 @@ export const EXCHANGE_RATES_TO_USD: Record<string, number> = Object.fromEntries(
 
 export function normalizeCurrencyCode(currency?: string | null): string {
   if (!currency) return 'FCFA';
-  const upper = currency.toUpperCase();
-  if (upper === 'XOF' || upper === 'XAF') return 'FCFA';
-  return CURRENCY_LABELS[upper] ? upper : upper;
+  const raw = String(currency).trim().toUpperCase();
+  const token = raw.split(/[\s|/,_-]+/)[0] || raw;
+  if (token === 'XOF' || token === 'XAF' || token === 'FCFA') return 'FCFA';
+  if (UNITS_PER_USD[token] || CURRENCY_LABELS[token]) return token;
+  for (const code of Object.keys(UNITS_PER_USD)) {
+    if (raw.includes(code)) {
+      if (code === 'XOF' || code === 'XAF') return 'FCFA';
+      return code;
+    }
+  }
+  return 'FCFA';
 }
 
 export function normalizeCurrency(currency?: string | null): string {

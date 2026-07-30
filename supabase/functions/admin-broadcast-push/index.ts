@@ -56,15 +56,46 @@ Deno.serve(async (req) => {
     if (audience === 'one' && user_id) {
       targetIds = [user_id];
     } else {
-      const { data: subs } = await admin.from('push_subscriptions').select('user_id');
-      targetIds = [...new Set((subs || []).map((s) => s.user_id as string))];
+      const { data: users } = await admin
+        .from('users')
+        .select('id, is_admin, role');
+      targetIds = [
+        ...new Set(
+          (users || [])
+            .filter((u) => u.is_admin !== true && u.role !== 'admin')
+            .map((u) => u.id as string)
+        ),
+      ];
+
+      // Fallback si filtre trop strict
+      if (!targetIds.length) {
+        targetIds = [...new Set((users || []).map((u) => u.id as string))];
+      }
     }
+
+    if (!targetIds.length) {
+      return new Response(
+        JSON.stringify({
+          error: 'Aucun utilisateur cible trouvé',
+          users: 0,
+          pushSent: 0,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: pushRows } = await admin
+      .from('push_subscriptions')
+      .select('user_id')
+      .in('user_id', targetIds);
+    const pushUserIds = new Set((pushRows || []).map((s) => s.user_id as string));
 
     let sentTotal = 0;
     let notifiedUsers = 0;
+    let pushUsers = 0;
 
     for (const uid of targetIds) {
-      await admin.from('notifications').insert({
+      const { error: insertErr } = await admin.from('notifications').insert({
         user_id: uid,
         type: 'system',
         title: title.trim(),
@@ -72,6 +103,14 @@ Deno.serve(async (req) => {
         link: url || '/dashboard/notifications',
         read: false,
       });
+
+      if (insertErr) {
+        console.error('notification insert failed', uid, insertErr.message);
+        continue;
+      }
+      notifiedUsers += 1;
+
+      if (!pushUserIds.has(uid)) continue;
 
       const pushRes = await fetch(`${supabaseUrl}/functions/v1/send-web-push`, {
         method: 'POST',
@@ -91,7 +130,7 @@ Deno.serve(async (req) => {
       if (pushRes.ok) {
         const result = await pushRes.json();
         sentTotal += Number(result.sent || 0);
-        notifiedUsers += 1;
+        if (Number(result.sent || 0) > 0) pushUsers += 1;
       }
     }
 
@@ -100,6 +139,12 @@ Deno.serve(async (req) => {
         success: true,
         users: notifiedUsers,
         pushSent: sentTotal,
+        pushUsers,
+        pushSubscribers: pushUserIds.size,
+        warning:
+          pushUserIds.size === 0
+            ? 'Aucun abonnement push enregistré. Les notifications in-app ont bien été créées — les utilisateurs doivent autoriser les notifications dans l’app.'
+            : undefined,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

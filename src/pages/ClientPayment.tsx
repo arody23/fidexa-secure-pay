@@ -57,6 +57,7 @@ interface Provider {
   avatar_url: string | null;
   rating?: number;
   currency?: string;
+  bio?: string | null;
 }
 
 const ClientPayment = () => {
@@ -113,7 +114,7 @@ const ClientPayment = () => {
         // Charger les infos du prestataire séparément
         const { data: providerData, error: providerError } = await supabase
           .from("users")
-          .select("full_name, avatar_url, currency, rating")
+          .select("full_name, avatar_url, currency, rating, bio")
           .eq("id", (data as any).provider_id)
           .single();
 
@@ -494,7 +495,7 @@ const ClientPayment = () => {
                       {provider?.full_name?.charAt(0).toUpperCase() || '?'}
                     </div>
                   )}
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <h2 className="font-display text-xl font-bold">
                       {provider?.full_name || 'Prestataire'}
                     </h2>
@@ -508,6 +509,11 @@ const ClientPayment = () => {
                     </div>
                   </div>
                 </div>
+                {provider?.bio?.trim() ? (
+                  <p className="mt-4 border-t border-border pt-4 text-sm leading-relaxed text-muted-foreground">
+                    {provider.bio.trim()}
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
           </motion.div>

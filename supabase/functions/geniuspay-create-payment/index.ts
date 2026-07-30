@@ -59,9 +59,17 @@ Deno.serve(async (req) => {
     }
 
     const currency = await resolveLinkCurrency(supabase, link);
+    console.log('[GeniusPay] create-payment input', {
+      linkId,
+      dbAmount: link.amount,
+      dbCurrency: link.currency,
+      resolvedCurrency: currency,
+    });
+
     const converted = amountForGeniusPay(Number(link.amount), currency);
     const siteOrigin = (origin || 'http://localhost:5173').replace(/\/$/, '');
 
+    // GeniusPay = XOF uniquement. Montant API = amountXof (même valeur que metadata).
     const payload = {
       amount: converted.amountXof,
       currency: 'XOF',
@@ -78,10 +86,20 @@ Deno.serve(async (req) => {
       metadata: {
         link_id: link.link_id,
         payment_link_id: link.id,
-        original_amount: converted.originalAmount,
+        original_amount: String(converted.originalAmount),
         original_currency: converted.originalCurrency,
+        amount_xof: String(converted.amountXof),
+        rate_used: converted.rateUsed,
       },
     };
+
+    console.log('[GeniusPay] payload envoyé', {
+      amount: payload.amount,
+      currency: payload.currency,
+      originalAmount: converted.originalAmount,
+      originalCurrency: converted.originalCurrency,
+      rateUsed: converted.rateUsed,
+    });
 
     const gpRes = await fetch(`${getGeniusPayBaseUrl()}/payments`, {
       method: 'POST',
