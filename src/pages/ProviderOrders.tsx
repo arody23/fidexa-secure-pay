@@ -29,6 +29,7 @@ export default function ProviderOrders() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [disputeResponses, setDisputeResponses] = useState<Record<string, string>>({});
   const [existingResponses, setExistingResponses] = useState<Record<string, string>>({});
+  const [refundRequestIds, setRefundRequestIds] = useState<Record<string, string>>({});
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
   const copyPaymentLink = async (linkId: string) => {
@@ -71,20 +72,38 @@ export default function ProviderOrders() {
     const disputedIds = orders.filter((o) => o.order_status === 'disputed').map((o) => o.id);
     if (disputedIds.length === 0) return;
 
-    supabase
-      .from('disputes')
-      .select('payment_link_id, provider_response')
-      .in('payment_link_id', disputedIds)
-      .eq('status', 'open')
-      .then(({ data }) => {
-        const map: Record<string, string> = {};
-        (data || []).forEach((d) => {
-          if (d.payment_link_id && d.provider_response) {
-            map[d.payment_link_id] = d.provider_response;
-          }
-        });
-        setExistingResponses(map);
+    void (async () => {
+      const map: Record<string, string> = {};
+      const refundMap: Record<string, string> = {};
+
+      const { data: refunds } = await supabase
+        .from('refund_requests' as never)
+        .select('id, payment_link_id, provider_statement, status')
+        .in('payment_link_id', disputedIds)
+        .in('status', ['pending', 'awaiting_provider', 'awaiting_client', 'under_review']);
+
+      (refunds as { id: string; payment_link_id: string; provider_statement: string | null }[] | null)?.forEach(
+        (r) => {
+          refundMap[r.payment_link_id] = r.id;
+          if (r.provider_statement) map[r.payment_link_id] = r.provider_statement;
+        }
+      );
+
+      const { data } = await supabase
+        .from('disputes')
+        .select('payment_link_id, provider_response')
+        .in('payment_link_id', disputedIds)
+        .eq('status', 'open');
+
+      (data || []).forEach((d) => {
+        if (d.payment_link_id && d.provider_response && !map[d.payment_link_id]) {
+          map[d.payment_link_id] = d.provider_response;
+        }
       });
+
+      setRefundRequestIds(refundMap);
+      setExistingResponses(map);
+    })();
   }, [orders]);
 
   const handleStartOrder = async (linkId: string) => {
@@ -139,10 +158,10 @@ export default function ProviderOrders() {
 
   const handleSubmitDisputeResponse = async (linkId: string, orderId: string) => {
     const response = disputeResponses[orderId]?.trim();
-    if (!response) {
+    if (!response || response.length < 10) {
       toast({
         title: 'Réponse requise',
-        description: 'Décrivez votre version des faits pour aider FidexaPay à trancher',
+        description: 'Décrivez votre version des faits (min. 10 caractères)',
         variant: 'destructive',
       });
       return;
@@ -150,15 +169,26 @@ export default function ProviderOrders() {
 
     try {
       setActionLoading(linkId);
-      const { data, error } = await supabase.rpc('submit_provider_dispute_response', {
-        link_id_param: linkId,
-        response_param: response,
-        evidence_urls_param: [],
-      });
+      const refundId = refundRequestIds[orderId];
 
-      if (error) throw error;
-      const result = typeof data === 'string' ? JSON.parse(data) : data;
-      if (!result?.success) throw new Error(result?.error || 'Erreur');
+      if (refundId) {
+        const { data, error } = await supabase.rpc('respond_refund_request' as never, {
+          request_id_param: refundId,
+          statement_param: response,
+        } as never);
+        if (error) throw error;
+        const result = typeof data === 'string' ? JSON.parse(data) : data;
+        if (!result?.success) throw new Error(result?.error || 'Erreur');
+      } else {
+        const { data, error } = await supabase.rpc('submit_provider_dispute_response', {
+          link_id_param: linkId,
+          response_param: response,
+          evidence_urls_param: [],
+        });
+        if (error) throw error;
+        const result = typeof data === 'string' ? JSON.parse(data) : data;
+        if (!result?.success) throw new Error(result?.error || 'Erreur');
+      }
 
       toast({
         title: 'Réponse envoyée',
@@ -169,7 +199,7 @@ export default function ProviderOrders() {
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Impossible d\'envoyer la réponse',
+        description: error instanceof Error ? error.message : "Impossible d'envoyer la réponse",
         variant: 'destructive',
       });
     } finally {
@@ -294,11 +324,16 @@ export default function ProviderOrders() {
                     <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
                       <div className="flex items-center gap-2 text-destructive">
                         <Scale className="h-5 w-5" />
-                        <p className="font-semibold">Litige en cours — votre réponse est requise</p>
+                        <p className="font-semibold">
+                          {refundRequestIds[order.id]
+                            ? "Demande d'annulation / remboursement"
+                            : 'Litige en cours — votre réponse est requise'}
+                        </p>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Le client a signalé un problème. Décrivez précisément ce qui s&apos;est passé,
-                        les preuves de livraison, et tout élément utile pour que FidexaPay tranche équitablement.
+                        {refundRequestIds[order.id]
+                          ? "Le client demande l'annulation avant démarrage. Donnez votre version des faits ; FidexaPay appliquera la politique de remboursement."
+                          : "Le client a signalé un problème. Décrivez précisément ce qui s'est passé pour que FidexaPay tranche équitablement."}
                       </p>
                       {existingResponses[order.id] ? (
                         <div className="rounded-md border bg-background p-3 text-sm">

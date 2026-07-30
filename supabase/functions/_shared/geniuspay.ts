@@ -37,15 +37,15 @@ export function getGeniusPayHeaders(): Record<string, string> {
 /**
  * Taux indicatifs (affichage / payouts uniquement).
  * Encaissement : GeniusPay convertit automatiquement (USD/EUR/CDF → XOF).
- * Taux marché fourni : 1 USD ≈ 571.85 XOF.
+ * Aligné doc GeniusPay : 1 USD ≈ 600 XOF.
  */
 const UNITS_PER_USD: Record<string, number> = {
   USD: 1,
   EUR: 0.92,
   GBP: 0.79,
-  XOF: 571.85,
-  XAF: 571.85,
-  FCFA: 571.85,
+  XOF: 600,
+  XAF: 600,
+  FCFA: 600,
   CDF: 2850,
 };
 

@@ -77,9 +77,9 @@ export function Profile() {
   };
 
   const handleCountryChange = (value: string) => {
-    // Auto-sélectionner la devise selon le pays
     const countryData = COUNTRIES_DATA[value as keyof typeof COUNTRIES_DATA];
-    const currency = countryData?.currency || 'FCFA';
+    // Devise du pays par défaut (RDC → CDF, CI → XOF, etc.) — pas de CFA forcé pour la RDC
+    const currency = countryData?.currency || 'CDF';
     setFormData(prev => ({ ...prev, country: value, currency }));
   };
 
@@ -341,16 +341,31 @@ export function Profile() {
                 <SelectValue placeholder="Sélectionnez votre devise" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="CDF">CDF — Franc congolais</SelectItem>
-                <SelectItem value="XAF">XAF — Franc CFA BEAC</SelectItem>
-                <SelectItem value="XOF">XOF — Franc CFA WAEMU</SelectItem>
-                <SelectItem value="FCFA">FCFA — Franc CFA</SelectItem>
+                {formData.country === 'CD' && (
+                  <SelectItem value="CDF">CDF — Franc congolais (devise pays)</SelectItem>
+                )}
+                {(formData.country === 'CG' || formData.country === 'CM' || formData.country === 'GA') && (
+                  <SelectItem value="XAF">XAF — Franc CFA BEAC (devise pays)</SelectItem>
+                )}
+                {(formData.country === 'CI' || formData.country === 'SN' || formData.country === 'BF' || formData.country === 'BJ' || formData.country === 'TG' || formData.country === 'ML' || formData.country === 'NE') && (
+                  <SelectItem value="XOF">XOF — Franc CFA WAEMU (devise pays)</SelectItem>
+                )}
+                {!['CD', 'CG', 'CM', 'GA', 'CI', 'SN', 'BF', 'BJ', 'TG', 'ML', 'NE'].includes(formData.country) && (
+                  <>
+                    <SelectItem value="CDF">CDF — Franc congolais</SelectItem>
+                    <SelectItem value="XAF">XAF — Franc CFA BEAC</SelectItem>
+                    <SelectItem value="XOF">XOF — Franc CFA WAEMU</SelectItem>
+                    <SelectItem value="FCFA">FCFA — Franc CFA</SelectItem>
+                  </>
+                )}
                 <SelectItem value="USD">USD — Dollar américain</SelectItem>
                 <SelectItem value="EUR">EUR — Euro</SelectItem>
               </SelectContent>
             </Select>
-            <p className="mt-1 text-xs text-gray-500">
-              Cette devise sera utilisée pour tous vos paiements
+            <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+              Changer de devise convertit tous les soldes et montants affichés (taux pivot USD).
+              Ex. 800 000 CDF → environ {(800000 / 2850).toFixed(0)} USD. Ne change pas l&apos;historique
+              des montants encaissés dans leur devise d&apos;origine.
             </p>
           </div>
 

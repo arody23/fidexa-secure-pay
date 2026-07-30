@@ -20,7 +20,6 @@ import {
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 import NotificationBell from "@/components/NotificationBell";
-import PwaInstallPrompt from "@/components/layout/PwaInstallPrompt";
 import PushNotificationPrompt from "@/components/layout/PushNotificationPrompt";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -175,7 +174,6 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
       )}
 
       <main className="min-h-screen overflow-x-hidden pt-14 sm:pt-16 lg:ml-64 lg:pt-0">
-        <PwaInstallPrompt />
         <PushNotificationPrompt />
         <div className="mx-auto w-full max-w-6xl p-3 sm:p-4 lg:p-8">{children}</div>
       </main>

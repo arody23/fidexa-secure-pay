@@ -16,10 +16,10 @@ export const UNITS_PER_USD: Record<string, number> = {
   USD: 1,
   EUR: 0.92,
   GBP: 0.79,
-  /** Taux marché ~ Juillet 2026 (indicatif UI uniquement — GeniusPay convertit à l'encaissement) */
-  XOF: 571.85,
-  XAF: 571.85,
-  FCFA: 571.85,
+  /** Aligné doc GeniusPay : 1 USD ≈ 600 XOF (conversion marchand) */
+  XOF: 600,
+  XAF: 600,
+  FCFA: 600,
   CDF: 2850,
 };
 
@@ -69,6 +69,35 @@ export function convertToUSD(amount: number, currency?: string | null): number {
   const key = currencyKey(currency);
   const units = UNITS_PER_USD[key] ?? UNITS_PER_USD.USD;
   return Number(amount) / units;
+}
+
+/** Convertit un montant d'une devise vers une autre (pivot USD). */
+export function convertAmount(
+  amount: number,
+  fromCurrency?: string | null,
+  toCurrency?: string | null
+): number {
+  const from = currencyKey(fromCurrency);
+  const to = currencyKey(toCurrency);
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return 0;
+  if (from === to) return n;
+  const usd = n / (UNITS_PER_USD[from] ?? 1);
+  const out = usd * (UNITS_PER_USD[to] ?? 1);
+  return to === 'USD' || to === 'EUR' || to === 'GBP'
+    ? Math.round(out * 100) / 100
+    : Math.round(out * 100) / 100;
+}
+
+/** Affiche un montant de lien dans la devise du profil prestataire. */
+export function formatLinkAmount(
+  amount: number,
+  linkCurrency: string | null | undefined,
+  displayCurrency: string | null | undefined,
+  locale = 'fr-FR'
+): string {
+  const converted = convertAmount(amount, linkCurrency, displayCurrency);
+  return formatAmount(converted, displayCurrency, locale);
 }
 
 /** Estimation indicative XOF — la conversion réelle est faite par GeniusPay (USD/EUR/CDF). */

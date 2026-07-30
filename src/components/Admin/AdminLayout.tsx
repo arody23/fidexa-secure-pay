@@ -17,6 +17,7 @@ import {
   Banknote,
   Bell,
   MessageSquareQuote,
+  Undo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,6 +49,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/feedback', label: 'Feedback', icon: MessageSquareQuote },
     { href: '/admin/escrow', label: 'Escrow', icon: Shield },
     { href: '/admin/disputes', label: 'Litiges', icon: Scale },
+    { href: '/admin/refunds', label: 'Remboursements', icon: Undo2 },
     { href: '/admin/orders', label: 'Commandes', icon: Package },
     { href: '/admin/support', label: 'Support', icon: MessageCircle },
   ];

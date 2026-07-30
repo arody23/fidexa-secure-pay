@@ -488,11 +488,14 @@ export default function OrderTracker({
 
       setLoading(true);
 
-      const { data, error } = await supabase.rpc('cancel_order', {
+      // Demande de remboursement (pas de refund auto) — admin + versions des deux parties
+      const { data, error } = await supabase.rpc('request_cancel_refund', {
 
         link_id_param: linkId,
 
         reason_param: cancelReason,
+
+        actor_role: 'client',
 
       });
 
@@ -502,7 +505,12 @@ export default function OrderTracker({
 
       if (result.success) {
 
-        toast({ title: 'Commande annulée', description: result.message });
+        toast({
+          title: 'Demande envoyée',
+          description:
+            result.message ||
+            'Le prestataire et FidexaPay examineront le dossier avant tout remboursement.',
+        });
 
         onStatusUpdate();
 
@@ -678,9 +686,13 @@ export default function OrderTracker({
 
               <DialogHeader>
 
-                <DialogTitle>Annuler la commande</DialogTitle>
+                <DialogTitle>Demander l&apos;annulation</DialogTitle>
 
-                <DialogDescription>Remboursement si le travail n&apos;a pas commencé.</DialogDescription>
+                <DialogDescription>
+                  Ceci ouvre une demande de remboursement. Vous et le prestataire devez chacun donner
+                  votre version des faits ; FidexaPay applique ensuite la politique de remboursement
+                  (aucun remboursement automatique).
+                </DialogDescription>
 
               </DialogHeader>
 
@@ -696,10 +708,12 @@ export default function OrderTracker({
 
               />
 
-              <Button onClick={handleCancel} disabled={loading || !cancelReason.trim()} variant="destructive">
-
-                Confirmer
-
+              <Button
+                onClick={handleCancel}
+                disabled={loading || cancelReason.trim().length < 10}
+                variant="destructive"
+              >
+                Envoyer la demande
               </Button>
 
             </DialogContent>

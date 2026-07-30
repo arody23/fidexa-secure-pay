@@ -13,7 +13,7 @@ import {
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { useProvider } from "@/contexts/ProviderContext";
 import { useProviderPaymentLinks } from "@/hooks/useProviderPaymentLinks";
-import { formatAmount } from "@/lib/currency";
+import { formatAmount, convertAmount } from "@/lib/currency";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,6 +23,7 @@ interface Order {
   client_name: string;
   client_email: string;
   amount: number;
+  currency?: string;
   status: OrderStatus;
   order_status?: string;
   created_at: string;
@@ -59,6 +60,7 @@ const Orders = () => {
         client_name: (link.client_name as string) || "Client",
         client_email: (link.client_email as string) || "N/A",
         amount: link.amount as number,
+        currency: (link.currency as string) || undefined,
         status: (link.status || "pending") as OrderStatus,
         order_status: link.order_status as string | undefined,
         created_at: link.created_at as string,
@@ -227,7 +229,10 @@ const Orders = () => {
                     </div>
                     <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
                       <p className="text-base font-semibold sm:text-lg">
-                        {formatAmount(order.amount, currency)}
+                        {formatAmount(
+                          convertAmount(order.amount, order.currency || currency, currency),
+                          currency
+                        )}
                       </p>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -281,7 +286,16 @@ const Orders = () => {
               </div>
               <div className="flex justify-between gap-2">
                 <span className="text-muted-foreground">Montant</span>
-                <span className="font-semibold">{formatAmount(selectedOrder.amount, currency)}</span>
+                <span className="font-semibold">
+                  {formatAmount(
+                    convertAmount(
+                      selectedOrder.amount,
+                      selectedOrder.currency || currency,
+                      currency
+                    ),
+                    currency
+                  )}
+                </span>
               </div>
               <div className="flex justify-between gap-2">
                 <span className="text-muted-foreground">Statut</span>

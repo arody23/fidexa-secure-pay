@@ -27,6 +27,7 @@ import AdminDashboard from "./pages/Admin/Dashboard";
 import AdminUsers from "./pages/Admin/Users";
 import AdminTransactions from "./pages/Admin/AdminTransactions";
 import AdminDisputes from "./pages/Admin/Disputes";
+import AdminRefunds from "./pages/Admin/Refunds";
 import AdminKYC from "./pages/Admin/KYC";
 import AdminSupport from "./pages/Admin/Support";
 import AdminOrders from "./pages/Admin/Orders";
@@ -60,6 +61,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <CookieConsent />
+          <PwaInstallPrompt />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth/signin" element={<SignIn />} />
@@ -99,6 +101,7 @@ const App = () => (
             <Route path="users" element={<AdminUsers />} />
             <Route path="transactions" element={<AdminTransactions />} />
             <Route path="disputes" element={<AdminDisputes />} />
+            <Route path="refunds" element={<AdminRefunds />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="kyc" element={<AdminKYC />} />
             <Route path="support" element={<AdminSupport />} />

@@ -10,6 +10,12 @@ precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 clientsClaim();
 
+self.addEventListener('message', (event: ExtendableMessageEvent) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    void self.skipWaiting();
+  }
+});
+
 self.addEventListener('push', (event: PushEvent) => {
   let payload: { title?: string; body?: string; url?: string } = {
     title: 'FidexaPay',

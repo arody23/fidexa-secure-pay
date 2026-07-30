@@ -17,7 +17,7 @@ import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useProvider } from "@/contexts/ProviderContext";
 import { useProviderPaymentLinks } from "@/hooks/useProviderPaymentLinks";
-import { formatAmount } from "@/lib/currency";
+import { formatAmount, convertAmount } from "@/lib/currency";
 
 interface PaymentLink {
   id: string;
@@ -25,6 +25,7 @@ interface PaymentLink {
   client_name: string;
   client_email: string;
   amount: number;
+  currency?: string;
   status: OrderStatus;
   created_at: string;
   is_paid: boolean;
@@ -54,6 +55,7 @@ const Dashboard = () => {
         client_name: (link.client_name as string) || "Client",
         client_email: (link.client_email as string) || "",
         amount: link.amount as number,
+        currency: (link.currency as string) || undefined,
         status: (link.status || "pending") as OrderStatus,
         created_at: link.created_at as string,
         is_paid: Boolean(link.is_paid),
@@ -96,7 +98,9 @@ const Dashboard = () => {
     const paidLinks = paymentLinks.filter((l) => l.is_paid);
     const releasedLinks = paidLinks.filter((l) => l.escrow_released === true);
     const monthlyVolume = releasedLinks.reduce(
-      (sum, l) => sum + (l.net_amount || l.amount),
+      (sum, l) =>
+        sum +
+        convertAmount(l.net_amount || l.amount, l.currency || currency, currency),
       0
     );
 
@@ -119,7 +123,7 @@ const Dashboard = () => {
       ),
       monthlyVolume,
     };
-  }, [paymentLinks, disputedLinkIds]);
+  }, [paymentLinks, disputedLinkIds, currency]);
 
   if (loading) {
     return (
@@ -261,7 +265,10 @@ const Dashboard = () => {
                   </div>
                   <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
                     <p className="font-semibold">
-                      {formatAmount(link.amount, currency)}
+                      {formatAmount(
+                        convertAmount(link.amount, link.currency || currency, currency),
+                        currency
+                      )}
                     </p>
                     <StatusBadge
                       status={

@@ -30,6 +30,7 @@ export default function CookieConsent() {
     const consent: Consent = { essential: true, analytics: a, marketing: m, ts: Date.now() };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(consent));
     setVisible(false);
+    window.dispatchEvent(new CustomEvent('fidexapay:cookie-consent', { detail: consent }));
   };
 
   if (!visible) return null;

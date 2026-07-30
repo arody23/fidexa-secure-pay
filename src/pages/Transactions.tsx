@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Search, TrendingUp, DollarSign, Clock, AlertCircle } from 'lucide-react';
 import { useProvider } from '@/contexts/ProviderContext';
 import { useProviderPaymentLinks } from '@/hooks/useProviderPaymentLinks';
-import { formatAmount } from '@/lib/currency';
+import { formatAmount, convertAmount } from '@/lib/currency';
 
 interface Transaction {
   id: string;
@@ -14,6 +14,7 @@ interface Transaction {
   client_name: string;
   client_email: string;
   amount: number;
+  currency?: string;
   net_amount?: number;
   escrow_released?: boolean;
   status: string;
@@ -35,6 +36,7 @@ export default function Transactions() {
         client_name: (link.client_name as string) || 'Client',
         client_email: (link.client_email as string) || 'N/A',
         amount: (link.amount as number) || 0,
+        currency: (link.currency as string) || undefined,
         net_amount: link.net_amount as number | undefined,
         escrow_released: link.escrow_released as boolean | undefined,
         status: (link.status as string) || 'pending',
@@ -71,7 +73,8 @@ export default function Transactions() {
     (t) => t.is_paid && t.escrow_released === true
   );
   const totalRevenue = releasedTransactions.reduce(
-    (sum, t) => sum + (t.net_amount || t.amount),
+    (sum, t) =>
+      sum + convertAmount(t.net_amount || t.amount, t.currency || currency, currency),
     0
   );
   const paidCount = transactions.filter((t) => t.is_paid).length;
@@ -197,7 +200,14 @@ export default function Transactions() {
                     </div>
                   </div>
                   <div className="text-right font-semibold">
-                    {formatAmount(transaction.amount, currency)}
+                    {formatAmount(
+                      convertAmount(
+                        transaction.amount,
+                        transaction.currency || currency,
+                        currency
+                      ),
+                      currency
+                    )}
                   </div>
                 </div>
               ))}

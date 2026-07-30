@@ -5,6 +5,8 @@ import { SITE } from '@/config/site';
 
 const DISMISS_KEY = 'fidexapay_pwa_prompt_dismissed';
 const SESSION_DISMISS_KEY = 'fidexapay_pwa_prompt_session';
+const COOKIE_KEY = 'fidexapay_cookie_consent';
+const DELAY_MS = 5000;
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -26,12 +28,19 @@ function isAndroid() {
   return /android/i.test(navigator.userAgent);
 }
 
-/** Popup install PWA — s'affiche automatiquement sur le dashboard */
+function hasCookieConsent() {
+  return Boolean(localStorage.getItem(COOKIE_KEY));
+}
+
+/**
+ * Popup install PWA — global, ~5s après acceptation cookies.
+ * Bouton « Télécharger » déclenche beforeinstallprompt quand disponible.
+ */
 export default function PwaInstallPrompt() {
   const deferredRef = useRef<BeforeInstallPromptEvent | null>(null);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
-  const [needsManual, setNeedsManual] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return;
@@ -40,24 +49,38 @@ export default function PwaInstallPrompt() {
 
     const handler = (e: Event) => {
       e.preventDefault();
-      deferredRef.current = e as BeforeInstallPromptEvent;
-      setDeferred(e as BeforeInstallPromptEvent);
-      setNeedsManual(false);
-      setVisible(true);
+      const ev = e as BeforeInstallPromptEvent;
+      deferredRef.current = ev;
+      setDeferred(ev);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    const autoTimer = window.setTimeout(() => {
-      if (deferredRef.current || isStandalone()) return;
-      // Android Chrome / iOS : afficher les instructions même sans beforeinstallprompt
-      setNeedsManual(true);
-      setVisible(true);
-    }, 1800);
+    let timer: number | undefined;
+
+    const schedule = () => {
+      if (timer) window.clearTimeout(timer);
+      if (!hasCookieConsent()) return;
+      if (isStandalone()) return;
+      if (localStorage.getItem(DISMISS_KEY) === 'permanent') return;
+      if (sessionStorage.getItem(SESSION_DISMISS_KEY)) return;
+
+      timer = window.setTimeout(() => {
+        if (isStandalone()) return;
+        setVisible(true);
+      }, DELAY_MS);
+    };
+
+    const onCookie = () => schedule();
+    window.addEventListener('fidexapay:cookie-consent', onCookie);
+
+    // Cookie déjà accepté (visite suivante)
+    schedule();
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
-      window.clearTimeout(autoTimer);
+      window.removeEventListener('fidexapay:cookie-consent', onCookie);
+      if (timer) window.clearTimeout(timer);
     };
   }, []);
 
@@ -69,10 +92,22 @@ export default function PwaInstallPrompt() {
   };
 
   const install = async () => {
-    if (!deferred) return;
-    await deferred.prompt();
-    await deferred.userChoice;
-    dismiss('permanent');
+    const promptEvent = deferred || deferredRef.current;
+    if (!promptEvent) {
+      // Pas d'API native : instructions restent visibles
+      return;
+    }
+    try {
+      setInstalling(true);
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      if (choice.outcome === 'accepted') dismiss('permanent');
+      else dismiss('session');
+    } finally {
+      setInstalling(false);
+      setDeferred(null);
+      deferredRef.current = null;
+    }
   };
 
   if (!visible) return null;
@@ -82,6 +117,8 @@ export default function PwaInstallPrompt() {
     : isAndroid()
     ? "Sur Android Chrome : menu ⋮ → « Installer l'application » ou « Ajouter à l'écran d'accueil »."
     : "Ajoutez FidexaPay à votre écran d'accueil pour un accès rapide.";
+
+  const canNativeInstall = Boolean(deferred || deferredRef.current);
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-[90] md:bottom-6 md:left-auto md:right-6 md:max-w-sm">
@@ -101,13 +138,13 @@ export default function PwaInstallPrompt() {
           </button>
         </div>
         <div className="mt-3 flex gap-2">
-          {deferred && !needsManual ? (
-            <Button size="sm" className="flex-1 gap-2" onClick={install}>
+          {canNativeInstall ? (
+            <Button size="sm" className="flex-1 gap-2" onClick={install} disabled={installing}>
               <Download className="h-4 w-4" />
-              Télécharger
+              {installing ? 'Installation…' : 'Télécharger'}
             </Button>
           ) : (
-            <Button size="sm" className="flex-1 gap-2" onClick={() => dismiss('session')}>
+            <Button size="sm" className="flex-1 gap-2" variant="secondary" onClick={() => dismiss('session')}>
               <Share className="h-4 w-4" />
               Compris
             </Button>
