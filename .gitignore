@@ -11,6 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+deploy-*.txt
+secrets-out.txt
+build-out.txt
+migrate-*.txt
+vercel-whoami.txt
+dev-dist/
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*

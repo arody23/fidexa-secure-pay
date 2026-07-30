@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Syne', 'sans-serif'],
+        display: ['Inter', 'sans-serif'],
         body: ['Lato', 'sans-serif'],
       },
       colors: {

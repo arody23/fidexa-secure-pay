@@ -1,13 +1,13 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/lato/400.css';
+@import '@fontsource/lato/700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import '@fontsource/syne/400.css';
-@import '@fontsource/syne/600.css';
-@import '@fontsource/syne/700.css';
-@import '@fontsource/syne/800.css';
-@import '@fontsource/lato/400.css';
-@import '@fontsource/lato/700.css';
 
 @layer base {
   :root {
@@ -88,7 +88,7 @@
     --shadow-glow: 0 0 30px hsl(152 62% 44% / 0.3);
     
     /* Typography */
-    --font-display: 'Syne', sans-serif;
+    --font-display: 'Inter', sans-serif;
     --font-body: 'Lato', sans-serif;
 
     --sidebar-background: 220 33% 98%;
@@ -177,8 +177,7 @@
   }
   
   .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background: var(--gradient-primary);
+    @apply text-primary;
   }
 }
 

@@ -1,499 +1,561 @@
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { motion, useInView } from 'framer-motion';
+
+import { useRef } from 'react';
+
+import { Link } from 'react-router-dom';
+
 import {
+
   Shield,
-  CreditCard,
+
+  Smartphone,
+
   Users,
-  CheckCircle,
+
   ArrowRight,
-  Star,
+
+  CheckCircle,
+
+  Play,
+
   Lock,
+
   Zap,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import Logo from "@/components/Logo";
 
-const features = [
-  {
-    icon: Shield,
-    title: "Paiement Séquestré",
-    description:
-      "Vos fonds sont protégés jusqu'à la validation de la livraison. Sécurité garantie.",
-  },
-  {
-    icon: CreditCard,
-    title: "Transactions Simples",
-    description:
-      "Créez des liens de paiement en 30 secondes et partagez-les partout.",
-  },
-  {
-    icon: Users,
-    title: "Sans Compte Client",
-    description:
-      "Vos clients paient et suivent leurs commandes sans créer de compte.",
-  },
-  {
-    icon: CheckCircle,
-    title: "Validation Automatique",
-    description:
-      "Le paiement est libéré automatiquement après validation de la livraison.",
-  },
-];
+  TrendingUp,
 
-const plans = [
-  {
-    name: "Basique",
-    price: "Gratuit",
-    commission: "15%",
-    features: ["Commandes illimitées", "Liens de paiement", "Support email"],
-    highlight: false,
-  },
-  {
-    name: "Essentiel",
-    price: "15$",
-    period: "/mois",
-    commission: "6%",
-    features: [
-      "20 commandes/mois",
-      "Profil complet",
-      "Notifications automatiques",
-      "Feedback clients",
-    ],
-    highlight: false,
-  },
-  {
-    name: "Standard",
-    price: "29$",
-    period: "/mois",
-    commission: "4%",
-    features: [
-      "40 commandes/mois",
-      "Support prioritaire",
-      "Historique complet",
-      "Plafond 5k-20k",
-    ],
-    highlight: true,
-  },
-  {
-    name: "Premium",
-    price: "49$",
-    period: "/mois",
-    commission: "0%",
-    features: [
-      "Commandes illimitées",
-      "0% commission",
-      "Support dédié",
-      "API access",
-    ],
-    highlight: false,
-  },
-];
+  Globe,
 
-const testimonials = [
-  {
-    name: "Marie K.",
-    role: "Artisane",
-    content:
-      "FIDEXA a transformé ma façon de vendre. Mes clients ont confiance et je suis payée en toute sécurité.",
-    rating: 5,
-  },
-  {
-    name: "Jean-Pierre M.",
-    role: "Consultant",
-    content:
-      "Simple, efficace, professionnel. Je recommande à tous les indépendants.",
-    rating: 5,
-  },
-  {
-    name: "Amina D.",
-    role: "E-commerçante",
-    content:
-      "Le suivi des commandes sans compte client est génial. Mes ventes ont augmenté de 40%.",
-    rating: 5,
-  },
-];
+} from 'lucide-react';
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
+import { Button } from '@/components/ui/button';
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
+import { Card, CardContent } from '@/components/ui/card';
+
+import Logo from '@/components/Logo';
+
+import SiteFooter from '@/components/layout/SiteFooter';
+
+import { MVP_SUBSCRIPTION, SITE } from '@/config/site';
+
+
+
+function AnimatedCounter({ value, suffix = '' }: { value: string; suffix?: string }) {
+
+  const ref = useRef(null);
+
+  const inView = useInView(ref, { once: true });
+
+  return (
+
+    <motion.span ref={ref} initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : {}}>
+
+      {value}{suffix}
+
+    </motion.span>
+
+  );
+
+}
+
+
 
 const Landing = () => {
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+
+    <div className="min-h-screen bg-background overflow-x-hidden">
+
+      {/* Nav */}
+
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Logo showSlogan={false} />
+
+          <Logo />
+
           <div className="hidden items-center gap-8 md:flex">
-            <a
-              href="#features"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Fonctionnalités
-            </a>
-            <a
-              href="#pricing"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Tarifs
-            </a>
-            <a
-              href="#testimonials"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Témoignages
-            </a>
+
+            <a href="#mission" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Mission</a>
+
+            <a href="#demo" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Démo</a>
+
+            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Processus</a>
+
+            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Tarifs</a>
+
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild>
-              <Link to="/auth">Connexion</Link>
-            </Button>
-            <Button variant="hero" asChild>
-              <Link to="/auth">Commencer</Link>
-            </Button>
+
+          <div className="flex items-center gap-2">
+
+            <Button variant="ghost" size="sm" asChild><Link to="/auth/signin">Connexion</Link></Button>
+
+            <Button size="sm" asChild><Link to="/auth/signup">Commencer</Link></Button>
+
           </div>
+
         </div>
+
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-32 pb-20 lg:pt-40 lg:pb-32">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
-        <div className="absolute top-1/4 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-        
+
+
+      {/* Hero */}
+
+      <section className="relative pt-28 pb-20 lg:pt-36 lg:pb-28">
+
         <div className="container relative mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mx-auto max-w-4xl text-center"
-          >
-            
-            <h1 className="mb-6 font-display text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
-              Payer et livrer{" "}
-              <span className="text-secondary">en toute sérénité.</span>
-            </h1>
-            
-            <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              La plateforme qui sécurise vos transactions entre prestataires et
-              clients. Paiement séquestré, suivi simplifié, confiance renforcée.
-            </p>
-            
-            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button variant="hero" size="xl" asChild>
-                <Link to="/auth">
-                  Créer mon compte gratuit
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </div>
-            
+
+          <div className="mx-auto max-w-4xl text-center">
+
+            <motion.h1
+
+              initial={{ opacity: 0, y: 24 }}
+
+              animate={{ opacity: 1, y: 0 }}
+
+              transition={{ duration: 0.6 }}
+
+              className="mb-6 text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl"
+
+            >
+
+              Le paiement qui protège prestataires & clients
+
+            </motion.h1>
+
+            <motion.p
+
+              initial={{ opacity: 0, y: 20 }}
+
+              animate={{ opacity: 1, y: 0 }}
+
+              transition={{ delay: 0.1 }}
+
+              className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl"
+
+            >
+
+              {SITE.description} Encaissement Mobile Money, fonds séquestrés, libération après validation — sans compte client obligatoire.
+
+            </motion.p>
+
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="mt-12 flex items-center justify-center gap-8 text-sm text-muted-foreground"
+
+              initial={{ opacity: 0, y: 20 }}
+
+              animate={{ opacity: 1, y: 0 }}
+
+              transition={{ delay: 0.2 }}
+
+              className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+
             >
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" />
-                <span>Setup en 2 min</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                <span>100% sécurisé</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-primary" />
-                <span>4.9/5 avis</span>
-              </div>
+
+              <Button size="lg" className="h-12 px-8" asChild>
+
+                <Link to="/auth/signup">
+
+                  Créer mon compte gratuit
+
+                  <ArrowRight className="ml-2 h-5 w-5" />
+
+                </Link>
+
+              </Button>
+
+              <Button size="lg" variant="outline" className="h-12 px-8 gap-2" asChild>
+
+                <a href="#demo"><Play className="h-4 w-4" /> Voir la démo</a>
+
+              </Button>
+
             </motion.div>
-          </motion.div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 lg:py-32 bg-secondary/30">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-16 text-center"
-          >
-            <h2 className="mb-4 font-display text-3xl font-bold md:text-4xl">
-              Pourquoi choisir FIDEXA?
-            </h2>
-            <p className="mx-auto max-w-2xl text-muted-foreground">
-              Une solution complète pour sécuriser vos transactions et renforcer
-              la confiance avec vos clients.
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
-          >
-            {features.map((feature, index) => (
-              <motion.div key={index} variants={itemVariants}>
-                <Card className="group h-full border-border/50 bg-card hover:border-primary/30 transition-colors duration-300">
-                  <CardContent className="p-6">
-                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                      <feature.icon className="h-6 w-6" />
-                    </div>
-                    <h3 className="mb-2 font-display text-lg font-semibold">
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* How it Works */}
-      <section className="py-20 lg:py-32">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-16 text-center"
-          >
-            <h2 className="mb-4 font-display text-3xl font-bold md:text-4xl">
-              Comment ça marche?
-            </h2>
-            <p className="mx-auto max-w-2xl text-muted-foreground">
-              Un processus simple et sécurisé en 4 étapes.
-            </p>
-          </motion.div>
-
-          <div className="mx-auto max-w-4xl">
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              {[
-                { step: "1", title: "Créer", desc: "Créez un lien de paiement personnalisé" },
-                { step: "2", title: "Partager", desc: "Envoyez le lien à votre client" },
-                { step: "3", title: "Payer", desc: "Le client paie, les fonds sont séquestrés" },
-                { step: "4", title: "Valider", desc: "Livraison validée, paiement libéré" },
-              ].map((item, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="text-center"
-                >
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground font-display text-2xl font-bold">
-                    {item.step}
-                  </div>
-                  <h3 className="mb-2 font-display text-lg font-semibold">
-                    {item.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
           </div>
+
+
+
+          {/* Stats */}
+
+          <motion.div
+
+            initial={{ opacity: 0, y: 32 }}
+
+            animate={{ opacity: 1, y: 0 }}
+
+            transition={{ delay: 0.3 }}
+
+            className="mx-auto mt-16 grid max-w-3xl grid-cols-3 gap-6 rounded-2xl border border-border bg-card p-6 md:p-8"
+
+          >
+
+            <div className="text-center">
+
+              <p className="text-2xl font-bold text-primary md:text-3xl"><AnimatedCounter value="100" suffix="%" /></p>
+
+              <p className="text-xs text-muted-foreground md:text-sm">Escrow sécurisé</p>
+
+            </div>
+
+            <div className="text-center border-x border-border">
+
+              <p className="text-2xl font-bold text-primary md:text-3xl"><AnimatedCounter value="2" suffix=" min" /></p>
+
+              <p className="text-xs text-muted-foreground md:text-sm">Créer un lien</p>
+
+            </div>
+
+            <div className="text-center">
+
+              <p className="text-2xl font-bold text-primary md:text-3xl"><AnimatedCounter value="0" suffix=" frais" /></p>
+
+              <p className="text-xs text-muted-foreground md:text-sm">Inscription gratuite</p>
+
+            </div>
+
+          </motion.div>
+
         </div>
+
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 lg:py-32 bg-secondary/30">
+
+
+      {/* Mission */}
+
+      <section id="mission" className="border-y border-border bg-muted/30 py-20 lg:py-28">
+
         <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-16 text-center"
-          >
-            <h2 className="mb-4 font-display text-3xl font-bold md:text-4xl">
-              Tarifs transparents
-            </h2>
-            <p className="mx-auto max-w-2xl text-muted-foreground">
-              Choisissez le plan adapté à votre activité. Commencez gratuitement.
-            </p>
-          </motion.div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
-          >
-            {plans.map((plan, index) => (
-              <motion.div key={index} variants={itemVariants}>
-                <Card
-                  className={`h-full ${
-                    plan.highlight
-                      ? "border-primary shadow-lg shadow-primary/10"
-                      : "border-border/50"
-                  }`}
-                >
-                  <CardContent className="p-6">
-                    {plan.highlight && (
-                      <div className="mb-4 inline-block rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                        Populaire
-                      </div>
-                    )}
-                    <h3 className="mb-2 font-display text-xl font-semibold">
-                      {plan.name}
-                    </h3>
-                    <div className="mb-1">
-                      <span className="font-display text-4xl font-bold">
-                        {plan.price}
-                      </span>
-                      {plan.period && (
-                        <span className="text-muted-foreground">{plan.period}</span>
-                      )}
-                    </div>
-                    <p className="mb-6 text-sm text-muted-foreground">
-                      Commission: {plan.commission}
-                    </p>
-                    <ul className="mb-6 space-y-3">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-4 w-4 text-primary" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      variant={plan.highlight ? "hero" : "outline"}
-                      className="w-full"
-                      asChild
-                    >
-                      <Link to="/auth">Commencer</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20 lg:py-32">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-16 text-center"
-          >
-            <h2 className="mb-4 font-display text-3xl font-bold md:text-4xl">
-              Ce que disent nos utilisateurs
-            </h2>
-          </motion.div>
+            <motion.div
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid gap-6 md:grid-cols-3"
-          >
-            {testimonials.map((testimonial, index) => (
-              <motion.div key={index} variants={itemVariants}>
-                <Card className="h-full">
-                  <CardContent className="p-6">
-                    <div className="mb-4 flex gap-1">
-                      {Array.from({ length: testimonial.rating }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className="h-4 w-4 fill-warning text-warning"
-                        />
-                      ))}
-                    </div>
-                    <p className="mb-4 text-muted-foreground">
-                      "{testimonial.content}"
-                    </p>
-                    <div>
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {testimonial.role}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+              initial={{ opacity: 0, x: -24 }}
 
-      {/* CTA Section */}
-      <section className="py-20 lg:py-32 bg-foreground text-background">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="mb-4 font-display text-3xl font-bold md:text-4xl">
-              Prêt à sécuriser vos transactions?
-            </h2>
-            <p className="mx-auto mb-8 max-w-2xl text-background/70">
-              Rejoignez des milliers de prestataires qui font confiance à FIDEXA.
-            </p>
-            <Button
-              size="xl"
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-              asChild
+              whileInView={{ opacity: 1, x: 0 }}
+
+              viewport={{ once: true }}
+
             >
-              <Link to="/auth">
-                Créer mon compte gratuit
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-          </motion.div>
+
+              <h2 className="mb-4 text-3xl font-bold md:text-4xl">Pourquoi FidexaPay est indispensable</h2>
+
+              <p className="mb-6 text-muted-foreground leading-relaxed">
+
+                En Afrique, la confiance bloque les ventes en ligne : le client craint de payer sans recevoir, le prestataire craint de livrer sans être payé. FidexaPay résout ce dilemme avec un tiers de confiance — l&apos;escrow.
+
+              </p>
+
+              <ul className="space-y-4">
+
+                {[
+
+                  { icon: Lock, text: 'Fonds bloqués jusqu\'à validation client' },
+
+                  { icon: Globe, text: 'Mobile Money local (Orange, MTN, Wave…)' },
+
+                  { icon: Users, text: 'Client paie sans créer de compte' },
+
+                  { icon: TrendingUp, text: 'Prestataire : solde, retraits, KYC' },
+
+                ].map(({ icon: Icon, text }) => (
+
+                  <li key={text} className="flex items-center gap-3">
+
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+
+                      <Icon className="h-5 w-5" />
+
+                    </div>
+
+                    <span className="font-medium">{text}</span>
+
+                  </li>
+
+                ))}
+
+              </ul>
+
+            </motion.div>
+
+            <motion.div
+
+              initial={{ opacity: 0, x: 24 }}
+
+              whileInView={{ opacity: 1, x: 0 }}
+
+              viewport={{ once: true }}
+
+              className="grid grid-cols-2 gap-4"
+
+            >
+
+              {[
+
+                { icon: Shield, title: 'Escrow', desc: 'Protection bilatérale' },
+
+                { icon: Zap, title: 'Rapide', desc: 'Liens en 30 secondes' },
+
+                { icon: Smartphone, title: 'Mobile first', desc: 'Pensé pour le téléphone' },
+
+                { icon: CheckCircle, title: 'Transparent', desc: 'Suivi commande en direct' },
+
+              ].map((item, i) => (
+
+                <Card key={i} className="border-border/50">
+
+                  <CardContent className="p-5">
+
+                    <item.icon className="mb-3 h-8 w-8 text-primary" />
+
+                    <h3 className="font-semibold">{item.title}</h3>
+
+                    <p className="text-sm text-muted-foreground">{item.desc}</p>
+
+                  </CardContent>
+
+                </Card>
+
+              ))}
+
+            </motion.div>
+
+          </div>
+
         </div>
+
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-12">
+
+
+      {/* Demo video — emplacement réservé */}
+
+      <section id="demo" className="py-20 lg:py-28">
+
         <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <Logo showSlogan />
-            <p className="text-sm text-muted-foreground">
-              © 2024 FIDEXA. Tous droits réservés.
-            </p>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">
-                Confidentialité
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                Conditions
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                Contact
-              </a>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-10 text-center">
+
+            <h2 className="mb-3 text-3xl font-bold md:text-4xl">Comment ça fonctionne</h2>
+
+            <p className="text-muted-foreground">De la création du lien au paiement libéré — en moins de 2 minutes.</p>
+
+          </motion.div>
+
+          <motion.div
+
+            initial={{ opacity: 0, scale: 0.98 }}
+
+            whileInView={{ opacity: 1, scale: 1 }}
+
+            viewport={{ once: true }}
+
+            className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-dashed border-border bg-muted/30"
+
+          >
+
+            <div className="flex aspect-video items-center justify-center">
+
+              <p className="text-sm text-muted-foreground">Vidéo de démonstration — bientôt disponible</p>
+
             </div>
-          </div>
+
+          </motion.div>
+
         </div>
-      </footer>
+
+      </section>
+
+
+
+      {/* How it works */}
+
+      <section id="how-it-works" className="border-t border-border bg-secondary/20 py-20 lg:py-28">
+
+        <div className="container mx-auto px-4">
+
+          <h2 className="mb-12 text-center text-3xl font-bold">Le parcours en 4 étapes</h2>
+
+          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-4">
+
+            {[
+
+              { n: '1', t: 'Créer', d: 'Lien de paiement personnalisé' },
+
+              { n: '2', t: 'Partager', d: 'WhatsApp, SMS, email' },
+
+              { n: '3', t: 'Payer', d: 'Mobile Money → escrow' },
+
+              { n: '4', t: 'Valider', d: 'Client OK → fonds libérés' },
+
+            ].map((step, i) => (
+
+              <motion.div
+
+                key={step.n}
+
+                initial={{ opacity: 0, y: 20 }}
+
+                whileInView={{ opacity: 1, y: 0 }}
+
+                viewport={{ once: true }}
+
+                transition={{ delay: i * 0.1 }}
+
+                className="relative text-center"
+
+              >
+
+                <motion.div
+
+                  whileHover={{ scale: 1.05 }}
+
+                  className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground shadow-lg"
+
+                >
+
+                  {step.n}
+
+                </motion.div>
+
+                <h3 className="font-semibold">{step.t}</h3>
+
+                <p className="mt-1 text-sm text-muted-foreground">{step.d}</p>
+
+              </motion.div>
+
+            ))}
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      {/* Pricing */}
+
+      <section id="pricing" className="py-20 lg:py-28">
+
+        <div className="container mx-auto px-4">
+
+          <div className="mb-12 text-center">
+
+            <h2 className="mb-3 text-3xl font-bold">Abonnements</h2>
+
+            <p className="text-muted-foreground">Choisissez le plan qui convient à votre entreprise</p>
+
+          </div>
+
+          <motion.div
+
+            initial={{ opacity: 0, y: 24 }}
+
+            whileInView={{ opacity: 1, y: 0 }}
+
+            viewport={{ once: true }}
+
+            className="mx-auto max-w-md"
+
+          >
+
+            <Card className="overflow-hidden border-border shadow-lg">
+
+              <CardContent className="p-8">
+
+                <h3 className="text-2xl font-bold">{MVP_SUBSCRIPTION.name}</h3>
+
+                <p className="mt-1 text-sm text-muted-foreground">{MVP_SUBSCRIPTION.description}</p>
+
+                <p className="mt-4 text-4xl font-bold">Gratuit</p>
+
+                <p className="text-sm text-muted-foreground">Pour toujours</p>
+
+                <div className="my-6 rounded-lg bg-muted p-3 text-center">
+
+                  <p className="text-sm text-muted-foreground">Commission</p>
+
+                  <p className="text-2xl font-bold text-primary">{MVP_SUBSCRIPTION.commission} %</p>
+
+                </div>
+
+                <ul className="mb-8 space-y-3">
+
+                  {MVP_SUBSCRIPTION.features.map((f) => (
+
+                    <li key={f} className="flex items-center gap-2 text-sm">
+
+                      <CheckCircle className="h-4 w-4 shrink-0 text-primary" />
+
+                      {f}
+
+                    </li>
+
+                  ))}
+
+                </ul>
+
+                <Button className="w-full" size="lg" asChild>
+
+                  <Link to="/auth/signup">Commencer gratuitement</Link>
+
+                </Button>
+
+              </CardContent>
+
+            </Card>
+
+          </motion.div>
+
+        </div>
+
+      </section>
+
+
+
+      {/* CTA */}
+
+      <section className="bg-slate-950 py-20 text-white">
+
+        <div className="container mx-auto px-4 text-center">
+
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+
+            <h2 className="mb-4 text-3xl font-bold md:text-4xl">Rejoignez les prestataires qui sécurisent leurs ventes</h2>
+
+            <p className="mx-auto mb-8 max-w-xl text-slate-400">
+
+              Inscription gratuite · Mobile Money · Escrow · Support dédié
+
+            </p>
+
+            <Button size="lg" asChild>
+
+              <Link to="/auth/signup">Créer mon compte <ArrowRight className="ml-2 h-5 w-5" /></Link>
+
+            </Button>
+
+          </motion.div>
+
+        </div>
+
+      </section>
+
+
+
+      <SiteFooter />
+
     </div>
+
   );
+
 };
 
+
+
 export default Landing;
+
+

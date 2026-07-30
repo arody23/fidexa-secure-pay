@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -12,14 +12,21 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
 import StarRating from "@/components/StarRating";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { createGeniusPayPayment, verifyGeniusPayPayment } from "@/lib/geniuspay";
+import { GENIUSPAY_ENABLED } from "@/config";
+import { formatAmount } from "@/lib/currency";
+import OrderTracker from "@/components/OrderTracker";
 
 interface PaymentLink {
   id: string;
@@ -31,22 +38,43 @@ interface PaymentLink {
   client_email: string | null;
   status: string;
   is_paid: boolean;
-  provider_name: string;
-  provider_avatar: string | null;
+  order_status?: string;
+  can_cancel?: boolean;
+  provider_id: string;
   created_at: string;
+  currency?: string | null;
+  expires_at?: string | null;
+  escrow_released?: boolean;
+  moneyfusion_payment_id?: string | null;
+  moneyfusion_escrow_id?: string | null;
+  payment_url?: string | null;
+  moneyfusion_status?: string | null;
+}
+
+interface Provider {
+  full_name: string;
+  avatar_url: string | null;
+  rating?: number;
+  currency?: string;
 }
 
 const ClientPayment = () => {
   const { linkId } = useParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [paymentData, setPaymentData] = useState<PaymentLink | null>(null);
+  const [provider, setProvider] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [showDispute, setShowDispute] = useState(false);
-  const [feedbackRating, setFeedbackRating] = useState(5);
-  const [feedbackComment, setFeedbackComment] = useState("");
   const [disputeReason, setDisputeReason] = useState("");
+  const [showDispute, setShowDispute] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const linkCurrency = paymentData?.currency || provider?.currency || 'FCFA';
 
   useEffect(() => {
     const fetchPaymentLink = async () => {
@@ -64,14 +92,36 @@ const ClientPayment = () => {
           .maybeSingle();
 
         if (fetchError) {
+          console.error("Erreur Supabase:", fetchError);
           throw fetchError;
         }
 
         if (!data) {
           setError("Lien de paiement introuvable");
-        } else {
-          setPaymentData(data);
+          setLoading(false);
+          return;
         }
+
+        const row = data as PaymentLink;
+        if (!row.is_paid && row.expires_at && new Date(row.expires_at) < new Date()) {
+          setError("Ce lien de paiement a expiré (7 jours sans paiement)");
+          setLoading(false);
+          return;
+        }
+
+        // Charger les infos du prestataire séparément
+        const { data: providerData, error: providerError } = await supabase
+          .from("users")
+          .select("full_name, avatar_url, currency, rating")
+          .eq("id", (data as any).provider_id)
+          .single();
+
+        if (providerError) {
+          console.error("Erreur chargement prestataire:", providerError);
+        }
+
+        setPaymentData(data as any);
+        setProvider(providerData as any || null);
       } catch (err) {
         console.error("Error fetching payment link:", err);
         setError("Erreur lors du chargement du lien de paiement");
@@ -83,67 +133,254 @@ const ClientPayment = () => {
     fetchPaymentLink();
   }, [linkId]);
 
+  useEffect(() => {
+    if (!loading && paymentData?.is_paid && linkId) {
+      navigate(`/order/${linkId}`, { replace: true });
+    }
+  }, [loading, paymentData?.is_paid, linkId, navigate]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const geniuspayStatus = params.get('geniuspay');
+    if (!linkId || !paymentData || paymentData.is_paid || paying) return;
+    if (geniuspayStatus !== 'success') return;
+
+    const confirmPayment = async () => {
+      setPaying(true);
+      try {
+        const reference = params.get('reference') || undefined;
+        const result = await verifyGeniusPayPayment(linkId, reference);
+        if (result.success || result.alreadyPaid) {
+          toast({
+            title: 'Paiement confirmé',
+            description: 'Redirection vers votre commande...',
+          });
+          navigate(`/order/${linkId}`, { replace: true });
+        } else if (result.pending) {
+          toast({
+            title: 'Paiement en cours',
+            description: 'Votre paiement est en traitement. Actualisez dans quelques instants.',
+          });
+        }
+      } catch (err) {
+        console.error('GeniusPay verify error:', err);
+        toast({
+          title: 'Vérification en cours',
+          description: 'Le webhook confirmera votre paiement sous peu.',
+        });
+      } finally {
+        setPaying(false);
+      }
+    };
+
+    confirmPayment();
+  }, [linkId, paymentData, paying, navigate, toast]);
+
   const handlePay = async () => {
-    if (!paymentData) return;
-
-    try {
-      const { error: updateError } = await supabase
-        .from("payment_links")
-        .update({ is_paid: true, status: "paid" })
-        .eq("id", paymentData.id);
-
-      if (updateError) throw updateError;
-
-      setPaymentData({ ...paymentData, is_paid: true, status: "paid" });
-      
-      toast({
-        title: "Paiement effectué!",
-        description: "Votre paiement a été séquestré avec succès.",
-      });
-    } catch (err) {
-      console.error("Error processing payment:", err);
+    if (!paymentData) {
       toast({
         title: "Erreur",
-        description: "Impossible de traiter le paiement.",
+        description: "Données de paiement manquantes",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (!acceptedTerms) {
+      toast({
+        title: "Conditions requises",
+        description: "Veuillez accepter les conditions avant de payer",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setPaying(true);
+
+      if (GENIUSPAY_ENABLED) {
+        const result = await createGeniusPayPayment({
+          linkId: paymentData.link_id,
+          customerName: paymentData.client_name || undefined,
+          customerEmail: paymentData.client_email || undefined,
+        });
+
+        if (result.alreadyPaid) {
+          navigate(`/order/${linkId}`, { replace: true });
+          return;
+        }
+
+        if (!result.checkoutUrl) {
+          throw new Error('URL de paiement GeniusPay manquante');
+        }
+
+        window.location.href = result.checkoutUrl;
+        return;
+      } else {
+        // MODE TEST: Simuler le paiement
+        console.log('📝 MODE TEST: Mise à jour de payment_links...');
+        
+        const { error: updateError } = await supabase
+          .from("payment_links")
+          .update({ 
+            is_paid: true, 
+            status: "paid",
+          })
+          .eq("id", paymentData.id);
+
+        if (updateError) {
+          console.error('❌ Erreur UPDATE:', updateError);
+          throw updateError;
+        }
+
+        console.log('✅ Payment status updated successfully');
+        
+        toast({
+          title: "Paiement simulé (Mode Test)",
+          description: "Redirection vers votre commande...",
+        });
+
+        navigate(`/order/${linkId}`, { replace: true });
+        return;
+      }
+    } catch (err) {
+      console.error("❌ ERROR in handlePay:", err);
+      console.error("Error details:", {
+        name: err instanceof Error ? err.name : 'Unknown',
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+      
+      // Afficher plus de détails sur l'erreur
+      let errorMessage = "Impossible de traiter le paiement.";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (err instanceof TypeError && err.message.includes('fetch')) {
+        errorMessage = "Impossible de contacter le serveur de paiement. Vérifiez votre connexion internet.";
+      }
+      
+      toast({
+        title: "Erreur de paiement",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setPaying(false);
     }
   };
 
   const handleValidateDelivery = async () => {
-    if (!paymentData) return;
+    if (!paymentData) return false;
 
     try {
-      const { error: updateError } = await supabase
+      console.log("🔍 Validation démarrage...", paymentData.link_id);
+
+      // UPDATE direct - simple et efficace
+      const { data: updateData, error: updateError } = await supabase
         .from("payment_links")
-        .update({ status: "delivered" })
-        .eq("id", paymentData.id);
+        .update({ 
+          status: "validated",
+          order_status: "validated",
+          escrow_released: true 
+        })
+        .eq("link_id", paymentData.link_id)
+        .select()
+        .single();
 
-      if (updateError) throw updateError;
+      console.log("🔍 Résultat:", { updateData, updateError });
 
-      setPaymentData({ ...paymentData, status: "delivered" });
+      if (updateError) {
+        console.error("❌ Erreur:", updateError);
+        toast({
+          title: "❌ Erreur",
+          description: updateError.message,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Succès ! Mettre à jour l'état local IMMÉDIATEMENT
+      setPaymentData({ 
+        ...paymentData, 
+        status: "validated", 
+        order_status: "validated",
+        escrow_released: true 
+      });
       
       toast({
-        title: "Livraison validée!",
-        description: "Le paiement a été libéré au prestataire.",
+        title: "✅ Commande validée!",
+        description: "Le paiement a été libéré.",
       });
+      
+      // Afficher le modal de notation
       setShowFeedback(true);
+      return true;
+
     } catch (err) {
-      console.error("Error validating delivery:", err);
+      console.error("❌ Exception:", err);
       toast({
-        title: "Erreur",
-        description: "Impossible de valider la livraison.",
-        variant: "destructive",
+        title: "❌ Erreur",
+        description: "Impossible de valider",
+        variant: "destructive"
       });
+      return false;
     }
   };
 
-  const handleSubmitFeedback = () => {
-    toast({
-      title: "Merci pour votre avis!",
-      description: "Votre feedback a été enregistré.",
-    });
-    setShowFeedback(false);
+  const handleSubmitFeedback = async () => {
+    if (!paymentData || !provider) return;
+
+    try {
+      // Enregistrer la review
+      const { error: reviewError } = await supabase
+        .from("reviews")
+        .insert({
+          transaction_id: paymentData.id,
+          reviewer_id: paymentData.id,
+          reviewed_id: paymentData.provider_id,
+          rating: feedbackRating,
+          comment: feedbackComment.trim() || null,
+        });
+
+      if (reviewError) throw reviewError;
+
+      // Calculer la nouvelle moyenne
+      const { data: allReviews } = await supabase
+        .from("reviews")
+        .select("rating")
+        .eq("reviewed_id", paymentData.provider_id);
+
+      if (allReviews && allReviews.length > 0) {
+        const avgRating = allReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / allReviews.length;
+        await supabase
+          .from("users")
+          .update({ rating: Number(avgRating.toFixed(2)) } as any)
+          .eq("id", paymentData.provider_id);
+      }
+
+      // Notification
+      await supabase.from("notifications").insert({
+        user_id: paymentData.provider_id,
+        type: "system",
+        title: "Nouvel avis reçu ⭐",
+        message: `Note: ${feedbackRating}/5 étoiles`,
+        link: "/dashboard/profile"
+      });
+
+      toast({
+        title: "Merci!",
+        description: "Votre avis a été enregistré.",
+      });
+      
+      setShowFeedback(false);
+    } catch (err) {
+      console.error("Error:", err);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer votre avis.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleOpenDispute = async () => {
@@ -210,6 +447,17 @@ const ClientPayment = () => {
     );
   }
 
+  if (paymentData.is_paid) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-secondary/30">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Redirection vers votre commande...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-secondary/30">
       {/* Header */}
@@ -223,7 +471,7 @@ const ClientPayment = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 pb-32 md:pb-8">
         <div className="mx-auto max-w-2xl space-y-6">
           {/* Provider Card */}
           <motion.div
@@ -233,18 +481,29 @@ const ClientPayment = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground font-display text-xl font-bold">
-                    {paymentData.provider_avatar || "FX"}
-                  </div>
+                  {/* Avatar du prestataire */}
+                  {provider?.avatar_url ? (
+                    <img 
+                      src={provider.avatar_url}
+                      alt={provider.full_name}
+                      className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/20"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground font-display text-xl font-bold ring-2 ring-primary/20">
+                      {provider?.full_name?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                  )}
                   <div className="flex-1">
                     <h2 className="font-display text-xl font-bold">
-                      {paymentData.provider_name}
+                      {provider?.full_name || 'Prestataire'}
                     </h2>
                     <div className="flex items-center gap-2">
-                      <StarRating rating={4.8} showValue />
-                      <span className="text-sm text-muted-foreground">
-                        (127 avis)
-                      </span>
+                      <StarRating rating={provider?.rating || 0} showValue />
+                      {provider?.rating && (
+                        <span className="text-sm text-muted-foreground">
+                          ({provider.rating.toFixed(1)})
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -270,8 +529,11 @@ const ClientPayment = () => {
                   <p className="mb-2 text-sm text-muted-foreground">
                     Montant à payer
                   </p>
-                  <p className="font-display text-5xl font-bold">
-                    ${paymentData.amount}
+                  <p className="font-display text-4xl font-bold sm:text-5xl">
+                    {formatAmount(paymentData.amount, linkCurrency)}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Devise du prestataire · conversion au taux GeniusPay sur la page de paiement
                   </p>
                 </div>
 
@@ -293,7 +555,7 @@ const ClientPayment = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Statut</span>
-                    <StatusBadge status={paymentData.status as OrderStatus} />
+                    <StatusBadge status={(paymentData.is_paid ? (paymentData.status === 'pending' ? 'paid' : paymentData.status) : paymentData.status) as OrderStatus} />
                   </div>
                 </div>
 
@@ -312,52 +574,49 @@ const ClientPayment = () => {
                 </div>
 
                 {!paymentData.is_paid ? (
-                  <Button
-                    variant="hero"
-                    size="xl"
-                    className="w-full"
-                    onClick={handlePay}
-                  >
-                    <CreditCard className="mr-2 h-5 w-5" />
-                    Payer maintenant
-                  </Button>
-                ) : paymentData.status === "delivered" ? (
-                  <div className="rounded-lg bg-success/10 p-4 text-center">
-                    <Check className="mx-auto mb-2 h-8 w-8 text-success" />
-                    <p className="font-medium text-success">Livraison validée</p>
-                    <p className="text-sm text-muted-foreground">
-                      Merci pour votre confiance!
-                    </p>
-                  </div>
-                ) : paymentData.status === "disputed" ? (
-                  <div className="rounded-lg bg-warning/10 p-4 text-center">
-                    <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-warning" />
-                    <p className="font-medium text-warning">Litige en cours</p>
-                    <p className="text-sm text-muted-foreground">
-                      Notre équipe examine votre demande.
-                    </p>
-                  </div>
+                  <>
+                    <div className="flex items-start gap-3 rounded-lg border border-border p-4">
+                      <Checkbox
+                        id="terms"
+                        checked={acceptedTerms}
+                        onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                      />
+                      <label htmlFor="terms" className="cursor-pointer text-sm leading-relaxed text-muted-foreground">
+                        J&apos;accepte les{' '}
+                        <Link to="/legal/terms" className="text-primary underline" target="_blank">
+                          conditions générales
+                        </Link>{' '}
+                        et autorise FidexaPay à séquestrer les fonds jusqu&apos;à validation de la livraison.
+                      </label>
+                    </div>
+
+                    <Button
+                      variant="hero"
+                      size="xl"
+                      className="hidden w-full md:flex"
+                      onClick={handlePay}
+                      disabled={paying || !acceptedTerms}
+                    >
+                      {paying ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <CreditCard className="mr-2 h-5 w-5" />
+                      )}
+                      {paying ? 'Redirection...' : 'Payer en sécurité'}
+                    </Button>
+                  </>
                 ) : (
-                  <div className="space-y-3">
-                    <Button
-                      variant="success"
-                      size="lg"
-                      className="w-full"
-                      onClick={handleValidateDelivery}
-                    >
-                      <Check className="mr-2 h-4 w-4" />
-                      Valider la livraison
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full"
-                      onClick={() => setShowDispute(true)}
-                    >
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Ouvrir un litige
-                    </Button>
-                  </div>
+                  <OrderTracker
+                    linkId={linkId || ''}
+                    orderStatus={paymentData.status || paymentData.order_status || 'paid'}
+                    canCancel={paymentData.can_cancel !== false}
+                    amount={paymentData.amount}
+                    onStatusUpdate={() => {
+                      // Recharger les données
+                      window.location.reload();
+                    }}
+                    onValidateDelivery={handleValidateDelivery}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -365,7 +624,33 @@ const ClientPayment = () => {
         </div>
       </main>
 
-      {/* Feedback Modal */}
+      {/* Barre de paiement fixe — mobile first */}
+      {!paymentData.is_paid && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Total</span>
+            <span className="font-display text-xl font-bold">
+              {formatAmount(paymentData.amount, linkCurrency)}
+            </span>
+          </div>
+          <Button
+            variant="hero"
+            size="lg"
+            className="w-full"
+            onClick={handlePay}
+            disabled={paying || !acceptedTerms}
+          >
+            {paying ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <Shield className="mr-2 h-5 w-5" />
+            )}
+            {paying ? 'Redirection…' : 'Payer en sécurité'}
+          </Button>
+        </div>
+      )}
+
+      {/* Modal de notation */}
       {showFeedback && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -376,29 +661,40 @@ const ClientPayment = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-warning" />
-                Laissez votre avis
+                Notez {provider?.full_name || 'le prestataire'}
               </CardTitle>
+              <CardDescription>
+                Votre avis aidera à améliorer nos services
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-center gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => setFeedbackRating(star)}
-                    className="transition-transform hover:scale-110"
-                  >
-                    <Star
-                      className={`h-8 w-8 ${
-                        star <= feedbackRating
-                          ? "fill-warning text-warning"
-                          : "text-muted-foreground"
-                      }`}
-                    />
-                  </button>
-                ))}
+              <div className="space-y-2">
+                <Label>Votre note</Label>
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setFeedbackRating(star)}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`h-8 w-8 ${
+                          star <= feedbackRating
+                            ? "fill-warning text-warning"
+                            : "text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                {feedbackRating === 0 && (
+                  <p className="text-center text-sm text-muted-foreground">
+                    Sélectionnez une note
+                  </p>
+                )}
               </div>
               <Textarea
-                placeholder="Partagez votre expérience..."
+                placeholder="Commentaire (optionnel)..."
                 value={feedbackComment}
                 onChange={(e) => setFeedbackComment(e.target.value)}
                 rows={3}
@@ -415,6 +711,7 @@ const ClientPayment = () => {
                   variant="hero"
                   className="flex-1"
                   onClick={handleSubmitFeedback}
+                  disabled={feedbackRating === 0}
                 >
                   Envoyer
                 </Button>
@@ -479,7 +776,7 @@ const ClientPayment = () => {
       <footer className="mt-12 border-t border-border py-6">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Paiement sécurisé par FIDEXA • Vos fonds sont protégés
+            Paiement sécurisé par FidexaPay • Vos fonds sont protégés
           </p>
         </div>
       </footer>
