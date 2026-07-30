@@ -33,7 +33,9 @@ import AdminOrders from "./pages/Admin/Orders";
 import AdminEscrow from "./pages/Admin/EscrowMonitor";
 import AdminWithdrawals from "./pages/Admin/Withdrawals";
 import AdminNotifications from "./pages/Admin/Notifications";
+import AdminFeedback from "./pages/Admin/Feedback";
 import ProviderOrders from "./pages/ProviderOrders";
+import ProviderFeedback from "./pages/ProviderFeedback";
 import SignIn from "./pages/Auth/SignIn";
 import SignUp from "./pages/Auth/SignUp";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
@@ -86,6 +88,7 @@ const App = () => (
               <Route path="subscriptions" element={<NewSubscriptions />} />
               <Route path="withdrawal" element={<Withdrawal />} />
               <Route path="support" element={<Support />} />
+              <Route path="feedback" element={<ProviderFeedback />} />
             </Route>
           {/* Ancienne route /pay — page paiement client */}
           <Route path="/pay/:linkId" element={<ClientPayment />} />
@@ -102,6 +105,7 @@ const App = () => (
             <Route path="escrow" element={<AdminEscrow />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
             <Route path="notifications" element={<AdminNotifications />} />
+            <Route path="feedback" element={<AdminFeedback />} />
             <Route path="dispute-resolution" element={<Navigate to="/admin/disputes" replace />} />
           </Route>
           <Route path="*" element={<NotFound />} />

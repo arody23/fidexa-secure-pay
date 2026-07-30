@@ -198,3 +198,20 @@
     @apply px-4 py-2 rounded-lg bg-primary text-primary-foreground;
   }
 }
+
+@keyframes fidexa-marquee {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.fidexa-marquee {
+  animation: fidexa-marquee 45s linear infinite;
+}
+
+.fidexa-marquee:hover {
+  animation-play-state: paused;
+}

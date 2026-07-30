@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Banknote,
   Bell,
+  MessageSquareQuote,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +45,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/transactions', label: 'Transactions', icon: Receipt },
     { href: '/admin/withdrawals', label: 'Retraits', icon: Banknote },
     { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+    { href: '/admin/feedback', label: 'Feedback', icon: MessageSquareQuote },
     { href: '/admin/escrow', label: 'Escrow', icon: Shield },
     { href: '/admin/disputes', label: 'Litiges', icon: Scale },
     { href: '/admin/orders', label: 'Commandes', icon: Package },
