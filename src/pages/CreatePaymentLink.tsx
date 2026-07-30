@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useProvider } from "@/contexts/ProviderContext";
 import { useToast } from "@/hooks/use-toast";
 import { copyToClipboard } from "@/lib/clipboard";
+import { supabase } from "@/integrations/supabase/client";
 
 const COUNTRIES = [
   { code: "BJ", name: "Bénin", prefix: "+229" },
@@ -81,7 +82,10 @@ const CreatePaymentLink = () => {
       console.error("Error creating payment link:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer le lien de paiement.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Impossible de créer le lien de paiement.",
         variant: "destructive",
       });
     } finally {

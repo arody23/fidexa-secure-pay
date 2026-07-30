@@ -24,7 +24,7 @@ self.addEventListener('push', (event: PushEvent) => {
     self.registration.showNotification(payload.title || 'FidexaPay', {
       body: payload.body || '',
       icon: '/assets/icons/icon-192.png',
-      badge: '/assets/icons/Favicon.ico',
+      badge: '/assets/icons/Favicon.png',
       data: payload.url ? { url: payload.url } : undefined,
     })
   );

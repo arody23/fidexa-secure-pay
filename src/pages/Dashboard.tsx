@@ -229,13 +229,13 @@ const Dashboard = () => {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Liens de paiement récents</CardTitle>
-          <Button variant="ghost" size="sm" asChild>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6">
+          <CardTitle className="truncate text-lg">Liens de paiement récents</CardTitle>
+          <Button variant="ghost" size="sm" asChild className="shrink-0">
             <Link to="/dashboard/orders">Voir tout</Link>
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-hidden px-4 sm:px-6">
           {paymentLinks.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
               Aucun lien de paiement créé
@@ -245,21 +245,23 @@ const Dashboard = () => {
               {paymentLinks.slice(0, 5).map((link) => (
                 <div
                   key={link.id}
-                  className="flex items-center justify-between rounded-lg border border-border p-4 hover:bg-muted/50"
+                  className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 hover:bg-muted/50"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
                       <Package className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div>
-                      <p className="font-medium">{link.client_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {link.link_id} ·{" "}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{link.client_name}</p>
+                      <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                        {link.link_id}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
                         {new Date(link.created_at).toLocaleDateString("fr-FR")}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
                     <p className="font-semibold">
                       {formatAmount(link.amount, currency)}
                     </p>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Package, Search, MoreVertical, Check, X, AlertTriangle, Copy, CheckCircle } from "lucide-react";
+import { Package, Search, MoreVertical, Copy, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
-import { cn } from "@/lib/utils";
 import { useProvider } from "@/contexts/ProviderContext";
 import { useProviderPaymentLinks } from "@/hooks/useProviderPaymentLinks";
 import { formatAmount } from "@/lib/currency";
@@ -135,7 +134,7 @@ const Orders = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-semibold md:text-3xl">Commandes</h1>
         <p className="text-muted-foreground">
@@ -143,8 +142,8 @@ const Orders = () => {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-md flex-1">
+      <div className="flex flex-col gap-4">
+        <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Rechercher une commande..."
@@ -153,12 +152,13 @@ const Orders = () => {
             className="pl-10"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {statusFilters.map((filter) => (
             <Button
               key={filter.value}
               variant={statusFilter === filter.value ? "default" : "outline"}
               size="sm"
+              className="shrink-0"
               onClick={() => setStatusFilter(filter.value)}
             >
               {filter.label}
@@ -170,15 +170,15 @@ const Orders = () => {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
+      <Card className="overflow-hidden">
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Package className="h-5 w-5 shrink-0 text-primary" />
             {filteredOrders.length} commande
             {filteredOrders.length > 1 ? "s" : ""}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -193,16 +193,16 @@ const Orders = () => {
               {filteredOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="rounded-xl border border-border p-4 hover:border-primary/30"
+                  className="rounded-xl border border-border p-3 sm:p-4 hover:border-primary/30"
                 >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-                        <Package className="h-6 w-6 text-muted-foreground" />
+                  <div className="flex flex-col gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted sm:h-12 sm:w-12">
+                        <Package className="h-5 w-5 text-muted-foreground sm:h-6 sm:w-6" />
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold">{order.client_name}</p>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate font-semibold">{order.client_name}</p>
                           <StatusBadge
                             status={
                               (order.is_paid
@@ -213,43 +213,29 @@ const Orders = () => {
                             }
                           />
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {order.link_id} · {order.description}
+                        <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                          {order.link_id}
+                        </p>
+                        <p className="line-clamp-2 text-sm text-muted-foreground">
+                          {order.description}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Créé le{" "}
-                          {new Date(order.created_at).toLocaleDateString("fr-FR")}{" "}
-                          · Livraison: {order.delivery_days}j
+                          {new Date(order.created_at).toLocaleDateString("fr-FR")} · {order.delivery_days}j
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <p className="text-lg font-semibold">
+                    <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+                      <p className="text-base font-semibold sm:text-lg">
                         {formatAmount(order.amount, currency)}
                       </p>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="outline" size="sm" className="gap-1">
                             <MoreVertical className="h-4 w-4" />
+                            Actions
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {order.status === "pending" && (
-                            <>
-                              <DropdownMenuItem className="text-success">
-                                <Check className="mr-2 h-4 w-4" />
-                                Marquer comme livré
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-warning">
-                                <AlertTriangle className="mr-2 h-4 w-4" />
-                                Ouvrir un litige
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">
-                                <X className="mr-2 h-4 w-4" />
-                                Annuler
-                              </DropdownMenuItem>
-                            </>
-                          )}
+                        <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem onClick={() => copyOrderLink(order.link_id)}>
                             {copiedId === order.link_id ? (
                               <CheckCircle className="mr-2 h-4 w-4" />
