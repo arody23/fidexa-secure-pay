@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
         enabled: true,
         type: "module",
       },
-      includeAssets: ["assets/icons/Favicon.ico", "assets/icons/icon-192.png"],
+      includeAssets: ["assets/icons/Favicon.png", "assets/icons/icon-192.png"],
       manifest: {
         name: "FidexaPay",
         short_name: "FidexaPay",
