@@ -26,31 +26,66 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-/** Enregistre / récupère le SW PWA (évite le hang sur navigator.serviceWorker.ready). */
+/** Enregistre / récupère le SW PWA. Si un SW existant échoue à l'évaluation, on le désenregistre et on réessaie. */
 async function getPushRegistration(): Promise<ServiceWorkerRegistration> {
   if (!('serviceWorker' in navigator)) {
     throw new Error('Service Worker non supporté');
   }
 
-  let registration = await navigator.serviceWorker.getRegistration();
-  if (!registration) {
+  let existing = await navigator.serviceWorker.getRegistration();
+
+  // Si un SW existant est en échec, le désenregistrer pour repartir sur du propre
+  if (existing) {
+    try {
+      // Forcer une mise à jour pour détecter une éventuelle erreur d'évaluation
+      await withTimeout(existing.update(), 8000, 'Mise à jour du service worker existant');
+    } catch (err) {
+      console.warn('[push] SW existant en échec, désenregistrement', err);
+      try {
+        await existing.unregister();
+      } catch {
+        // ignore
+      }
+      existing = null;
+    }
+  }
+
+  let registration: ServiceWorkerRegistration;
+  try {
     registration = await withTimeout(
-      navigator.serviceWorker.register('/sw.js', { scope: '/' }),
+      navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }),
       12000,
       'Enregistrement du service worker'
+    );
+  } catch (err) {
+    // Si register échoue, essayer de désenregistrer tout SW existant et réessayer une fois
+    console.warn('[push] premier register échoué, tentative de récupération', err);
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((r) => r.unregister().catch(() => undefined)));
+    registration = await withTimeout(
+      navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }),
+      12000,
+      'Ré-enregistrement du service worker'
     );
   }
 
   if (registration.installing) {
     await withTimeout(
       new Promise<void>((resolve) => {
-        registration!.installing!.addEventListener('statechange', () => {
-          if (registration!.installing?.state === 'installed' || registration!.active) {
+        const sw = registration.installing!;
+        const onState = () => {
+          if (sw.state === 'installed' || sw.state === 'activated' || registration.active) {
             resolve();
           }
-        });
-        // Sécurité si l'état a déjà changé
-        window.setTimeout(() => resolve(), 8000);
+          if (sw.state === 'redundant') {
+            resolve();
+          }
+        };
+        sw.addEventListener('statechange', onState);
+        window.setTimeout(() => {
+          sw.removeEventListener('statechange', onState);
+          resolve();
+        }, 8000);
       }),
       10000,
       'Installation du service worker'

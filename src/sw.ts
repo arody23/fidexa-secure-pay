@@ -1,18 +1,21 @@
 /// <reference lib="webworker" />
-import { clientsClaim } from 'workbox-core';
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 
-declare const self: ServiceWorkerGlobalScope & {
-  __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
-};
+declare const self: ServiceWorkerGlobalScope;
 
-precacheAndRoute(self.__WB_MANIFEST);
-cleanupOutdatedCaches();
-clientsClaim();
+// Le manifeste de precaching est injecté ici par vite-plugin-pwa au build
+const ASSETS = self.__WB_MANIFEST;
 
-self.addEventListener('message', (event: ExtendableMessageEvent) => {
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
-    void self.skipWaiting();
+    self.skipWaiting();
   }
 });
 
@@ -49,5 +52,14 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
       }
       return self.clients.openWindow(url);
     })
+  );
+});
+
+// Precaching minimaliste : mettre les assets en cache lors de l'installation
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open('fidexa-precache').then((cache) => {
+      return cache.addAll(ASSETS.map((entry) => (typeof entry === 'string' ? entry : entry.url)));
+    }).catch(() => undefined)
   );
 });

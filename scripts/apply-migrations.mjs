@@ -33,6 +33,7 @@ const migrationsDir = path.join(root, 'supabase/migrations');
 const targetFiles = [
   '20260730_exchange_rates_admin.sql',
   '20260730_fx_wallet_and_refund_requests.sql',
+  '20260730_provider_testimonials.sql',
 ];
 
 const baseUrl = `https://api.supabase.com/v1/projects/${ref}/database/query`;

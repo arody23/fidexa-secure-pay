@@ -308,7 +308,8 @@ const Landing = () => {
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.55 }}
-                className="mb-5 text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl"
+                className="mb-5 font-serif text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl"
+                style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
               >
                 Payer et livrer en toute sérénité
               </motion.h1>
@@ -379,27 +380,15 @@ const Landing = () => {
                   </div>
                 </div>
 
-                {/* Vrais comptes — style trust bar */}
+                {/* Compteur prestataires — pas de photos individuelles */}
                 <div className="flex flex-wrap items-center gap-3">
                   {providerCount > 0 ? (
-                    <>
-                      <div className="flex -space-x-2">
-                        {providers.map((p) => (
-                          <ProviderAvatar
-                            key={p.id}
-                            name={p.full_name || 'Prestataire'}
-                            avatarUrl={p.avatar_url}
-                            size="sm"
-                          />
-                        ))}
-                      </div>
-                      <p className="text-sm text-white/75">
-                        <span className="font-semibold text-white">
-                          {providerCount} prestataire{providerCount > 1 ? 's' : ''}
-                        </span>{' '}
-                        nous font confiance
-                      </p>
-                    </>
+                    <p className="text-sm text-white/75">
+                      <span className="font-semibold text-white">
+                        {providerCount} prestataire{providerCount > 1 ? 's' : ''}
+                      </span>{' '}
+                      nous font confiance
+                    </p>
                   ) : (
                     <p className="text-sm text-white/70">
                       Soyez le prochain prestataire à sécuriser vos paiements.
@@ -496,7 +485,7 @@ const Landing = () => {
               <ul className="space-y-4">
                 {[
                   { icon: Lock, text: "Fonds bloqués jusqu'à validation client" },
-                  { icon: Globe, text: 'Mobile Money local (Orange, MTN, Airtel, Wave…)' },
+                  { icon: Smartphone, text: 'Mobile Money local (Orange, MTN, Airtel, Wave…)' },
                   { icon: Users, text: 'Client paie sans créer de compte' },
                   { icon: TrendingUp, text: 'Solde, retraits et KYC pour le prestataire' },
                 ].map(({ icon: Icon, text }) => (
@@ -508,6 +497,31 @@ const Landing = () => {
                   </li>
                 ))}
               </ul>
+
+              <div className="mt-6">
+                <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Réseaux Mobile Money acceptés</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { name: 'Orange Money', color: 'bg-orange-500' },
+                    { name: 'MTN Money', color: 'bg-yellow-500' },
+                    { name: 'Airtel Money', color: 'bg-red-500' },
+                    { name: 'Wave', color: 'bg-blue-500' },
+                    { name: 'Moov Money', color: 'bg-blue-700' },
+                    { name: 'M-Pesa', color: 'bg-green-600' },
+                  ].map((m) => (
+                    <span
+                      key={m.name}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white',
+                        m.color
+                      )}
+                    >
+                      <Smartphone className="h-3 w-3" />
+                      {m.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 24 }}
