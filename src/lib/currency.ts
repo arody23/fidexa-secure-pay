@@ -16,9 +16,10 @@ export const UNITS_PER_USD: Record<string, number> = {
   USD: 1,
   EUR: 0.92,
   GBP: 0.79,
-  XOF: 605,
-  XAF: 605,
-  FCFA: 605,
+  /** Taux marché ~ Juillet 2026 (indicatif UI uniquement — GeniusPay convertit à l'encaissement) */
+  XOF: 571.85,
+  XAF: 571.85,
+  FCFA: 571.85,
   CDF: 2850,
 };
 
@@ -70,7 +71,7 @@ export function convertToUSD(amount: number, currency?: string | null): number {
   return Number(amount) / units;
 }
 
-/** Conversion vers XOF pour GeniusPay (même logique que l'edge function). */
+/** Estimation indicative XOF — la conversion réelle est faite par GeniusPay (USD/EUR/CDF). */
 export function convertToXof(amount: number, currency?: string | null): number {
   const from = normalizeCurrencyCode(currency);
   const n = Number(amount);

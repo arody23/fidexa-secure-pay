@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     const tx = gp.data ?? gp;
     const status = tx.status as string;
 
-    if (status === 'completed') {
+    if (status === 'completed' || status === 'success') {
       await markLinkPaid(supabase, link.id, {
         reference: ref,
         geniuspayPaymentId: tx.id ?? null,
@@ -66,6 +66,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, status: 'completed', reference: ref }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Échec / annulation : libérer le lien pour un nouveau paiement
+    if (status === 'failed' || status === 'cancelled' || status === 'expired') {
+      await supabase
+        .from('payment_links')
+        .update({
+          geniuspay_status: status,
+          geniuspay_checkout_url: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', link.id);
     }
 
     return new Response(

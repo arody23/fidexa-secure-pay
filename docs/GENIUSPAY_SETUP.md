@@ -75,9 +75,16 @@ https://dkmbtwczuheyyxvuypml.supabase.co/functions/v1/geniuspay-webhook
 
 ## Conversion devises
 
-Montants CDF / FCFA convertis automatiquement en **XOF** côté serveur (min. 200 XOF).
+GeniusPay convertit **automatiquement** vers le solde marchand XOF.
 
-Exemple testé : 150 000 CDF → ~32 727 XOF.
+FidexaPay envoie le montant **dans la devise du lien** :
+- `FCFA` / `XAF` → `XOF` (1:1, même zone CFA)
+- `CDF`, `USD`, `EUR` → envoyés tels quels (conversion GeniusPay)
+- Autres devises → fallback USD puis conversion GeniusPay
+
+Ne pas reconvertir côté Fidexa pour l’encaissement (évite les écarts de taux).
+
+Taux indicatif marché (UI uniquement) : 1 USD ≈ 571,85 XOF.
 
 ## Test local
 

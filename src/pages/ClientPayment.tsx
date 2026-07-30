@@ -161,7 +161,17 @@ const ClientPayment = () => {
         } else if (result.pending) {
           toast({
             title: 'Paiement en cours',
-            description: 'Votre paiement est en traitement. Actualisez dans quelques instants.',
+            description:
+              'Mobile Money peut prendre 1–2 min. Si le USSD a échoué, recliquez sur « Payer en sécurité » pour un nouveau paiement.',
+          });
+        } else {
+          toast({
+            title: 'Paiement non confirmé',
+            description:
+              'Statut : ' +
+              (result.status || 'inconnu') +
+              '. Vous pouvez réessayer le paiement.',
+            variant: 'destructive',
           });
         }
       } catch (err) {
@@ -205,6 +215,8 @@ const ClientPayment = () => {
           linkId: paymentData.link_id,
           customerName: paymentData.client_name || undefined,
           customerEmail: paymentData.client_email || undefined,
+          // Nouveau checkout à chaque clic — évite les sessions GeniusPay « pending » bloquées
+          forceNew: true,
         });
 
         if (result.alreadyPaid) {
@@ -540,7 +552,8 @@ const ClientPayment = () => {
                     {formatAmount(paymentData.amount, linkCurrency)}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Devise du prestataire · conversion au taux GeniusPay sur la page de paiement
+                    Montant facturé dans la devise du prestataire — GeniusPay convertit automatiquement vers le CFA
+                    (XOF) si besoin.
                   </p>
                 </div>
 

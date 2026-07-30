@@ -55,6 +55,7 @@ export async function createGeniusPayPayment(params: {
   customerName?: string;
   customerEmail?: string;
   origin?: string;
+  forceNew?: boolean;
 }): Promise<CreateGeniusPayPaymentResponse> {
   return invokeFunction('geniuspay-create-payment', {
     ...params,
@@ -89,7 +90,7 @@ export async function createGeniusPayPayout(withdrawalId: string): Promise<Creat
 
 import { convertToXof } from '@/lib/currency';
 
-/** Montant XOF estimé (aligné serveur — conversion finale par GeniusPay). */
+/** Estimation indicative — GeniusPay applique sa propre conversion à l'encaissement. */
 export function estimateGeniusPayXof(amount: number, currency?: string | null): number {
   return convertToXof(amount, currency);
 }

@@ -1,9 +1,12 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
-  amountForGeniusPay,
+  buildGeniusPayCharge,
+  countryHintFromCurrency,
   corsHeaders,
+  fetchGeniusPayPayment,
   getGeniusPayBaseUrl,
   getGeniusPayHeaders,
+  markLinkPaid,
   resolveLinkCurrency,
 } from '../_shared/geniuspay.ts';
 
@@ -13,7 +16,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { linkId, phone, customerName, customerEmail, origin } = await req.json();
+    const { linkId, phone, customerName, customerEmail, origin, forceNew } = await req.json();
 
     if (!linkId) {
       return new Response(JSON.stringify({ error: 'linkId requis' }), {
@@ -29,7 +32,9 @@ Deno.serve(async (req) => {
 
     const { data: link, error: linkError } = await supabase
       .from('payment_links')
-      .select('id, link_id, amount, description, is_paid, client_name, client_email, client_phone, currency, provider_id, geniuspay_reference, geniuspay_checkout_url')
+      .select(
+        'id, link_id, amount, description, is_paid, client_name, client_email, client_phone, currency, provider_id, geniuspay_reference, geniuspay_checkout_url, geniuspay_status'
+      )
       .eq('link_id', linkId)
       .single();
 
@@ -46,16 +51,54 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (link.geniuspay_checkout_url && link.geniuspay_reference && link.geniuspay_status === 'pending') {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          checkoutUrl: link.geniuspay_checkout_url,
+    // Session GeniusPay existante : vérifier le vrai statut (évite les « pending » bloqués)
+    if (link.geniuspay_reference && !forceNew) {
+      try {
+        const gp = await fetchGeniusPayPayment(link.geniuspay_reference);
+        const tx = gp.data ?? gp;
+        const status = String(tx.status || '').toLowerCase();
+
+        if (status === 'completed' || status === 'success') {
+          await markLinkPaid(supabase, link.id, {
+            reference: link.geniuspay_reference,
+            geniuspayPaymentId: tx.id ?? null,
+            status: 'completed',
+            fees: tx.fees ?? null,
+            gateway: tx.payment_method ?? tx.gateway ?? null,
+          });
+          return new Response(JSON.stringify({ success: true, alreadyPaid: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (
+          (status === 'pending' || status === 'processing') &&
+          link.geniuspay_checkout_url
+        ) {
+          const expiresAt = tx.expires_at ? new Date(tx.expires_at).getTime() : null;
+          const stillValid = !expiresAt || expiresAt > Date.now();
+          if (stillValid) {
+            return new Response(
+              JSON.stringify({
+                success: true,
+                checkoutUrl: link.geniuspay_checkout_url,
+                reference: link.geniuspay_reference,
+                reused: true,
+                status,
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+
+        // failed / cancelled / expired → on crée une nouvelle session
+        console.log('[GeniusPay] ancienne session invalide, nouvelle création', {
           reference: link.geniuspay_reference,
-          reused: true,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+          status,
+        });
+      } catch (err) {
+        console.warn('[GeniusPay] impossible de vérifier l’ancienne session', err);
+      }
     }
 
     const currency = await resolveLinkCurrency(supabase, link);
@@ -66,39 +109,46 @@ Deno.serve(async (req) => {
       resolvedCurrency: currency,
     });
 
-    const converted = amountForGeniusPay(Number(link.amount), currency);
+    // Pas de conversion maison : GeniusPay convertit USD/EUR/CDF → XOF automatiquement
+    const charge = buildGeniusPayCharge(Number(link.amount), currency);
     const siteOrigin = (origin || 'http://localhost:5173').replace(/\/$/, '');
+    const country =
+      countryHintFromCurrency(charge.currency) ||
+      (charge.currency === 'CDF' ? 'CD' : undefined);
 
-    // GeniusPay = XOF uniquement. Montant API = amountXof (même valeur que metadata).
-    const payload = {
-      amount: converted.amountXof,
-      currency: 'XOF',
+    const payload: Record<string, unknown> = {
+      amount: charge.amount,
+      currency: charge.currency,
       description: (link.description || 'Commande FidexaPay').slice(0, 500),
       customer: {
         name: customerName || link.client_name || 'Client FidexaPay',
         email: customerEmail || link.client_email || undefined,
         phone: phone
-          ? (String(phone).startsWith('+') ? phone : `+${String(phone).replace(/\D/g, '')}`)
-          : (link.client_phone || '+2250700000000'),
+          ? String(phone).startsWith('+')
+            ? phone
+            : `+${String(phone).replace(/\D/g, '')}`
+          : link.client_phone || '+2250700000000',
+        ...(country ? { country } : {}),
       },
       success_url: `${siteOrigin}/pay/${linkId}?geniuspay=success`,
       error_url: `${siteOrigin}/pay/${linkId}?geniuspay=cancel`,
       metadata: {
         link_id: link.link_id,
         payment_link_id: link.id,
-        original_amount: String(converted.originalAmount),
-        original_currency: converted.originalCurrency,
-        amount_xof: String(converted.amountXof),
-        rate_used: converted.rateUsed,
+        original_amount: String(charge.originalAmount),
+        original_currency: charge.originalCurrency,
+        api_amount: String(charge.amount),
+        api_currency: charge.currency,
+        conversion_mode: charge.conversionMode,
       },
     };
 
-    console.log('[GeniusPay] payload envoyé', {
+    console.log('[GeniusPay] payload envoyé (sans conversion Fidexa)', {
       amount: payload.amount,
       currency: payload.currency,
-      originalAmount: converted.originalAmount,
-      originalCurrency: converted.originalCurrency,
-      rateUsed: converted.rateUsed,
+      originalAmount: charge.originalAmount,
+      originalCurrency: charge.originalCurrency,
+      conversionMode: charge.conversionMode,
     });
 
     const gpRes = await fetch(`${getGeniusPayBaseUrl()}/payments`, {
@@ -143,7 +193,7 @@ Deno.serve(async (req) => {
         geniuspay_payment_id: paymentId,
         geniuspay_status: tx.status || 'pending',
         geniuspay_checkout_url: checkoutUrl,
-        geniuspay_amount_xof: converted.amountXof,
+        geniuspay_amount_xof: charge.currency === 'XOF' ? charge.amount : null,
         geniuspay_fees: tx.fees ?? null,
         payment_method: 'geniuspay',
         currency: currency,
@@ -160,9 +210,11 @@ Deno.serve(async (req) => {
         success: true,
         checkoutUrl,
         reference,
-        amountXof: converted.amountXof,
-        originalAmount: converted.originalAmount,
-        originalCurrency: converted.originalCurrency,
+        amount: charge.amount,
+        currency: charge.currency,
+        originalAmount: charge.originalAmount,
+        originalCurrency: charge.originalCurrency,
+        conversionMode: charge.conversionMode,
         fees: tx.fees ?? null,
         environment: tx.environment ?? 'sandbox',
       }),

@@ -35,19 +35,22 @@ export function getGeniusPayHeaders(): Record<string, string> {
 }
 
 /**
- * Unités de devise pour 1 USD (pivot).
- * GeniusPay n'accepte que XOF/FCFA — une seule conversion ici vers XOF.
- * CDF ≈ 2850 / USD, XOF ≈ 605 / USD → 1 XOF ≈ 4,71 CDF.
+ * Taux indicatifs (affichage / payouts uniquement).
+ * Encaissement : GeniusPay convertit automatiquement (USD/EUR/CDF → XOF).
+ * Taux marché fourni : 1 USD ≈ 571.85 XOF.
  */
 const UNITS_PER_USD: Record<string, number> = {
   USD: 1,
   EUR: 0.92,
   GBP: 0.79,
-  XOF: 605,
-  XAF: 605,
-  FCFA: 605,
+  XOF: 571.85,
+  XAF: 571.85,
+  FCFA: 571.85,
   CDF: 2850,
 };
+
+/** Devises acceptées nativement par l'API GeniusPay (conversion auto vers XOF côté GeniusPay). */
+const GENIUSPAY_NATIVE_CURRENCIES = new Set(['XOF', 'USD', 'EUR', 'CDF']);
 
 const KNOWN_CURRENCIES = new Set(Object.keys(UNITS_PER_USD));
 
@@ -68,9 +71,87 @@ export function normalizeCurrencyCode(currency?: string | null): string {
   return 'FCFA';
 }
 
+function toApiCurrency(code: string): string {
+  if (code === 'FCFA') return 'XOF';
+  return code;
+}
+
 /**
- * Une seule conversion vers XOF pour GeniusPay (devise API = XOF).
- * FCFA/XOF/XAF → montant inchangé. Autres devises → via USD pivot.
+ * Charge GeniusPay SANS conversion maison.
+ * Docs GeniusPay : envoyer montant + devise locale (XOF/USD/EUR/CDF),
+ * la conversion vers le solde marchand XOF est automatique.
+ */
+export function buildGeniusPayCharge(
+  amount: number,
+  currency?: string | null
+): {
+  amount: number;
+  currency: string;
+  originalAmount: number;
+  originalCurrency: string;
+  conversionMode: 'passthrough' | 'mapped-xof' | 'fallback-usd';
+} {
+  const originalCurrency = normalizeCurrencyCode(currency);
+  const n = Number(amount);
+
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`Montant invalide pour GeniusPay: ${amount}`);
+  }
+
+  // FCFA / XAF → code API XOF, montant inchangé (même zone CFA)
+  if (originalCurrency === 'FCFA') {
+    const amountApi = Math.max(200, Math.round(n));
+    console.log('[GeniusPay] charge passthrough CFA→XOF 1:1', { originalAmount: n, amountApi });
+    return {
+      amount: amountApi,
+      currency: 'XOF',
+      originalAmount: n,
+      originalCurrency,
+      conversionMode: 'mapped-xof',
+    };
+  }
+
+  const apiCurrency = toApiCurrency(originalCurrency);
+  if (GENIUSPAY_NATIVE_CURRENCIES.has(apiCurrency)) {
+    const amountApi =
+      apiCurrency === 'USD' || apiCurrency === 'EUR'
+        ? Math.round(n * 100) / 100
+        : Math.max(apiCurrency === 'XOF' ? 200 : 1, Math.round(n));
+    console.log('[GeniusPay] charge native (conversion auto GeniusPay)', {
+      originalAmount: n,
+      originalCurrency,
+      amountApi,
+      apiCurrency,
+    });
+    return {
+      amount: amountApi,
+      currency: apiCurrency,
+      originalAmount: n,
+      originalCurrency,
+      conversionMode: 'passthrough',
+    };
+  }
+
+  // Devise non listée (ex. GBP) → envoyer en USD, GeniusPay convertit
+  const fromUnits = UNITS_PER_USD[originalCurrency] ?? 1;
+  const usd = Math.round((n / fromUnits) * 100) / 100;
+  console.log('[GeniusPay] fallback USD pour devise non native', {
+    originalAmount: n,
+    originalCurrency,
+    usd,
+  });
+  return {
+    amount: Math.max(0.01, usd),
+    currency: 'USD',
+    originalAmount: n,
+    originalCurrency,
+    conversionMode: 'fallback-usd',
+  };
+}
+
+/**
+ * @deprecated Préférer buildGeniusPayCharge pour l'encaissement.
+ * Conservé pour les payouts (solde marchand toujours en XOF).
  */
 export function amountForGeniusPay(
   amount: number,
@@ -90,12 +171,6 @@ export function amountForGeniusPay(
 
   if (originalCurrency === 'FCFA') {
     const amountXof = Math.max(200, Math.round(n));
-    console.log('[GeniusPay] conversion', {
-      originalAmount: n,
-      originalCurrency,
-      rateUsed: '1:1 (FCFA/XOF)',
-      amountXof,
-    });
     return { amountXof, originalAmount: n, originalCurrency, rateUsed: '1:1' };
   }
 
@@ -105,15 +180,19 @@ export function amountForGeniusPay(
   }
   const usd = n / fromUnits;
   const amountXof = Math.max(200, Math.round(usd * UNITS_PER_USD.XOF));
-  const rateUsed = `${originalCurrency}->USD(/${fromUnits})->XOF(*${UNITS_PER_USD.XOF})`;
-  console.log('[GeniusPay] conversion', {
+  return {
+    amountXof,
     originalAmount: n,
     originalCurrency,
-    usd,
-    rateUsed,
-    amountXof,
-  });
-  return { amountXof, originalAmount: n, originalCurrency, rateUsed };
+    rateUsed: `${originalCurrency}->USD(/${fromUnits})->XOF(*${UNITS_PER_USD.XOF})`,
+  };
+}
+
+function countryHintFromCurrency(currency: string): string | undefined {
+  if (currency === 'CDF' || currency === 'USD') return 'CD';
+  if (currency === 'XOF' || currency === 'FCFA') return undefined;
+  if (currency === 'EUR') return undefined;
+  return undefined;
 }
 
 /** Devise du lien d'abord (source de vérité du paiement), sinon profil prestataire. */
@@ -141,6 +220,8 @@ export async function resolveLinkCurrency(
   console.warn('[GeniusPay] currency fallback FCFA');
   return 'FCFA';
 }
+
+export { countryHintFromCurrency };
 
 export async function verifyWebhookSignature(payload: string, signature: string | null): Promise<boolean> {
   const webhookSecret =
