@@ -363,9 +363,9 @@ export function Profile() {
               </SelectContent>
             </Select>
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-              Changer de devise convertit tous les soldes et montants affichés (taux pivot USD).
-              Ex. 800 000 CDF → environ {(800000 / 2850).toFixed(0)} USD. Ne change pas l&apos;historique
-              des montants encaissés dans leur devise d&apos;origine.
+              Changer de devise convertit tous les soldes et montants affichés selon le taux FidexaPay.
+              Les taux sont gérés par l&apos;administrateur dans le menu Taux de change.
+              Ne change pas l&apos;historique des montants encaissés dans leur devise d&apos;origine.
             </p>
           </div>
 

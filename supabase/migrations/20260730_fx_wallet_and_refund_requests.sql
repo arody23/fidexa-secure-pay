@@ -1,21 +1,29 @@
 -- FX conversion for wallet display + refund requests (no auto-refund)
 
--- Taux pivot USD (aligné GeniusPay doc : 1 USD ≈ 600 XOF)
+-- Taux pivot USD (lu depuis la table admin exchange_rates)
 CREATE OR REPLACE FUNCTION public.fx_units_per_usd(p_currency TEXT)
 RETURNS NUMERIC
-LANGUAGE sql
-IMMUTABLE
+LANGUAGE plpgsql
+STABLE
 AS $$
-  SELECT CASE UPPER(COALESCE(NULLIF(trim(p_currency), ''), 'USD'))
+DECLARE
+  v_currency TEXT := UPPER(COALESCE(NULLIF(trim(p_currency), ''), 'USD'));
+  v_rate NUMERIC;
+BEGIN
+  IF v_currency IN ('XOF', 'XAF') THEN v_currency := 'FCFA'; END IF;
+  SELECT units_per_usd INTO v_rate FROM public.exchange_rates WHERE currency = v_currency LIMIT 1;
+  IF v_rate IS NOT NULL THEN
+    RETURN v_rate;
+  END IF;
+  RETURN CASE v_currency
     WHEN 'USD' THEN 1::NUMERIC
     WHEN 'EUR' THEN 0.92::NUMERIC
     WHEN 'GBP' THEN 0.79::NUMERIC
-    WHEN 'XOF' THEN 600::NUMERIC
-    WHEN 'XAF' THEN 600::NUMERIC
     WHEN 'FCFA' THEN 600::NUMERIC
-    WHEN 'CDF' THEN 2850::NUMERIC
+    WHEN 'CDF' THEN 2294::NUMERIC
     ELSE 1::NUMERIC
   END;
+END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.convert_amount_fx(

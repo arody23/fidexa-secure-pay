@@ -93,7 +93,7 @@ export const COUNTRIES_DATA = {
 
 // Devises supportées + taux de change (à jour quotidiennement en prod)
 export const CURRENCIES = {
-  CDF: { name: 'Franc Congolais', symbol: 'CDF', toUSD: 1 / 2850 },
+  CDF: { name: 'Franc Congolais', symbol: 'CDF', toUSD: 1 / 2294 },
   XAF: { name: 'Franc CFA BEAC', symbol: 'FCFA', toUSD: 1 / 600 },
   XOF: { name: 'Franc CFA WAEMU', symbol: 'FCFA', toUSD: 1 / 600 },
   USD: { name: 'US Dollar', symbol: '$', toUSD: 1 },

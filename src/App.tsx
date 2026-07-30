@@ -35,6 +35,8 @@ import AdminEscrow from "./pages/Admin/EscrowMonitor";
 import AdminWithdrawals from "./pages/Admin/Withdrawals";
 import AdminNotifications from "./pages/Admin/Notifications";
 import AdminFeedback from "./pages/Admin/Feedback";
+import AdminExchangeRates from "./pages/Admin/ExchangeRates";
+import { ExchangeRatesProvider } from "./contexts/ExchangeRatesContext";
 import ProviderOrders from "./pages/ProviderOrders";
 import ProviderFeedback from "./pages/ProviderFeedback";
 import SignIn from "./pages/Auth/SignIn";
@@ -60,9 +62,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <CookieConsent />
-          <PwaInstallPrompt />
-          <Routes>
+          <ExchangeRatesProvider>
+            <CookieConsent />
+            <PwaInstallPrompt />
+            <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth/signin" element={<SignIn />} />
             <Route path="/auth/signup" element={<SignUp />} />
@@ -109,8 +112,10 @@ const App = () => (
             <Route path="withdrawals" element={<AdminWithdrawals />} />
             <Route path="notifications" element={<AdminNotifications />} />
             <Route path="feedback" element={<AdminFeedback />} />
+            <Route path="exchange-rates" element={<AdminExchangeRates />} />
             <Route path="dispute-resolution" element={<Navigate to="/admin/disputes" replace />} />
           </Route>
+          </ExchangeRatesProvider>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

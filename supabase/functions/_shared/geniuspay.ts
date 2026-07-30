@@ -46,7 +46,7 @@ const UNITS_PER_USD: Record<string, number> = {
   XOF: 600,
   XAF: 600,
   FCFA: 600,
-  CDF: 2850,
+  CDF: 2294,
 };
 
 /** Devises acceptées nativement par l'API GeniusPay (conversion auto vers XOF côté GeniusPay). */
