@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Banknote,
+  Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +43,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/users', label: 'Utilisateurs', icon: Users },
     { href: '/admin/transactions', label: 'Transactions', icon: Receipt },
     { href: '/admin/withdrawals', label: 'Retraits', icon: Banknote },
+    { href: '/admin/notifications', label: 'Notifications', icon: Bell },
     { href: '/admin/escrow', label: 'Escrow', icon: Shield },
     { href: '/admin/disputes', label: 'Litiges', icon: Scale },
     { href: '/admin/orders', label: 'Commandes', icon: Package },
@@ -60,7 +62,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex h-full flex-col">
           {/* Logo Section */}
           <div className="flex h-24 items-center border-b border-border px-6 justify-between">
-            {sidebarOpen && <Logo />}
+            {sidebarOpen && <Logo to="/admin" />}
             <Button
               variant="ghost"
               size="icon"
@@ -159,7 +161,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             >
               <div className="flex h-full flex-col">
                 <div className="flex h-24 items-center border-b border-border px-6">
-                  <Logo />
+                  <Logo to="/admin" />
                 </div>
                 <nav className="flex-1 space-y-1 p-4">
                   {navItems.map((item) => {

@@ -95,27 +95,57 @@ export function useCamera() {
   const startCamera = async () => {
     try {
       setCameraError('');
+      // Prefer environment camera for documents; user-facing for selfie handled by caller constraints
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'user',
+          facingMode: { ideal: 'user' },
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
         audio: false,
       });
 
+      streamRef.current = stream;
+
+      // Wait a frame so the <video> is mounted after showCamera=true
+      await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        streamRef.current = stream;
+        videoRef.current.muted = true;
+        videoRef.current.setAttribute('playsinline', 'true');
+        await videoRef.current.play();
         setCameraActive(true);
+      } else {
+        // Retry once after mount
+        await new Promise((r) => setTimeout(r, 150));
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.muted = true;
+          await videoRef.current.play();
+          setCameraActive(true);
+        } else {
+          stream.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+          throw new Error('Caméra indisponible. Importez une photo à la place.');
+        }
       }
     } catch (err) {
-      const errorMsg =
+      const name = err instanceof DOMException ? err.name : '';
+      let errorMsg =
         err instanceof Error
           ? err.message
           : 'Impossible d\'accéder à la caméra. Vérifiez les permissions.';
+      if (name === 'NotAllowedError') {
+        errorMsg = 'Permission caméra refusée. Autorisez-la dans le navigateur ou importez une photo.';
+      } else if (name === 'NotFoundError') {
+        errorMsg = 'Aucune caméra détectée. Importez une photo.';
+      } else if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        errorMsg = 'La caméra nécessite HTTPS. Importez une photo.';
+      }
       setCameraError(errorMsg);
       console.error('Camera error:', err);
+      throw new Error(errorMsg);
     }
   };
 

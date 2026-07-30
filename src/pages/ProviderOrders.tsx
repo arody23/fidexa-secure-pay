@@ -181,8 +181,9 @@ export default function ProviderOrders() {
     const styles: Record<string, { color: string; label: string }> = {
       paid: { color: 'bg-blue-100 text-blue-800', label: 'Nouvelle commande' },
       started: { color: 'bg-yellow-100 text-yellow-800', label: 'En cours' },
-      completed: { color: 'bg-green-100 text-green-800', label: 'Terminée' },
+      completed: { color: 'bg-amber-100 text-amber-900', label: 'En attente de validation' },
       disputed: { color: 'bg-red-100 text-red-800', label: 'Litige' },
+      validated: { color: 'bg-green-100 text-green-800', label: 'Validée' },
     };
     const style = styles[status] || styles.paid;
     return <Badge className={style.color}>{style.label}</Badge>;
@@ -280,6 +281,14 @@ export default function ProviderOrders() {
                         ? 'Chargement...'
                         : 'Finaliser la commande'}
                     </Button>
+                  )}
+                  {order.order_status === 'completed' && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                      <p className="font-semibold">En attente de la validation du client</p>
+                      <p className="mt-1 text-amber-800/90">
+                        Vous avez finalisé la commande. Les fonds seront libérés dès que le client valide la livraison.
+                      </p>
+                    </div>
                   )}
                   {order.order_status === 'disputed' && (
                     <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">

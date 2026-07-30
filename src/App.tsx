@@ -32,6 +32,7 @@ import AdminSupport from "./pages/Admin/Support";
 import AdminOrders from "./pages/Admin/Orders";
 import AdminEscrow from "./pages/Admin/EscrowMonitor";
 import AdminWithdrawals from "./pages/Admin/Withdrawals";
+import AdminNotifications from "./pages/Admin/Notifications";
 import ProviderOrders from "./pages/ProviderOrders";
 import SignIn from "./pages/Auth/SignIn";
 import SignUp from "./pages/Auth/SignUp";
@@ -89,6 +90,7 @@ const App = () => (
             <Route path="support" element={<AdminSupport />} />
             <Route path="escrow" element={<AdminEscrow />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
+            <Route path="notifications" element={<AdminNotifications />} />
             <Route path="dispute-resolution" element={<Navigate to="/admin/disputes" replace />} />
           </Route>
           <Route path="*" element={<NotFound />} />

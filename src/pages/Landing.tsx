@@ -1,42 +1,24 @@
 import { motion, useInView } from 'framer-motion';
-
 import { useRef } from 'react';
-
 import { Link } from 'react-router-dom';
-
 import {
-
   Shield,
-
   Smartphone,
-
   Users,
-
   ArrowRight,
-
   CheckCircle,
-
   Play,
-
   Lock,
-
   Zap,
-
   TrendingUp,
-
   Globe,
-
 } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
-
 import { Card, CardContent } from '@/components/ui/card';
-
 import Logo from '@/components/Logo';
-
 import SiteFooter from '@/components/layout/SiteFooter';
-
 import { MVP_SUBSCRIPTION, SITE } from '@/config/site';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 
@@ -61,6 +43,7 @@ function AnimatedCounter({ value, suffix = '' }: { value: string; suffix?: strin
 
 
 const Landing = () => {
+  const { user } = useAuth();
 
   return (
 
@@ -87,11 +70,16 @@ const Landing = () => {
           </div>
 
           <div className="flex items-center gap-2">
-
-            <Button variant="ghost" size="sm" asChild><Link to="/auth/signin">Connexion</Link></Button>
-
-            <Button size="sm" asChild><Link to="/auth/signup">Commencer</Link></Button>
-
+            {user ? (
+              <Button size="sm" asChild>
+                <Link to="/dashboard">Mon espace</Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild><Link to="/auth/signin">Connexion</Link></Button>
+                <Button size="sm" asChild><Link to="/auth/signup">Commencer</Link></Button>
+              </>
+            )}
           </div>
 
         </div>

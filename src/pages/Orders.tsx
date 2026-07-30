@@ -47,6 +47,7 @@ const Orders = () => {
   const filterParam = searchParams.get("filter");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(filterParam || "all");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const { data: rawLinks, loading } = useProviderPaymentLinks();
 
@@ -244,7 +245,7 @@ const Orders = () => {
                             )}
                             Copier le lien
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
                             <Package className="mr-2 h-4 w-4" />
                             Voir les détails
                           </DropdownMenuItem>
@@ -258,6 +259,67 @@ const Orders = () => {
           )}
         </CardContent>
       </Card>
+
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center">
+          <Card className="max-h-[85vh] w-full max-w-md overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="text-lg">Détail de la commande</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Client</span>
+                <span className="font-medium text-right">{selectedOrder.client_name}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Lien</span>
+                <span className="max-w-[60%] truncate font-mono text-xs">{selectedOrder.link_id}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Description</span>
+                <p className="mt-1 font-medium">{selectedOrder.description}</p>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Montant</span>
+                <span className="font-semibold">{formatAmount(selectedOrder.amount, currency)}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Statut</span>
+                <StatusBadge
+                  status={
+                    (selectedOrder.is_paid
+                      ? selectedOrder.status === "pending"
+                        ? "paid"
+                        : selectedOrder.status
+                      : selectedOrder.status) as OrderStatus
+                  }
+                />
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Créé le</span>
+                <span>{new Date(selectedOrder.created_at).toLocaleString("fr-FR")}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Délai</span>
+                <span>{selectedOrder.delivery_days} jours</span>
+              </div>
+              {(selectedOrder.order_status === "completed") && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                  En attente de la validation du client
+                </div>
+              )}
+              <div className="flex gap-2 pt-2">
+                <Button className="flex-1" variant="outline" onClick={() => copyOrderLink(selectedOrder.link_id)}>
+                  Copier le lien
+                </Button>
+                <Button className="flex-1" onClick={() => setSelectedOrder(null)}>
+                  Fermer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

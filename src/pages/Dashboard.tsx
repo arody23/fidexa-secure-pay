@@ -140,13 +140,30 @@ const Dashboard = () => {
             Aperçu de votre activité
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link to="/dashboard/create-link">
             <Plus className="mr-2 h-4 w-4" />
             Créer un lien
           </Link>
         </Button>
       </div>
+
+      <Card className="order-first">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Gains après commission
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-semibold">
+            {formatAmount(stats.monthlyVolume, currency)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Total des fonds libérés ce mois (net de commission)
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link to="/dashboard/active-orders">
@@ -183,50 +200,31 @@ const Dashboard = () => {
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Gains après commission
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">
-              {formatAmount(stats.monthlyVolume, currency)}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Total des fonds libérés ce mois (net de commission)
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full">
+      <Card>
           <CardHeader>
             <CardTitle className="text-lg">Actions rapides</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="grid gap-3 sm:grid-cols-3">
             <Button variant="outline" className="w-full justify-start" asChild>
               <Link to="/dashboard/create-link">
                 <Link2 className="mr-2 h-4 w-4" />
-                Nouveau lien de paiement
+                Nouveau lien
               </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start" asChild>
               <Link to="/dashboard/orders">
                 <Package className="mr-2 h-4 w-4" />
-                Voir toutes les commandes
+                Commandes
               </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start" asChild>
               <Link to="/dashboard/subscriptions">
                 <TrendingUp className="mr-2 h-4 w-4" />
-                Gérer mon abonnement
+                Abonnement
               </Link>
             </Button>
           </CardContent>
         </Card>
-      </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6">

@@ -21,16 +21,22 @@ export default defineConfig(({ mode }) => ({
         enabled: true,
         type: "module",
       },
-      includeAssets: ["assets/icons/Favicon.png", "assets/icons/icon-192.png"],
+      includeAssets: ["assets/icons/Favicon.png", "assets/icons/apple-touch-icon.jpg", "assets/icons/icon-192.png"],
       manifest: {
         name: "FidexaPay",
         short_name: "FidexaPay",
         description: "Paiements sécurisés en escrow pour prestataires africains",
-        theme_color: "#6366f1",
+        theme_color: "#2563eb",
         background_color: "#0f172a",
         display: "standalone",
         start_url: "/dashboard",
         icons: [
+          {
+            src: "/assets/icons/apple-touch-icon.jpg",
+            sizes: "180x180",
+            type: "image/jpeg",
+            purpose: "any",
+          },
           {
             src: "/assets/icons/icon-192.png",
             sizes: "192x192",
@@ -39,6 +45,12 @@ export default defineConfig(({ mode }) => ({
           },
           {
             src: "/assets/icons/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "/assets/icons/Favicon.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any",

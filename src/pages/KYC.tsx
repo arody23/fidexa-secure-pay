@@ -116,29 +116,29 @@ const StepIndicator = ({ steps, currentStep }: { steps: KYCStep[]; currentStep: 
   const currentIndex = steps.indexOf(currentStep);
 
   return (
-    <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-slate-50 to-slate-100 p-4 rounded-lg border border-slate-200">
+    <div className="flex items-center justify-between gap-1 overflow-x-auto rounded-lg border border-border bg-muted/40 p-2 sm:gap-2 sm:p-4">
       {steps.map((step, idx) => (
-        <div key={step} className="flex items-center flex-1 relative">
+        <div key={step} className="flex min-w-0 flex-1 items-center relative">
           <motion.div
-            animate={{ scale: idx <= currentIndex ? 1.1 : 1 }}
-            className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all z-10 ${
+            animate={{ scale: idx <= currentIndex ? 1.05 : 1 }}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all z-10 sm:h-10 sm:w-10 sm:text-sm ${
               idx < currentIndex
-                ? 'bg-green-500 text-white shadow-lg'
+                ? 'bg-primary text-primary-foreground shadow'
                 : idx === currentIndex
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-slate-300 text-slate-600'
+                ? 'bg-primary text-primary-foreground shadow'
+                : 'bg-muted text-muted-foreground'
             }`}
           >
             {idx < currentIndex ? '✓' : idx + 1}
           </motion.div>
-          <span className={`text-xs sm:text-sm font-semibold ml-2 ${
-            idx <= currentIndex ? 'text-slate-900' : 'text-slate-500'
+          <span className={`ml-1 hidden truncate text-xs font-medium sm:ml-2 sm:inline sm:text-sm ${
+            idx <= currentIndex ? 'text-foreground' : 'text-muted-foreground'
           }`}>
             {stepLabels[step]}
           </span>
           {idx < steps.length - 1 && (
-            <div className={`h-0.5 flex-1 mx-1 ${
-              idx < currentIndex ? 'bg-green-500' : 'bg-slate-300'
+            <div className={`mx-1 h-0.5 min-w-[8px] flex-1 ${
+              idx < currentIndex ? 'bg-primary' : 'bg-border'
             }`} />
           )}
         </div>
@@ -163,11 +163,30 @@ export default function KYC() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { uploadFile, deleteFile } = useKYCUpload();
-  const { videoRef, canvasRef, startCamera, stopCamera, capturePhoto } = useCamera();
+  const { videoRef, canvasRef, startCamera, stopCamera, capturePhoto, cameraError } = useCamera();
 
   useEffect(() => {
     loadKycStatus();
   }, []);
+
+  useEffect(() => {
+    if (!showCamera) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await startCamera();
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Erreur caméra');
+          setShowCamera(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      stopCamera();
+    };
+  }, [showCamera]);
 
   const loadKycStatus = async () => {
     try {
@@ -205,14 +224,9 @@ export default function KYC() {
     }
   };
 
-  const handleStartCamera = async () => {
-    try {
-      setError('');
-      await startCamera();
-      setShowCamera(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur caméra');
-    }
+  const handleStartCamera = () => {
+    setError('');
+    setShowCamera(true);
   };
 
   const handleCapture = async (isFromCamera: boolean, file?: File) => {
@@ -242,7 +256,12 @@ export default function KYC() {
       const docType = currentStep === 'selfie' ? 'selfie' : selectedType!;
       const side = currentStep === 'selfie' ? 'single' : currentSide;
 
-      const { url, filePath } = await uploadFile(blob, docType, side as DocumentSide, userId);
+      const uploaded = await uploadFile(blob, docType, side as DocumentSide, userId);
+      if (!uploaded) {
+        setError('Échec de l\'envoi du fichier. Réessayez ou importez une autre photo.');
+        return;
+      }
+      const { url, filePath } = uploaded;
 
       const newFile: UploadedFile = {
         name: `${docType}_${side}`,
@@ -375,11 +394,11 @@ export default function KYC() {
   }
 
   return (
-          <div className="max-w-2xl mx-auto p-6 space-y-6">
+          <div className="mx-auto max-w-2xl space-y-4 overflow-x-hidden px-3 py-4 sm:space-y-6 sm:px-4 sm:py-6">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-3xl font-bold text-slate-900">Vérification d'Identité</h1>
-          <p className="text-slate-600 mt-2">Complétez votre vérification en 4 étapes simples</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Vérification d&apos;identité</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:text-base">Complétez votre KYC en quelques étapes</p>
         </motion.div>
 
         {/* Error Alert */}
@@ -481,33 +500,38 @@ export default function KYC() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="overflow-hidden border-slate-200">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-slate-200">
-                  <CardTitle className="text-2xl text-slate-900">Prenez un Selfie</CardTitle>
-                  <CardDescription className="text-slate-700">Une photo claire de votre visage pour vérifier votre identité</CardDescription>
+              <Card className="overflow-hidden border-border">
+                <CardHeader className="border-b border-border bg-muted/40 px-4 sm:px-6">
+                  <CardTitle className="text-xl sm:text-2xl">Prenez un selfie</CardTitle>
+                  <CardDescription>Photo claire de votre visage pour vérifier votre identité</CardDescription>
                 </CardHeader>
-                <CardContent className="pt-8 pb-8">
+                <CardContent className="px-4 pb-6 pt-6 sm:px-6 sm:pb-8 sm:pt-8">
                   {!showCamera ? (
-                    <motion.div className="space-y-4">
-                      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-12 text-center space-y-6 border border-slate-200">
-                        <div className="text-6xl">📱</div>
+                    <motion.div className="space-y-3 sm:space-y-4">
+                      <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-6 text-center sm:p-10">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          {DocumentIcons.selfie}
+                        </div>
                         <div>
-                          <p className="font-bold text-slate-900 text-lg">Prêt à commencer?</p>
-                          <p className="text-sm text-slate-600 mt-2">Utilisez votre caméra ou importez une photo</p>
+                          <p className="text-base font-semibold sm:text-lg">Prêt à commencer ?</p>
+                          <p className="mt-1 text-sm text-muted-foreground">Caméra ou import photo</p>
                         </div>
                       </div>
+                      {cameraError && (
+                        <p className="text-sm text-destructive">{cameraError}</p>
+                      )}
                       <Button
                         onClick={handleStartCamera}
-                        className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base font-semibold rounded-lg"
+                        className="h-11 w-full text-base font-semibold sm:h-12"
                       >
-                        Ouvrir la Caméra
+                        Ouvrir la caméra
                       </Button>
                       <Button
                         onClick={() => fileInputRef.current?.click()}
                         variant="outline"
-                        className="w-full h-12 text-base font-semibold rounded-lg border-slate-300 hover:bg-slate-50"
+                        className="h-11 w-full text-base font-semibold sm:h-12"
                       >
-                        Importer une Photo
+                        Importer une photo
                       </Button>
                       <input
                         ref={fileInputRef}
@@ -579,9 +603,9 @@ export default function KYC() {
               transition={{ duration: 0.3 }}
             >
               <Card className="overflow-hidden border-slate-200">
-                <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 border-b border-slate-200">
-                  <CardTitle className="text-2xl text-slate-900">Choisir un Document</CardTitle>
-                  <CardDescription className="text-slate-700">Sélectionnez le type de document d'identité à vérifier</CardDescription>
+                <CardHeader className="border-b border-border bg-muted/40 px-4 sm:px-6">
+                  <CardTitle className="text-xl sm:text-2xl">Choisir un document</CardTitle>
+                  <CardDescription>Sélectionnez le type de document d&apos;identité</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-8 pb-8">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -597,17 +621,17 @@ export default function KYC() {
                             setCurrentStep('capture-doc');
                             setCurrentSide(doc.sides[0]);
                           }}
-                          className={`p-6 rounded-xl border-2 transition-all text-center group ${
+                          className={`rounded-xl border-2 p-4 text-center transition-all sm:p-6 ${
                             selectedType === key
-                              ? 'border-blue-600 bg-blue-50 shadow-lg'
-                              : 'border-slate-200 hover:border-blue-400 bg-white hover:shadow-md'
+                              ? 'border-primary bg-primary/5 shadow'
+                              : 'border-border bg-card hover:border-primary/40 hover:shadow-sm'
                           }`}
                         >
-                          <div className="text-blue-600 mb-3 flex justify-center group-hover:scale-110 transition-transform">
+                          <div className="mb-2 flex justify-center text-primary sm:mb-3">
                             {doc.icon}
                           </div>
-                          <p className="font-bold text-slate-900 text-base">{doc.label}</p>
-                          <p className="text-xs text-slate-600 mt-2">{doc.description}</p>
+                          <p className="text-sm font-bold sm:text-base">{doc.label}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{doc.description}</p>
                         </motion.button>
                       ))}
                   </div>

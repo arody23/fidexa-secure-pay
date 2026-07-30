@@ -23,7 +23,7 @@ self.addEventListener('push', (event: PushEvent) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || 'FidexaPay', {
       body: payload.body || '',
-      icon: '/assets/icons/icon-192.png',
+      icon: '/assets/icons/Favicon.png',
       badge: '/assets/icons/Favicon.png',
       data: payload.url ? { url: payload.url } : undefined,
     })

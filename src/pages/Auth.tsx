@@ -131,7 +131,7 @@ const Auth = () => {
       >
         <div className="mb-8 text-center">
           <Link to="/">
-            <Logo showSlogan={false} />
+            <Logo />
           </Link>
         </div>
 

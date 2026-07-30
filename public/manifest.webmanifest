@@ -1,61 +1,36 @@
 {
-
   "name": "FidexaPay",
-
   "short_name": "FidexaPay",
-
   "description": "Paiements sécurisés en escrow pour prestataires africains",
-
   "start_url": "/dashboard",
-
   "display": "standalone",
-
   "background_color": "#0f172a",
-
-  "theme_color": "#6366f1",
-
+  "theme_color": "#2563eb",
   "orientation": "portrait-primary",
-
   "icons": [
-
     {
-
+      "src": "/assets/icons/apple-touch-icon.jpg",
+      "sizes": "180x180",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
       "src": "/assets/icons/icon-192.png",
-
       "sizes": "192x192",
-
       "type": "image/png",
-
       "purpose": "any"
-
     },
-
     {
-
       "src": "/assets/icons/icon-512.png",
-
       "sizes": "512x512",
-
       "type": "image/png",
-
-      "purpose": "any"
-
+      "purpose": "any maskable"
     },
-
     {
-
-      "src": "/assets/logo/Logo.png",
-
+      "src": "/assets/icons/Favicon.png",
       "sizes": "512x512",
-
       "type": "image/png",
-
-      "purpose": "maskable"
-
+      "purpose": "any"
     }
-
   ]
-
 }
-
-
