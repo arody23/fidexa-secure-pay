@@ -115,9 +115,9 @@ const App = () => (
             <Route path="exchange-rates" element={<AdminExchangeRates />} />
             <Route path="dispute-resolution" element={<Navigate to="/admin/disputes" replace />} />
           </Route>
-          </ExchangeRatesProvider>
           <Route path="*" element={<NotFound />} />
         </Routes>
+      </ExchangeRatesProvider>
       </BrowserRouter>
     </TooltipProvider>
     </AuthProvider>
