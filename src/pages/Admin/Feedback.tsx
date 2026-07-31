@@ -31,22 +31,41 @@ export default function AdminFeedback() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    let query = supabase
-      .from('provider_testimonials')
-      .select('id, content, rating, status, admin_note, created_at, user_id, users(full_name, email, avatar_url)')
-      .order('created_at', { ascending: false });
+    try {
+      let query = supabase
+        .from('provider_testimonials')
+        .select('id, content, rating, status, admin_note, created_at, user_id')
+        .order('created_at', { ascending: false });
 
-    if (filter !== 'all') {
-      query = query.eq('status', filter);
-    }
+      if (filter !== 'all') {
+        query = query.eq('status', filter);
+      }
 
-    const { data, error } = await query;
-    if (error) {
+      const { data: testimonials, error: tError } = await query;
+      if (tError) throw tError;
+
+      const userIds = [...new Set((testimonials || []).map((t) => t.user_id).filter(Boolean))];
+      let userMap: Record<string, { full_name: string | null; email: string | null; avatar_url: string | null }> = {};
+      if (userIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, full_name, email, avatar_url')
+          .in('id', userIds);
+        (users || []).forEach((u) => {
+          userMap[u.id as string] = u as unknown as { full_name: string | null; email: string | null; avatar_url: string | null };
+        });
+      }
+
+      const merged = (testimonials || []).map((t) => ({
+        ...t,
+        users: userMap[t.user_id] || null,
+      })) as unknown as FeedbackRow[];
+
+      setItems(merged);
+    } catch (error) {
       console.error(error);
-      toast({ title: 'Erreur chargement', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erreur chargement', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
       setItems([]);
-    } else {
-      setItems((data || []) as unknown as FeedbackRow[]);
     }
     setLoading(false);
   }, [filter, toast]);
