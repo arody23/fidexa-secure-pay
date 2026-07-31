@@ -379,22 +379,6 @@ const Landing = () => {
                     ))}
                   </div>
                 </div>
-
-                {/* Compteur prestataires — pas de photos individuelles */}
-                <div className="flex flex-wrap items-center gap-3">
-                  {providerCount > 0 ? (
-                    <p className="text-sm text-white/75">
-                      <span className="font-semibold text-white">
-                        {providerCount} prestataire{providerCount > 1 ? 's' : ''}
-                      </span>{' '}
-                      nous font confiance
-                    </p>
-                  ) : (
-                    <p className="text-sm text-white/70">
-                      Soyez le prochain prestataire à sécuriser vos paiements.
-                    </p>
-                  )}
-                </div>
               </motion.div>
             </div>
 

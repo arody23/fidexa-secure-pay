@@ -362,11 +362,6 @@ export function Profile() {
                 <SelectItem value="EUR">EUR — Euro</SelectItem>
               </SelectContent>
             </Select>
-            <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-              Changer de devise convertit tous les soldes et montants affichés selon le taux FidexaPay.
-              Les taux sont gérés par l&apos;administrateur dans le menu Taux de change.
-              Ne change pas l&apos;historique des montants encaissés dans leur devise d&apos;origine.
-            </p>
           </div>
 
           <div className="min-w-0">
