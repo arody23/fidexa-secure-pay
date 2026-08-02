@@ -8,6 +8,9 @@ import pkg from 'whatsapp-web.js';
 
 const { Client, LocalAuth } = pkg;
 
+/** ack: -1 erreur, 0 pending, 1 serveur, 2 délivré, 3 lu */
+const ACK_SERVER = 1;
+
 export class WhatsAppChannel {
   constructor() {
     this.enabled = process.env.WHATSAPP_ENABLED !== 'false';
@@ -56,6 +59,7 @@ export class WhatsAppChannel {
         ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
         : undefined);
 
+    // Ne PAS utiliser --single-process : Chromium zombie → sendMessage résout sans sync serveur.
     const puppeteerOpts = {
       headless: true,
       args: [
@@ -64,9 +68,11 @@ export class WhatsAppChannel {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--disable-extensions',
-        '--disable-software-rasterizer',
-        '--js-flags=--max-old-space-size=256',
-        '--single-process',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
       ],
     };
     if (chromePath) puppeteerOpts.executablePath = chromePath;
@@ -94,7 +100,6 @@ export class WhatsAppChannel {
         this.pushLog('error', `QR image failed: ${err.message}`);
       }
       this.pushLog('info', 'QR prêt — scannez depuis Admin → WhatsApp');
-      // Terminal QR optionnel (bruyant) — le dashboard utilise qrDataUrl
       if (process.env.WHATSAPP_TERMINAL_QR === 'true') {
         qrcodeTerminal.generate(qr, { small: true });
       }
@@ -187,9 +192,92 @@ export class WhatsAppChannel {
     return digits;
   }
 
-  /** Affichage E.164 (+243…) — le masquage ne sert qu’aux logs publics, pas à l’envoi. */
   formatE164(digits) {
     return `+${String(digits || '').replace(/\D/g, '')}`;
+  }
+
+  /**
+   * Résout le JID WhatsApp réel (@lid prioritaire si renvoyé par WA).
+   * @returns {Promise<string[]>} candidats ordonnés
+   */
+  async resolveChatIds(digits) {
+    const cUs = `${digits}@c.us`;
+    const ids = [];
+
+    try {
+      const numberId = await this.client.getNumberId(digits);
+      const serialized =
+        numberId?._serialized ||
+        (numberId?.user && numberId?.server
+          ? `${numberId.user}@${numberId.server}`
+          : null);
+      if (serialized) {
+        ids.push(serialized);
+        this.pushLog('info', `numéro résolu ${this.formatE164(digits)} → ${serialized}`);
+      } else {
+        this.pushLog('warn', `getNumberId: aucun compte WhatsApp pour ${this.formatE164(digits)}`);
+      }
+    } catch (err) {
+      this.pushLog('warn', `getNumberId échec: ${err instanceof Error ? err.message : err}`);
+    }
+
+    if (!ids.includes(cUs)) ids.push(cUs);
+    return ids;
+  }
+
+  /** Ouvre / crée le chat côté WhatsApp Web avant l'envoi (nouveaux contacts). */
+  async ensureChatOpen(chatId) {
+    try {
+      const chat = await this.client.getChatById(chatId);
+      if (chat) return chat;
+    } catch {
+      /* continue */
+    }
+    try {
+      if (typeof this.client.interface?.openChatWindow === 'function') {
+        await this.client.interface.openChatWindow(chatId);
+        await new Promise((r) => setTimeout(r, 800));
+      }
+    } catch (err) {
+      this.pushLog('warn', `openChatWindow(${chatId}): ${err instanceof Error ? err.message : err}`);
+    }
+    try {
+      return await this.client.getChatById(chatId);
+    } catch {
+      return null;
+    }
+  }
+
+  waitForAck(message, minAck = ACK_SERVER, timeoutMs = 25000) {
+    if (!message) return Promise.resolve(-1);
+    if (typeof message.ack === 'number' && message.ack >= minAck) {
+      return Promise.resolve(message.ack);
+    }
+    const targetId = message.id?._serialized;
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = (ack) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try {
+          this.client?.removeListener?.('message_ack', onAck);
+        } catch {
+          /* ignore */
+        }
+        resolve(ack);
+      };
+      const onAck = (msg, ack) => {
+        const id = msg?.id?._serialized;
+        if (targetId && id && id !== targetId) return;
+        if (ack >= minAck) done(ack);
+      };
+      const timer = setTimeout(
+        () => done(typeof message.ack === 'number' ? message.ack : 0),
+        timeoutMs
+      );
+      this.client?.on?.('message_ack', onAck);
+    });
   }
 
   async send(to, body) {
@@ -199,25 +287,61 @@ export class WhatsAppChannel {
     if (!this.client || !this.ready) {
       throw new Error('WhatsApp non prêt — Admin → WhatsApp → scannez le QR');
     }
-    const digits = this.normalizePhone(to);
-    const e164 = this.formatE164(digits);
-
-    // Vérifie que le numéro existe sur WhatsApp, mais envoie toujours en @c.us
-    // (le @lid renvoyé par getNumberId peut marquer "envoyé" sans livraison fiable).
-    try {
-      const numberId = await this.client.getNumberId(digits);
-      if (!numberId) {
-        throw new Error(`Numéro non WhatsApp: ${e164}`);
-      }
-    } catch (err) {
-      if (String(err.message || '').includes('non WhatsApp')) throw err;
-      this.pushLog('warn', `getNumberId échec pour ${e164} — tentative @c.us quand même`);
+    if (!body || !String(body).trim()) {
+      throw new Error('Message WhatsApp vide');
     }
 
-    const chatId = `${digits}@c.us`;
-    const result = await this.client.sendMessage(chatId, body);
-    this.pushLog('info', `envoyé → ${e164} (${chatId})`);
-    return { ok: true, id: result?.id?._serialized || null, to: e164, chatId };
+    const digits = this.normalizePhone(to);
+    const e164 = this.formatE164(digits);
+    const selfWid = this.info?.wid || this.client.info?.wid?.user || null;
+    if (selfWid && digits === String(selfWid).replace(/\D/g, '')) {
+      this.pushLog('info', `envoi vers soi-même (${e164}) — chat « Message à vous-même »`);
+    }
+
+    const candidates = await this.resolveChatIds(digits);
+    if (!candidates.length) {
+      throw new Error(`Numéro non WhatsApp: ${e164}`);
+    }
+
+    const errors = [];
+
+    for (const chatId of candidates) {
+      try {
+        await this.ensureChatOpen(chatId);
+
+        // waitUntilMsgSent: sans ça, wwebjs ≥1.33 peut résoudre avant l'ACK serveur
+        // (voire renvoyer null si getChat échoue) → faux « envoyé ».
+        const result = await this.client.sendMessage(chatId, body, {
+          waitUntilMsgSent: true,
+          sendSeen: false,
+          linkPreview: false,
+        });
+
+        if (!result || !result.id) {
+          throw new Error(`sendMessage a renvoyé null (chat non résolu: ${chatId})`);
+        }
+
+        const ack = await this.waitForAck(result, ACK_SERVER, 25000);
+        const mid = result.id?._serialized || null;
+
+        if (ack < ACK_SERVER) {
+          throw new Error(
+            `WhatsApp n'a pas accepté le message (ack=${ack}, attendu≥${ACK_SERVER}) via ${chatId}`
+          );
+        }
+
+        this.pushLog('info', `envoyé → ${e164} (${chatId}) ack=${ack} id=${mid}`);
+        return { ok: true, id: mid, to: e164, chatId, ack };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`${chatId}: ${msg}`);
+        this.pushLog('warn', `échec envoi ${chatId}: ${msg}`);
+      }
+    }
+
+    const detail = errors.join(' | ');
+    this.pushLog('error', `échec total → ${e164}: ${detail}`);
+    throw new Error(`Envoi WhatsApp échoué pour ${e164}: ${detail}`);
   }
 
   status() {
