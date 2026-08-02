@@ -57,6 +57,47 @@ NOTIFICATION_SERVICE_SECRET=<même que SERVICE_SECRET>
 
 6. Admin Fidexa → WhatsApp → scanner le QR une fois. La session reste sur le volume `/data`.
 
+## OpenWA (test isolé puis bascule)
+
+OpenWA est un gateway **non officiel** séparé. Il ne remplace pas la queue
+Postgres : il remplace uniquement le transport WhatsApp après un test réel.
+
+1. Railway → créer un nouveau service depuis `ghcr.io/rmyndharis/openwa:latest`.
+2. Monter un volume OpenWA sur `/app/data`, avec une seule réplique.
+3. Configurer au minimum :
+
+```text
+NODE_ENV=production
+API_PORT=2785
+DATABASE_TYPE=sqlite
+DATABASE_NAME=/app/data/openwa.sqlite
+SESSION_DATA_PATH=/app/data/sessions
+STORAGE_TYPE=local
+STORAGE_LOCAL_PATH=/app/data/media
+ENGINE_TYPE=whatsapp-web.js
+API_MASTER_KEY=<secret long et unique>
+PUPPETEER_HEADLESS=true
+PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu
+```
+
+4. Dans le dashboard OpenWA, créer et démarrer une session, scanner le QR avec
+   un numéro dédié, puis tester un unique message vers `243976028479@c.us`.
+   Ne pas basculer Fidexa tant que ce message n'est pas reçu.
+5. Créer une clé OpenWA limitée à cette session, puis ajouter au service
+   `notification-service` :
+
+```text
+WHATSAPP_TRANSPORT=openwa
+OPENWA_BASE_URL=https://<openwa>.up.railway.app
+OPENWA_API_KEY=<clé OpenWA>
+OPENWA_SESSION_ID=<id de session OpenWA>
+```
+
+Le canal OpenWA appelle `POST /api/sessions/{id}/messages/send-text`. Une
+réponse `201` avec `messageId` marque l'acceptation par le gateway ; la
+livraison réelle doit être suivie par webhook OpenWA (`message.ack` /
+`message.failed`) avant d'en faire une garantie métier.
+
 ## Fiabilité de livraison
 
 - Les routes paiement et OTP créent désormais des jobs persistants dans

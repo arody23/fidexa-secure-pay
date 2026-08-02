@@ -8,15 +8,18 @@ import { NotificationQueue } from './services/NotificationQueue.js';
 import { OtpService } from './services/OtpService.js';
 import { supabase } from './lib/supabase.js';
 import { WhatsAppBridge } from './lib/whatsappBridge.js';
+import { OpenWaChannel } from './channels/OpenWaChannel.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3099);
 const serviceSecret = process.env.SERVICE_SECRET || '';
+const whatsappTransport = (process.env.WHATSAPP_TRANSPORT || 'legacy').toLowerCase();
 
 console.log('[notify] boot', {
   port,
   node: process.version,
   whatsapp: process.env.WHATSAPP_ENABLED !== 'false',
+  whatsappTransport,
   hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
   hasServiceSecret: Boolean(serviceSecret),
 });
@@ -26,7 +29,7 @@ if (!Number.isFinite(port) || port <= 0) {
   process.exit(1);
 }
 
-const whatsapp = new WhatsAppBridge();
+const whatsapp = whatsappTransport === 'openwa' ? new OpenWaChannel() : new WhatsAppBridge();
 const email = new EmailChannel();
 const notificationService = new NotificationService({ whatsapp, email });
 const otpService = new OtpService(notificationService);
