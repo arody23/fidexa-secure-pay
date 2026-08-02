@@ -545,22 +545,23 @@ export class WhatsAppChannel {
       this.pushLog('info', `envoi vers soi-même (${e164}) — chat « Message à vous-même »`);
     }
 
-    // WhatsApp Web résout aujourd'hui certains numéros vers un @lid. Utiliser
-    // exactement l'identifiant fourni par la bibliothèque évite de créer un
-    // message local sur @c.us puis d'attendre l'ACK d'un autre chat.
+    // getNumberId peut retourner un @lid, qui confirme que le compte existe,
+    // mais Client.sendMessage de whatsapp-web.js attend le JID téléphone
+    // standard. Le @lid reste donc un signal de résolution, pas une cible.
     let targetId = null;
     try {
       const numberId = await this.client.getNumberId(digits);
       if (!numberId) {
         throw new Error(`Numéro non WhatsApp: ${e164}`);
       }
-      targetId =
+      const resolvedId =
         numberId._serialized ||
         (numberId.user && numberId.server ? `${numberId.user}@${numberId.server}` : null);
-      if (!targetId) {
+      if (!resolvedId) {
         throw new Error(`Identifiant WhatsApp introuvable: ${e164}`);
       }
-      this.pushLog('info', `compte WA trouvé ${e164} → ${targetId}`);
+      targetId = `${digits}@c.us`;
+      this.pushLog('info', `compte WA trouvé ${e164} → ${resolvedId}; envoi via ${targetId}`);
     } catch (err) {
       if (String(err.message || '').includes('non WhatsApp')) throw err;
       throw new Error(
