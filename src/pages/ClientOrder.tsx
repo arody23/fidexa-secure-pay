@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import OrderTracker from '@/components/OrderTracker';
 import ClientSupportPanel from '@/components/ClientSupportPanel';
+import OrderAccessGate from '@/components/OrderAccessGate';
 import { formatAmount } from '@/lib/currency';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -426,7 +427,7 @@ export default function ClientOrder() {
   // Render logic
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -434,7 +435,7 @@ export default function ClientOrder() {
 
   if (!paymentData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -528,14 +529,15 @@ export default function ClientOrder() {
 
   if (!paymentData.is_paid) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-24 overflow-x-hidden">
+    <OrderAccessGate linkId={paymentData.link_id}>
+    <div className="min-h-[100dvh] overflow-x-hidden bg-background pb-24">
       {/* Header sticky mobile */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:h-16">
@@ -779,6 +781,7 @@ export default function ClientOrder() {
         </motion.div>
       )}
     </div>
+    </OrderAccessGate>
   );
 }
 

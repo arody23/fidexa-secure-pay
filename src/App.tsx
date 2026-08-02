@@ -33,7 +33,8 @@ import AdminSupport from "./pages/Admin/Support";
 import AdminOrders from "./pages/Admin/Orders";
 import AdminEscrow from "./pages/Admin/EscrowMonitor";
 import AdminWithdrawals from "./pages/Admin/Withdrawals";
-import AdminNotifications from "./pages/Admin/Notifications";
+import AdminNotifications from "./pages/Admin/MessageTemplates";
+import AdminWhatsApp from "./pages/Admin/WhatsApp";
 import AdminFeedback from "./pages/Admin/Feedback";
 import AdminExchangeRates from "./pages/Admin/ExchangeRates";
 import { ExchangeRatesProvider } from "./contexts/ExchangeRatesContext";
@@ -111,6 +112,7 @@ const App = () => (
             <Route path="escrow" element={<AdminEscrow />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
             <Route path="notifications" element={<AdminNotifications />} />
+            <Route path="whatsapp" element={<AdminWhatsApp />} />
             <Route path="feedback" element={<AdminFeedback />} />
             <Route path="exchange-rates" element={<AdminExchangeRates />} />
             <Route path="dispute-resolution" element={<Navigate to="/admin/disputes" replace />} />

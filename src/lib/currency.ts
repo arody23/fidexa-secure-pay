@@ -147,7 +147,7 @@ export function commissionToUSD(
   return convertToUSD(amount * rate, currency);
 }
 
-/** Estimation indicative FCFA — la conversion réelle est faite par GeniusPay. */
+/** Estimation indicative FCFA — la conversion réelle est faite par KPay. */
 export function convertToXof(amount: number, currency?: string | null): number {
   const from = normalizeCurrencyCode(currency);
   const n = Number(amount);
@@ -161,7 +161,10 @@ export function convertToXof(amount: number, currency?: string | null): number {
   return Math.max(200, Math.round(usd * UNITS_PER_USD.XOF));
 }
 
-export function formatGeniusPayEstimate(amount: number, currency?: string | null): string {
+export function formatKPayEstimate(amount: number, currency?: string | null): string {
   const xof = convertToXof(amount, currency);
   return `${xof.toLocaleString('fr-FR')} FCFA`;
 }
+
+/** @deprecated Utiliser formatKPayEstimate */
+export const formatGeniusPayEstimate = formatKPayEstimate;

@@ -15,16 +15,18 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
+import { MobileMoneyRow } from "@/components/brand/MobileMoneyIcons";
 import StarRating from "@/components/StarRating";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { createGeniusPayPayment, verifyGeniusPayPayment } from "@/lib/geniuspay";
-import { GENIUSPAY_ENABLED } from "@/config";
+import { createKPayPayment, verifyKPayPayment } from "@/lib/kpay";
+import { KPAY_ENABLED } from "@/config";
 import { SITE } from "@/config/site";
 import { formatAmount } from "@/lib/currency";
 import OrderTracker from "@/components/OrderTracker";
@@ -75,6 +77,8 @@ const ClientPayment = () => {
   const [feedbackComment, setFeedbackComment] = useState("");
   const [paying, setPaying] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  /** WhatsApp client — requis pour OTP d'accès au suivi commande */
+  const [clientWhatsApp, setClientWhatsApp] = useState('');
 
   const linkCurrency = paymentData?.currency || provider?.currency || 'FCFA';
 
@@ -124,6 +128,9 @@ const ClientPayment = () => {
 
         setPaymentData(data as any);
         setProvider(providerData as any || null);
+        if ((data as any).client_phone) {
+          setClientWhatsApp(String((data as any).client_phone));
+        }
       } catch (err) {
         console.error("Error fetching payment link:", err);
         setError("Erreur lors du chargement du lien de paiement");
@@ -143,15 +150,15 @@ const ClientPayment = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const geniuspayStatus = params.get('geniuspay');
+    const kpayStatus = params.get('kpay');
     if (!linkId || !paymentData || paymentData.is_paid || paying) return;
-    if (geniuspayStatus !== 'success') return;
+    if (kpayStatus !== 'success') return;
 
     const confirmPayment = async () => {
       setPaying(true);
       try {
         const reference = params.get('reference') || undefined;
-        const result = await verifyGeniusPayPayment(linkId, reference);
+        const result = await verifyKPayPayment(linkId, { reference });
         if (result.success || result.alreadyPaid) {
           toast({
             title: 'Paiement confirmé',
@@ -175,7 +182,7 @@ const ClientPayment = () => {
           });
         }
       } catch (err) {
-        console.error('GeniusPay verify error:', err);
+        console.error('KPay verify error:', err);
         toast({
           title: 'Vérification en cours',
           description: 'Le webhook confirmera votre paiement sous peu.',
@@ -207,15 +214,31 @@ const ClientPayment = () => {
       return;
     }
 
+    const phoneDigits = clientWhatsApp.replace(/\D/g, '');
+    if (phoneDigits.length < 9) {
+      toast({
+        title: 'WhatsApp requis',
+        description: 'Indiquez votre numéro WhatsApp pour recevoir le code d’accès au suivi de commande.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setPaying(true);
 
-      if (GENIUSPAY_ENABLED) {
-        const result = await createGeniusPayPayment({
+      // Persiste le numéro avant checkout (OTP post-paiement)
+      await supabase
+        .from('payment_links')
+        .update({ client_phone: phoneDigits.startsWith('00') ? phoneDigits.slice(2) : phoneDigits })
+        .eq('id', paymentData.id);
+
+      if (KPAY_ENABLED) {
+        const result = await createKPayPayment({
           linkId: paymentData.link_id,
           customerName: paymentData.client_name || undefined,
           customerEmail: paymentData.client_email || undefined,
-          // Nouveau checkout à chaque clic — évite les sessions GeniusPay « pending » bloquées
+          // Nouveau checkout à chaque clic — évite les sessions GATEWAY « pending » bloquées
           forceNew: true,
         });
 
@@ -225,7 +248,7 @@ const ClientPayment = () => {
         }
 
         if (!result.checkoutUrl) {
-          throw new Error('URL de paiement GeniusPay manquante');
+          throw new Error('URL de paiement KPay manquante');
         }
 
         window.location.href = result.checkoutUrl;
@@ -427,7 +450,7 @@ const ClientPayment = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary/30">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Chargement...</p>
@@ -438,7 +461,7 @@ const ClientPayment = () => {
 
   if (error || !paymentData) {
     return (
-      <div className="min-h-screen bg-secondary/30">
+      <div className="min-h-[100dvh] bg-background">
         <header className="border-b border-border bg-card">
           <div className="container mx-auto flex h-16 items-center justify-between px-4">
             <Logo />
@@ -463,7 +486,7 @@ const ClientPayment = () => {
 
   if (paymentData.is_paid) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary/30">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Redirection vers votre commande...</p>
@@ -473,20 +496,20 @@ const ClientPayment = () => {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/30">
+    <div className="min-h-[100dvh] bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Logo />
-          <Badge variant="outline" className="gap-1">
+      <header className="sticky top-0 z-30 border-b border-border/80 bg-card/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:h-16">
+          <Logo size="sm" />
+          <Badge variant="outline" className="gap-1 text-xs">
             <Shield className="h-3 w-3" />
             Paiement sécurisé
           </Badge>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 pb-32 md:pb-8">
-        <div className="mx-auto max-w-2xl space-y-6">
+      <main className="mx-auto max-w-2xl px-4 py-6 pb-32 md:pb-8">
+        <div className="space-y-6">
           {/* Provider Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -544,17 +567,24 @@ const ClientPayment = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="rounded-xl bg-secondary/50 p-6 text-center">
+                <div className="rounded-2xl border border-border bg-muted/40 p-6 text-center">
                   <p className="mb-2 text-sm text-muted-foreground">
                     Montant à payer
                   </p>
-                  <p className="font-display text-4xl font-bold sm:text-5xl">
+                  <p className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
                     {formatAmount(paymentData.amount, linkCurrency)}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Montant facturé dans la devise du prestataire — GeniusPay convertit automatiquement vers le CFA
+                    Montant facturé dans la devise du prestataire — KPay convertit selon l'opérateur Mobile Money
                     (XOF) si besoin.
                   </p>
+                </div>
+
+                <div>
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Réseaux Mobile Money acceptés
+                  </p>
+                  <MobileMoneyRow />
                 </div>
 
                 <div className="space-y-3">
@@ -595,6 +625,21 @@ const ClientPayment = () => {
 
                 {!paymentData.is_paid ? (
                   <>
+                    <div className="space-y-2 rounded-lg border border-border p-3 sm:p-4">
+                      <Label htmlFor="clientWhatsApp" className="text-sm font-medium">
+                        WhatsApp (pour le code d&apos;accès au suivi)
+                      </Label>
+                      <Input
+                        id="clientWhatsApp"
+                        type="tel"
+                        placeholder="2438XXXXXXX"
+                        value={clientWhatsApp}
+                        onChange={(e) => setClientWhatsApp(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Après paiement, un OTP WhatsApp vous permettra d&apos;ouvrir la page de suivi en toute sécurité.
+                      </p>
+                    </div>
                     <div className="space-y-3 rounded-lg border border-border p-3 sm:p-4">
                       <p className="text-sm font-medium text-foreground">
                         Conditions applicables avant le paiement

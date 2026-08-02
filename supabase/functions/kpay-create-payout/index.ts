@@ -1,23 +1,15 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
-  amountForGeniusPay,
   applyWithdrawalPayoutUpdate,
+  buildKPayAmount,
+  countryIso2ToIso3,
   corsHeaders,
-  createGeniusPayPayout,
-  fetchGeniusPayPayout,
-  fetchGeniusPayPayoutWallet,
-  mapMobileMoneyProviderToGeniusPay,
-  normalizePhoneE164,
-} from '../_shared/geniuspay.ts';
-
-const PHONE_PREFIX: Record<string, string> = {
-  CD: '+243',
-  CG: '+242',
-  CI: '+225',
-  BJ: '+229',
-  CM: '+237',
-  TG: '+228',
-};
+  createKPayPayout,
+  fetchKPayPayout,
+  mapMobileMoneyProviderToKPay,
+  normalizePhoneKPay,
+  phonePrefixDigitsForCountry,
+} from '../_shared/kpay.ts';
 
 async function assertAdmin(req: Request, serviceSupabase: ReturnType<typeof createClient>) {
   const authHeader = req.headers.get('Authorization');
@@ -78,7 +70,7 @@ Deno.serve(async (req) => {
     const { data: withdrawal, error: wErr } = await serviceSupabase
       .from('withdrawals')
       .select(
-        'id, user_id, amount, currency, method, mobile_money_provider, phone_number, status, geniuspay_payout_reference, account_details'
+        'id, user_id, amount, currency, method, mobile_money_provider, phone_number, status, kpay_payout_id, kpay_payout_reference, account_details'
       )
       .eq('id', withdrawalId)
       .single();
@@ -90,20 +82,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (withdrawal.status !== 'pending') {
+    if (withdrawal.status !== 'pending' && withdrawal.status !== 'processing') {
       return new Response(
-        JSON.stringify({ error: 'Seules les demandes en attente peuvent être payées automatiquement' }),
+        JSON.stringify({
+          error: 'Seules les demandes en attente ou en cours peuvent être payées automatiquement',
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (withdrawal.geniuspay_payout_reference) {
-      const existing = await fetchGeniusPayPayout(withdrawal.geniuspay_payout_reference);
+    if (withdrawal.kpay_payout_id) {
+      const existing = await fetchKPayPayout(withdrawal.kpay_payout_id);
       return new Response(
         JSON.stringify({
           success: true,
           reused: true,
-          reference: existing.reference ?? withdrawal.geniuspay_payout_reference,
+          reference: existing.reference ?? withdrawal.kpay_payout_reference,
+          paymentId: existing.id ?? withdrawal.kpay_payout_id,
           status: existing.status,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -133,41 +128,47 @@ Deno.serve(async (req) => {
       .eq('id', withdrawal.user_id)
       .maybeSingle();
 
-    const country = (providerUser?.country || 'CD').toUpperCase();
-    const phonePrefix = PHONE_PREFIX[country] ?? '+243';
-    const phone = normalizePhoneE164(withdrawal.phone_number, phonePrefix);
-    const converted = amountForGeniusPay(Number(withdrawal.amount), withdrawal.currency);
-    const gpProvider = mapMobileMoneyProviderToGeniusPay(withdrawal.mobile_money_provider);
-    const wallet = await fetchGeniusPayPayoutWallet();
+    const countryIso2 = (providerUser?.country || 'CD').toUpperCase();
+    const phoneDigits = normalizePhoneKPay(
+      withdrawal.phone_number,
+      phonePrefixDigitsForCountry(countryIso2)
+    );
+    const charge = buildKPayAmount(Number(withdrawal.amount), withdrawal.currency, {
+      minAmount: 100,
+    });
+    const kpayProvider = mapMobileMoneyProviderToKPay(
+      withdrawal.mobile_money_provider,
+      countryIso2
+    );
+    const sourceCountry = countryIso2ToIso3(countryIso2);
+    const externalId = `fidexa-wd-${withdrawal.id}`;
 
-    const payout = await createGeniusPayPayout({
-      walletId: wallet.id,
-      recipientName: providerUser?.full_name || 'Prestataire FidexaPay',
-      recipientPhone: phone,
-      recipientEmail: providerUser?.email,
-      provider: gpProvider,
-      account: phone,
-      amountXof: converted.amountXof,
+    const payout = await createKPayPayout({
+      amount: charge.amount,
+      provider: kpayProvider,
+      phoneNumber: phoneDigits,
+      externalId,
       description: `Retrait FidexaPay ${withdrawal.id.slice(0, 8)}`,
-      idempotencyKey: `fidexa-withdrawal-${withdrawal.id}`,
+      sourceCountry,
       metadata: {
         withdrawal_id: withdrawal.id,
         user_id: withdrawal.user_id,
-        original_amount: String(converted.originalAmount),
-        original_currency: converted.originalCurrency,
+        original_amount: String(charge.originalAmount),
+        original_currency: charge.originalCurrency,
+        recipient_name: providerUser?.full_name || 'Prestataire FidexaPay',
       },
     });
 
     const reference = payout.reference as string;
-    const payoutStatus = (payout.status as string) || 'pending';
-    const fees = payout.fees != null ? Number(payout.fees) : null;
+    const payoutStatus = (payout.status as string) || 'PENDING';
+    const fees = payout.feeAmount != null ? Number(payout.feeAmount) : null;
 
     const { finalStatus } = await applyWithdrawalPayoutUpdate(serviceSupabase, withdrawal.id, {
       reference,
       payoutId: payout.id != null ? String(payout.id) : null,
       status: payoutStatus,
       fees,
-      amountXof: converted.amountXof,
+      amount: charge.amount,
       adminId: adminUser.id,
     });
 
@@ -175,19 +176,20 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         reference,
+        paymentId: payout.id,
         payoutStatus,
         withdrawalStatus: finalStatus,
-        amountXof: converted.amountXof,
-        originalAmount: converted.originalAmount,
-        originalCurrency: converted.originalCurrency,
+        amount: charge.amount,
+        originalAmount: charge.originalAmount,
+        originalCurrency: charge.originalCurrency,
         fees,
-        provider: gpProvider,
-        phone,
+        provider: kpayProvider,
+        phone: phoneDigits,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    console.error('geniuspay-create-payout error:', err);
+    console.error('kpay-create-payout error:', err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : 'Erreur serveur' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

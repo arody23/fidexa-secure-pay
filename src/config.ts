@@ -7,15 +7,15 @@ export const MONEYFUSION_ENABLED = import.meta.env.VITE_MONEYFUSION_ENABLED === 
 export const MONEYFUSION_API_KEY = import.meta.env.VITE_MONEYFUSION_API_KEY;
 export const MONEYFUSION_BASE_URL = import.meta.env.VITE_MONEYFUSION_BASE_URL || 'https://api.moneyfusion.net/v1';
 
-// Configuration PayPal (désactivé — remplacé par GeniusPay)
+// Configuration PayPal (désactivé — remplacé par KPay)
 export const PAYPAL_ENABLED = import.meta.env.VITE_PAYPAL_ENABLED === 'true';
 export const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || '';
 export const PAYPAL_ENV = import.meta.env.VITE_PAYPAL_ENV || 'sandbox';
 
-// Configuration GeniusPay (Mobile Money — clés secrètes côté Supabase Edge Functions)
-export const GENIUSPAY_ENABLED = import.meta.env.VITE_GENIUSPAY_ENABLED === 'true';
-/** Payout automatique prestataires via GeniusPay (désactivé — API cashout/payout non dispo marchand) */
-export const GENIUSPAY_PAYOUT_ENABLED = false;
+// Configuration KPay (Mobile Money — clés secrètes côté Supabase Edge Functions)
+export const KPAY_ENABLED = import.meta.env.VITE_KPAY_ENABLED === 'true';
+/** Payout automatique prestataires via KPay (sandbox puis live) */
+export const KPAY_PAYOUT_ENABLED = import.meta.env.VITE_KPAY_PAYOUT_ENABLED === 'true';
 
 // Configuration Supabase
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -39,12 +39,12 @@ export const DEFAULT_DELIVERY_DAYS = 7;
 export const PAYMENT_MODES = {
   TEST: 'test',
   PAYPAL: 'paypal',
-  GENIUSPAY: 'geniuspay',
+  KPAY: 'kpay',
   MONEYFUSION: 'moneyfusion',
 } as const;
 
-export const PAYMENT_MODE = GENIUSPAY_ENABLED
-  ? PAYMENT_MODES.GENIUSPAY
+export const PAYMENT_MODE = KPAY_ENABLED
+  ? PAYMENT_MODES.KPAY
   : PAYPAL_ENABLED
   ? PAYMENT_MODES.PAYPAL
   : MONEYFUSION_ENABLED
@@ -72,7 +72,7 @@ export const isConfigured = () => {
     supabase: !!(SUPABASE_URL && SUPABASE_ANON_KEY),
     moneyfusion: MONEYFUSION_ENABLED ? !!(MONEYFUSION_API_KEY && MONEYFUSION_BASE_URL) : true,
     paypal: PAYPAL_ENABLED ? !!PAYPAL_CLIENT_ID : true,
-    geniuspay: GENIUSPAY_ENABLED ? true : true,
+    kpay: KPAY_ENABLED ? true : true,
   };
 
   return {
@@ -87,7 +87,8 @@ if (import.meta.env.DEV) {
     mode: import.meta.env.MODE,
     paymentMode: PAYMENT_MODE,
     paypalEnabled: PAYPAL_ENABLED,
-    geniuspayEnabled: GENIUSPAY_ENABLED,
+    kpayEnabled: KPAY_ENABLED,
+    kpayPayoutEnabled: KPAY_PAYOUT_ENABLED,
     moneyfusionEnabled: MONEYFUSION_ENABLED,
     configured: isConfigured(),
   });

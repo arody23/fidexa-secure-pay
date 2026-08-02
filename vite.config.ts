@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import { notifyAdminLocalPlugin } from "./vite-plugin-notify-admin";
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -10,6 +11,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
+    mode === "development" && notifyAdminLocalPlugin(),
     react(),
     VitePWA({
       strategies: "injectManifest",

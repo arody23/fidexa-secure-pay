@@ -19,6 +19,7 @@ import {
   MessageSquareQuote,
   Undo2,
   TrendingUp,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,6 +48,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/transactions', label: 'Transactions', icon: Receipt },
     { href: '/admin/withdrawals', label: 'Retraits', icon: Banknote },
     { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+    { href: '/admin/whatsapp', label: 'WhatsApp', icon: Smartphone },
     { href: '/admin/feedback', label: 'Feedback', icon: MessageSquareQuote },
     { href: '/admin/exchange-rates', label: 'Taux de change', icon: TrendingUp },
     { href: '/admin/escrow', label: 'Escrow', icon: Shield },

@@ -25,9 +25,9 @@ export interface WithdrawalRow {
   created_at: string;
   processed_at: string | null;
   payout_mode?: string | null;
-  geniuspay_payout_reference?: string | null;
-  geniuspay_payout_status?: string | null;
-  geniuspay_amount_xof?: number | null;
+  kpay_payout_reference?: string | null;
+  kpay_payout_status?: string | null;
+  kpay_amount?: number | null;
   users?: {
     full_name: string | null;
     email: string | null;
@@ -125,6 +125,6 @@ export async function adminProcessWithdrawal(
 }
 
 export async function approveAndPayWithdrawal(withdrawalId: string) {
-  const { createGeniusPayPayout } = await import('@/lib/geniuspay');
-  return createGeniusPayPayout(withdrawalId);
+  const { createKPayPayout } = await import('@/lib/kpay');
+  return createKPayPayout(withdrawalId);
 }

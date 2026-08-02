@@ -29,20 +29,22 @@ async function invokeFunction<T>(name: string, body: Record<string, unknown>, au
   return data as T;
 }
 
-export interface CreateGeniusPayPaymentResponse {
+export interface CreateKPayPaymentResponse {
   success: boolean;
   checkoutUrl: string;
   reference: string;
-  amountXof: number;
-  originalAmount: number;
-  originalCurrency: string;
+  paymentId?: string;
+  amount?: number;
+  currency?: string;
+  originalAmount?: number;
+  originalCurrency?: string;
   fees?: number | null;
   environment?: string;
   alreadyPaid?: boolean;
   reused?: boolean;
 }
 
-export interface VerifyGeniusPayPaymentResponse {
+export interface VerifyKPayPaymentResponse {
   success: boolean;
   status?: string;
   reference?: string;
@@ -50,47 +52,45 @@ export interface VerifyGeniusPayPaymentResponse {
   pending?: boolean;
 }
 
-export async function createGeniusPayPayment(params: {
+export async function createKPayPayment(params: {
   linkId: string;
   customerName?: string;
   customerEmail?: string;
   origin?: string;
   forceNew?: boolean;
-}): Promise<CreateGeniusPayPaymentResponse> {
-  return invokeFunction('geniuspay-create-payment', {
+}): Promise<CreateKPayPaymentResponse> {
+  return invokeFunction('kpay-create-payment', {
     ...params,
     origin: params.origin ?? window.location.origin,
   });
 }
 
-export async function verifyGeniusPayPayment(
+export async function verifyKPayPayment(
   linkId: string,
-  reference?: string
-): Promise<VerifyGeniusPayPaymentResponse> {
-  return invokeFunction('geniuspay-verify-payment', { linkId, reference });
+  opts?: { paymentId?: string; reference?: string }
+): Promise<VerifyKPayPaymentResponse> {
+  return invokeFunction('kpay-verify-payment', {
+    linkId,
+    paymentId: opts?.paymentId,
+    reference: opts?.reference,
+  });
 }
 
-export interface CreateGeniusPayPayoutResponse {
+export interface CreateKPayPayoutResponse {
   success: boolean;
   reference: string;
+  paymentId?: string;
   payoutStatus: string;
   withdrawalStatus: string;
-  amountXof: number;
-  originalAmount: number;
-  originalCurrency: string;
+  amount?: number;
+  originalAmount?: number;
+  originalCurrency?: string;
   fees?: number | null;
   provider?: string;
   phone?: string;
   reused?: boolean;
 }
 
-export async function createGeniusPayPayout(withdrawalId: string): Promise<CreateGeniusPayPayoutResponse> {
-  return invokeFunction('geniuspay-create-payout', { withdrawalId }, true);
-}
-
-import { convertToXof } from '@/lib/currency';
-
-/** Estimation indicative — GeniusPay applique sa propre conversion à l'encaissement. */
-export function estimateGeniusPayXof(amount: number, currency?: string | null): number {
-  return convertToXof(amount, currency);
+export async function createKPayPayout(withdrawalId: string): Promise<CreateKPayPayoutResponse> {
+  return invokeFunction('kpay-create-payout', { withdrawalId }, true);
 }

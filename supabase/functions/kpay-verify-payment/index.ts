@@ -1,9 +1,9 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
   corsHeaders,
-  fetchGeniusPayPayment,
+  fetchKPayPayment,
   markLinkPaid,
-} from '../_shared/geniuspay.ts';
+} from '../_shared/kpay.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { linkId, reference } = await req.json();
+    const { linkId, paymentId, reference } = await req.json();
     if (!linkId) {
       return new Response(JSON.stringify({ error: 'linkId requis' }), {
         status: 400,
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const { data: link, error: linkError } = await supabase
       .from('payment_links')
-      .select('id, link_id, is_paid, geniuspay_reference')
+      .select('id, link_id, is_paid, kpay_reference, kpay_payment_id')
       .eq('link_id', linkId)
       .single();
 
@@ -43,45 +43,49 @@ Deno.serve(async (req) => {
       });
     }
 
-    const ref = reference || link.geniuspay_reference;
-    if (!ref) {
-      return new Response(JSON.stringify({ error: 'Référence GeniusPay manquante' }), {
+    const id = paymentId || link.kpay_payment_id;
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'Identifiant KPay manquant' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const gp = await fetchGeniusPayPayment(ref);
-    const tx = gp.data ?? gp;
-    const status = tx.status as string;
+    const tx = await fetchKPayPayment(id);
+    const status = String(tx.status || '').toUpperCase();
+    const ref = (tx.reference as string) || reference || link.kpay_reference || id;
 
-    if (status === 'completed' || status === 'success') {
+    if (status === 'COMPLETED') {
       await markLinkPaid(supabase, link.id, {
         reference: ref,
-        geniuspayPaymentId: tx.id ?? null,
-        status: 'completed',
-        fees: tx.fees ?? null,
-        gateway: tx.payment_method ?? tx.gateway ?? null,
+        kpayPaymentId: tx.id ?? id,
+        status: 'COMPLETED',
+        fees: tx.feeAmount ?? null,
+        gateway: tx.provider ?? null,
       });
-      return new Response(JSON.stringify({ success: true, status: 'completed', reference: ref }), {
+      return new Response(JSON.stringify({ success: true, status: 'COMPLETED', reference: ref }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Échec / annulation : libérer le lien pour un nouveau paiement
-    if (status === 'failed' || status === 'cancelled' || status === 'expired') {
+    if (status === 'FAILED' || status === 'CANCELLED') {
       await supabase
         .from('payment_links')
         .update({
-          geniuspay_status: status,
-          geniuspay_checkout_url: null,
+          kpay_status: status,
+          kpay_checkout_url: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', link.id);
     }
 
     return new Response(
-      JSON.stringify({ success: false, status, reference: ref, pending: status === 'pending' || status === 'processing' }),
+      JSON.stringify({
+        success: false,
+        status,
+        reference: ref,
+        pending: status === 'PENDING' || status === 'PROCESSING',
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {

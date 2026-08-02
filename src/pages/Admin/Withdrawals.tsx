@@ -24,7 +24,7 @@ import {
   type WithdrawalRow,
 } from '@/lib/withdrawalService';
 import { WITHDRAWAL_POLICY } from '@/lib/withdrawalConfig';
-import { GENIUSPAY_PAYOUT_ENABLED } from '@/config';
+import { KPAY_PAYOUT_ENABLED } from '@/config';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'En attente',
@@ -97,7 +97,7 @@ export default function AdminWithdrawals() {
       if (action === 'approve_and_pay') {
         const result = await approveAndPayWithdrawal(selected.id);
         toast({
-          title: 'Payout GeniusPay initié',
+          title: 'Retrait validé via KPay',
           description:
             result.withdrawalStatus === 'completed'
               ? `Paiement confirmé (${result.reference}).`
@@ -114,7 +114,7 @@ export default function AdminWithdrawals() {
           title: 'Retrait mis à jour',
           description:
             action === 'approve'
-              ? 'Passé en traitement — effectuez le paiement Mobile Money / virement puis marquez Payé.'
+              ? 'Statut « En cours » — le prestataire attend. Validez ensuite le retrait pour envoyer le Mobile Money.'
               : action === 'complete'
               ? 'Retrait marqué comme payé.'
               : 'Demande refusée.',
@@ -176,8 +176,8 @@ export default function AdminWithdrawals() {
       <Alert>
         <Wallet className="h-4 w-4" />
         <AlertDescription>
-          {GENIUSPAY_PAYOUT_ENABLED
-            ? 'Flux auto : Approuver et payer → GeniusPay envoie le Mobile Money au prestataire. Flux manuel (virement) : Approuver → payer hors plateforme → Marquer payé.'
+          {KPAY_PAYOUT_ENABLED
+            ? '1) Approuver → le prestataire voit « En cours ». 2) Valider le retrait → KPay envoie le Mobile Money. Virement bancaire : Approuver → payer hors plateforme → Marquer payé.'
             : 'Flux admin : 1) Approuver → 2) Payer manuellement sur le numéro/compte indiqué → 3) Marquer « Payé ».'}
         </AlertDescription>
       </Alert>
@@ -225,7 +225,7 @@ export default function AdminWithdrawals() {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(row.created_at).toLocaleString('fr-FR')}
-                    {row.geniuspay_payout_reference && ` · GP: ${row.geniuspay_payout_reference}`}
+                    {row.kpay_payout_reference && ` · KP: ${row.kpay_payout_reference}`}
                   </p>
                 </div>
                 <Badge
@@ -290,10 +290,10 @@ export default function AdminWithdrawals() {
                 <p>
                   <strong>KYC :</strong> {selected.users?.kyc_status || '—'}
                 </p>
-                {selected.geniuspay_payout_reference && (
+                {selected.kpay_payout_reference && (
                   <p>
-                    <strong>GeniusPay :</strong> {selected.geniuspay_payout_reference}
-                    {selected.geniuspay_payout_status ? ` (${selected.geniuspay_payout_status})` : ''}
+                    <strong>KPay :</strong> {selected.kpay_payout_reference}
+                    {selected.kpay_payout_status ? ` (${selected.kpay_payout_status})` : ''}
                   </p>
                 )}
               </div>
@@ -311,25 +311,27 @@ export default function AdminWithdrawals() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {selected.status === 'pending' && (
-                      <>
-                        {GENIUSPAY_PAYOUT_ENABLED && selected.method === 'mobile_money' && (
-                          <Button onClick={() => runAction('approve_and_pay')} disabled={actionLoading}>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Approuver et payer
-                          </Button>
-                        )}
-                        <Button
-                          variant={GENIUSPAY_PAYOUT_ENABLED && selected.method === 'mobile_money' ? 'outline' : 'default'}
-                          onClick={() => runAction('approve')}
-                          disabled={actionLoading}
-                        >
-                          <Clock className="mr-2 h-4 w-4" />
-                          {GENIUSPAY_PAYOUT_ENABLED && selected.method === 'mobile_money'
-                            ? 'Approuver (manuel)'
-                            : 'Approuver (en cours)'}
-                        </Button>
-                      </>
+                      <Button
+                        variant="default"
+                        onClick={() => runAction('approve')}
+                        disabled={actionLoading}
+                      >
+                        <Clock className="mr-2 h-4 w-4" />
+                        Approuver (en cours)
+                      </Button>
                     )}
+                    {KPAY_PAYOUT_ENABLED &&
+                      selected.method === 'mobile_money' &&
+                      (selected.status === 'pending' || selected.status === 'processing') && (
+                        <Button
+                          onClick={() => runAction('approve_and_pay')}
+                          disabled={actionLoading}
+                          variant={selected.status === 'processing' ? 'default' : 'secondary'}
+                        >
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Valider le retrait (KPay)
+                        </Button>
+                      )}
                     <Button
                       variant="outline"
                       onClick={() => runAction('complete')}
