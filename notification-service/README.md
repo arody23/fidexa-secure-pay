@@ -29,9 +29,11 @@ En local, le service doit être joignable depuis les Edge Functions (tunnel ngro
 `notification-service` **est** le backend WhatsApp. Ne pas en créer un second.
 WhatsApp Web + Chromium est fragile en local Windows → Railway H24 est le bon chemin.
 
-1. Railway → New Project → Deploy from GitHub (dossier `notification-service`) ou `railway up` depuis ce dossier
-2. Builder : Dockerfile (déjà `railway.toml`)
-3. Ajouter un **Volume** monté sur `/data` (session QR persistante)
+1. Railway → New Project → Deploy from GitHub → repo `fidexa-secure-pay`
+2. **Obligatoire** Settings → **Root Directory** = `notification-service`  
+   (sinon Railway build le frontend Vite avec Bun → erreur `frozen-lockfile`)
+3. Settings → Build → **Builder = Dockerfile** (pas Railpack / pas Bun)
+4. Ajouter un **Volume** monté sur `/data` (session QR persistante)
 4. Variables :
 
 ```text

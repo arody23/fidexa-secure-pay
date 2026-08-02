@@ -16,8 +16,8 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true \
     PORT=3099
 
 WORKDIR /app
-COPY package.json ./
-RUN npm install --omit=dev --ignore-scripts --legacy-peer-deps
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --legacy-peer-deps
 COPY src ./src
 
 # Volume Railway → monter /data (session WhatsApp persistante)
