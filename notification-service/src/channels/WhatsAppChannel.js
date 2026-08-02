@@ -293,14 +293,25 @@ export class WhatsAppChannel {
         errors.push(`enforceLid2: ${e?.message || e}`);
       }
 
-      // Ordre: numéro classique d'abord (newChatFlow), puis LID
-      const candidates = [pnId, cUs, lidId].filter(Boolean);
+      // Collecter tous les chats résolus — l'envoi @lid renvoie souvent msg_null
+      const found = [];
+      const candidates = [cUs, pnId, lidId].filter(Boolean);
       const seen = new Set();
       for (const id of candidates) {
         if (seen.has(id)) continue;
         seen.add(id);
         const chatId = await tryFind(id);
-        if (chatId) return { ok: true, chatId, candidates, errors };
+        if (chatId && !found.includes(chatId)) found.push(chatId);
+      }
+
+      const preferred =
+        found.find((id) => id.endsWith('@c.us')) ||
+        found.find((id) => !id.endsWith('@lid')) ||
+        found[0] ||
+        null;
+
+      if (preferred) {
+        return { ok: true, chatId: preferred, allChatIds: found, candidates, errors };
       }
 
       return { ok: false, candidates, errors };
@@ -312,45 +323,93 @@ export class WhatsAppChannel {
     return result;
   }
 
-  /** Envoi bas niveau une fois le chat présent dans le store (évite getChat cassé). */
-  async sendViaStore(chatId, body) {
+  /** Envoi bas niveau — essaie addAndSendMsgToChat si WWebJS.sendMessage renvoie null. */
+  async sendViaStore(chatId, body, opts = {}) {
+    const waitUntilMsgSent = opts.waitUntilMsgSent !== false;
     return this.client.pupPage.evaluate(
-      async (chatId, content, options) => {
+      async (chatId, content, waitUntilMsgSent) => {
         const WidFactory = window.require('WAWebWidFactory');
         const FindChat = window.require('WAWebFindChatAction');
         const ChatCol = window.require('WAWebCollections').Chat;
-        const wid = WidFactory.createWid(chatId);
-        let chat = ChatCol.get(wid);
-        if (!chat) {
-          for (const flow of ['newChatFlow', undefined]) {
+        const SendAction = window.require('WAWebSendMsgChatAction');
+
+        const sendOptions = {
+          linkPreview: false,
+          waitUntilMsgSent,
+          parseVCards: true,
+          mentionedJidList: [],
+          ignoreQuoteErrors: true,
+        };
+
+        const resolveChat = async (id) => {
+          const wid = WidFactory.createWid(id);
+          let chat = ChatCol.get(wid);
+          if (chat) return chat;
+          for (const flow of ['newChatFlow', 'createChat', undefined]) {
             try {
               const res = flow
                 ? await FindChat.findOrCreateLatestChat(wid, flow)
                 : await FindChat.findOrCreateLatestChat(wid);
-              chat = res?.chat || null;
-              if (chat) break;
-            } catch (e) {
-              if (!flow) return { error: String(e?.message || e) };
+              if (res?.chat) return res.chat;
+            } catch {
+              /* next flow */
             }
           }
-        }
-        if (!chat) return { error: `chat_missing:${chatId}` };
+          return null;
+        };
 
-        const msg = await window.WWebJS.sendMessage(chat, content, options);
-        return msg
-          ? window.WWebJS.getMessageModel(msg)
-          : { error: 'msg_null' };
+        const sendToChat = async (chat) => {
+          let msg = await window.WWebJS.sendMessage(chat, content, sendOptions);
+          if (msg) return msg;
+          const message = { type: 'chat', body: content };
+          const [msgPromise, sendResultPromise] = SendAction.addAndSendMsgToChat(
+            chat,
+            message
+          );
+          msg = await msgPromise;
+          if (waitUntilMsgSent) {
+            try {
+              await sendResultPromise;
+            } catch {
+              /* ignore */
+            }
+          }
+          return msg || null;
+        };
+
+        let chat = await resolveChat(chatId);
+        if (!chat) return { error: `chat_missing:${chatId}`, via: chatId };
+
+        let msg = await sendToChat(chat);
+        if (msg) {
+          return { ...(window.WWebJS.getMessageModel(msg) || {}), via: chatId };
+        }
+
+        return { error: 'msg_null', via: chatId };
       },
       chatId,
       body,
-      {
-        linkPreview: false,
-        waitUntilMsgSent: true,
-        parseVCards: true,
-        mentionedJidList: [],
-        ignoreQuoteErrors: true,
-      }
+      waitUntilMsgSent
     );
+  }
+
+  /** Ouvre le chat @c.us dans WhatsApp Web (aide la livraison sur nouveaux contacts). */
+  async openPhoneChat(digits) {
+    const cUs = `${digits}@c.us`;
+    try {
+      if (typeof this.client.interface?.openChatWindow === 'function') {
+        await this.client.interface.openChatWindow(cUs);
+      }
+    } catch (err) {
+      this.pushLog('warn', `openChatWindow(${cUs}): ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  buildSendTargets(digits, resolved) {
+    const cUs = `${digits}@c.us`;
+    const fromResolve = Array.isArray(resolved?.allChatIds) ? resolved.allChatIds : [];
+    const ordered = [cUs, ...fromResolve, resolved?.chatId].filter(Boolean);
+    return [...new Set(ordered)];
   }
 
   waitForAck(message, minAck = ACK_SERVER, timeoutMs = 25000) {
@@ -439,60 +498,75 @@ export class WhatsAppChannel {
 
     this.pushLog('info', `chat prêt ${e164} → ${resolved.chatId}`);
 
-    // #region agent log
+    await this.openPhoneChat(digits);
+    const sendTargets = this.buildSendTargets(digits, resolved);
+    this.pushLog('info', `cibles envoi: ${sendTargets.map((id) => id.split('@')[1] || id).join(', ')}`);
+
+    let raw = null;
+    let usedChatId = null;
     const sendStart = Date.now();
-    debugLog(
-      'WhatsAppChannel.js:send',
-      'before sendViaStore',
-      { chatIdSuffix: String(resolved.chatId).split('@')[1] || 'unknown', bodyLen: String(body).length },
-      'H1',
-      (line) => this.pushLog('info', line)
-    );
-    // #endregion
 
-    const raw = await this.sendViaStore(resolved.chatId, body);
+    for (const chatId of sendTargets) {
+      // #region agent log
+      debugLog(
+        'WhatsAppChannel.js:send',
+        'before sendViaStore',
+        { chatIdSuffix: String(chatId).split('@')[1] || 'unknown', bodyLen: String(body).length },
+        'H1',
+        (line) => this.pushLog('info', line)
+      );
+      // #endregion
 
-    // #region agent log
-    debugLog(
-      'WhatsAppChannel.js:send',
-      'after sendViaStore',
-      {
-        ms: Date.now() - sendStart,
-        hasError: Boolean(raw?.error),
-        hasId: Boolean(raw?.id),
-        ack: typeof raw?.ack === 'number' ? raw.ack : null,
-        error: raw?.error ? String(raw.error).slice(0, 120) : null,
-      },
-      'H1',
-      (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
-    );
-    // #endregion
+      raw = await this.sendViaStore(chatId, body, { waitUntilMsgSent: false });
+
+      // #region agent log
+      debugLog(
+        'WhatsAppChannel.js:send',
+        'after sendViaStore',
+        {
+          ms: Date.now() - sendStart,
+          via: raw?.via || chatId,
+          hasError: Boolean(raw?.error),
+          hasId: Boolean(raw?.id),
+          ack: typeof raw?.ack === 'number' ? raw.ack : null,
+          error: raw?.error ? String(raw.error).slice(0, 120) : null,
+        },
+        'H1',
+        (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
+      );
+      // #endregion
+
+      if (!raw?.error && raw?.id) {
+        usedChatId = raw.via || chatId;
+        break;
+      }
+    }
 
     if (raw?.error || !raw?.id) {
-      // Dernier recours: API wwebjs classique
-      try {
-        const result = await this.client.sendMessage(resolved.chatId, body, {
-          waitUntilMsgSent: true,
-          sendSeen: false,
-          linkPreview: false,
-        });
-        if (!result?.id) {
-          throw new Error(raw?.error || `sendMessage null (${resolved.chatId})`);
+      // Dernier recours: API wwebjs classique sur @c.us puis LID
+      for (const chatId of sendTargets) {
+        try {
+          const result = await this.client.sendMessage(chatId, body, {
+            waitUntilMsgSent: false,
+            sendSeen: false,
+            linkPreview: false,
+          });
+          if (!result?.id) continue;
+          usedChatId = chatId;
+          raw = { id: result.id, ack: result.ack };
+          break;
+        } catch {
+          /* try next */
         }
-        const ack = await this.waitForAck(result, ACK_SERVER, 25000);
-        if (ack < ACK_SERVER) {
-          throw new Error(`ACK insuffisant (${ack}) via ${resolved.chatId}`);
-        }
-        const mid = result.id._serialized;
-        this.pushLog('info', `envoyé → ${e164} (${resolved.chatId}) ack=${ack} id=${mid}`);
-        return { ok: true, id: mid, to: e164, chatId: resolved.chatId, ack };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+      }
+      if (!raw?.id) {
         throw new Error(
-          `Envoi WhatsApp échoué pour ${e164}: ${raw?.error || msg}`
+          `Envoi WhatsApp échoué pour ${e164}: ${raw?.error || 'msg_null sur toutes les cibles'}`
         );
       }
     }
+
+    const finalChatId = usedChatId || resolved.chatId;
 
     const ack = await this.waitForAck(
       { id: raw.id, ack: typeof raw.ack === 'number' ? raw.ack : 0 },
@@ -504,7 +578,7 @@ export class WhatsAppChannel {
     debugLog(
       'WhatsAppChannel.js:send',
       'after waitForAck',
-      { ack, minAck: ACK_SERVER },
+      { ack, minAck: ACK_SERVER, via: finalChatId },
       'H2',
       (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
     );
@@ -512,13 +586,13 @@ export class WhatsAppChannel {
 
     if (ack < ACK_SERVER) {
       throw new Error(
-        `WhatsApp n'a pas accepté le message pour ${e164} (ack=${ack}) via ${resolved.chatId}`
+        `WhatsApp n'a pas accepté le message pour ${e164} (ack=${ack}) via ${finalChatId}`
       );
     }
 
     const mid = raw.id._serialized || null;
-    this.pushLog('info', `envoyé → ${e164} (${resolved.chatId}) ack=${ack} id=${mid}`);
-    return { ok: true, id: mid, to: e164, chatId: resolved.chatId, ack };
+    this.pushLog('info', `envoyé → ${e164} (${finalChatId}) ack=${ack} id=${mid}`);
+    return { ok: true, id: mid, to: e164, chatId: finalChatId, ack };
   }
 
   status() {
