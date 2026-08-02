@@ -125,6 +125,7 @@ export class WhatsAppBridge {
   }
 
   async send(to, body) {
-    return this.call('send', { to, body });
+    // Sync LID + ACK serveur peut dépasser 60s sur Railway
+    return this.call('send', { to, body }, 120000);
   }
 }

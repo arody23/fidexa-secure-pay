@@ -197,55 +197,159 @@ export class WhatsAppChannel {
   }
 
   /**
-   * Résout le JID WhatsApp réel (@lid prioritaire si renvoyé par WA).
-   * @returns {Promise<string[]>} candidats ordonnés
+   * Crée / résout le chat WhatsApp (LID) — getChat natif de wwebjs échoue souvent
+   * sur les contacts sans historique (« No LID » / sendMessage → null).
    */
-  async resolveChatIds(digits) {
-    const cUs = `${digits}@c.us`;
-    const ids = [];
-
-    try {
-      const numberId = await this.client.getNumberId(digits);
-      const serialized =
-        numberId?._serialized ||
-        (numberId?.user && numberId?.server
-          ? `${numberId.user}@${numberId.server}`
-          : null);
-      if (serialized) {
-        ids.push(serialized);
-        this.pushLog('info', `numéro résolu ${this.formatE164(digits)} → ${serialized}`);
-      } else {
-        this.pushLog('warn', `getNumberId: aucun compte WhatsApp pour ${this.formatE164(digits)}`);
-      }
-    } catch (err) {
-      this.pushLog('warn', `getNumberId échec: ${err instanceof Error ? err.message : err}`);
+  async resolveChatForSend(digits) {
+    if (!this.client?.pupPage) {
+      throw new Error('Session WhatsApp Web non prête (pupPage manquant)');
     }
 
-    if (!ids.includes(cUs)) ids.push(cUs);
-    return ids;
+    const result = await this.client.pupPage.evaluate(async (phone) => {
+      const cUs = `${phone}@c.us`;
+      const WidFactory = window.require('WAWebWidFactory');
+      const FindChat = window.require('WAWebFindChatAction');
+      const ChatCol = window.require('WAWebCollections').Chat;
+      const errors = [];
+
+      const toId = (w) => {
+        if (!w) return null;
+        if (typeof w === 'string') return w;
+        if (w._serialized) return w._serialized;
+        if (w.user && w.server) return `${w.user}@${w.server}`;
+        return null;
+      };
+
+      const tryFind = async (id) => {
+        if (!id) return null;
+        const wid = WidFactory.createWid(id);
+        const cached = ChatCol.get(wid);
+        if (cached?.id) return toId(cached.id);
+
+        const flows = ['newChatFlow', 'createChat', undefined];
+        for (const flow of flows) {
+          try {
+            const res = flow
+              ? await FindChat.findOrCreateLatestChat(wid, flow)
+              : await FindChat.findOrCreateLatestChat(wid);
+            if (res?.chat?.id) return toId(res.chat.id);
+          } catch (e) {
+            errors.push(`find(${id},${flow || 'default'}): ${e?.message || e}`);
+          }
+        }
+        return null;
+      };
+
+      // 1) Mapper PN ↔ LID dans le store WhatsApp
+      try {
+        if (window.WWebJS?.enforceLidAndPnRetrieval) {
+          await window.WWebJS.enforceLidAndPnRetrieval(cUs);
+        }
+      } catch (e) {
+        errors.push(`enforceLid: ${e?.message || e}`);
+      }
+
+      let lidId = null;
+      let pnId = cUs;
+
+      // 2) queryWidExists (souvent renvoie @lid)
+      try {
+        const exists = await window
+          .require('WAWebQueryExistsJob')
+          .queryWidExists(WidFactory.createWid(cUs));
+        if (exists?.wid) lidId = toId(exists.wid);
+      } catch (e) {
+        errors.push(`queryExists: ${e?.message || e}`);
+      }
+
+      // 3) Contact sync (nouveaux contacts sans chat)
+      try {
+        const actions = [{ type: 'add', phoneNumber: String(phone) }];
+        const query = window
+          .require('WAWebContactSyncUtils')
+          .constructUsyncDeltaQuery(actions);
+        const sync = await query.execute();
+        const lid = sync?.list?.[0]?.lid;
+        if (lid) {
+          const synced = toId(lid);
+          if (synced) lidId = synced;
+          else if (typeof lid === 'string') {
+            lidId = lid.includes('@') ? lid : `${lid}@lid`;
+          }
+        }
+      } catch (e) {
+        errors.push(`contactSync: ${e?.message || e}`);
+      }
+
+      // 4) Relire le mapping après sync
+      try {
+        if (window.WWebJS?.enforceLidAndPnRetrieval) {
+          const map = await window.WWebJS.enforceLidAndPnRetrieval(cUs);
+          if (map?.lid) lidId = toId(map.lid) || lidId;
+          if (map?.phone) pnId = toId(map.phone) || pnId;
+        }
+      } catch (e) {
+        errors.push(`enforceLid2: ${e?.message || e}`);
+      }
+
+      // Ordre: numéro classique d'abord (newChatFlow), puis LID
+      const candidates = [pnId, cUs, lidId].filter(Boolean);
+      const seen = new Set();
+      for (const id of candidates) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const chatId = await tryFind(id);
+        if (chatId) return { ok: true, chatId, candidates, errors };
+      }
+
+      return { ok: false, candidates, errors };
+    }, digits);
+
+    if (result?.errors?.length) {
+      this.pushLog('warn', `resolveChat notes: ${result.errors.slice(0, 6).join(' | ')}`);
+    }
+    return result;
   }
 
-  /** Ouvre / crée le chat côté WhatsApp Web avant l'envoi (nouveaux contacts). */
-  async ensureChatOpen(chatId) {
-    try {
-      const chat = await this.client.getChatById(chatId);
-      if (chat) return chat;
-    } catch {
-      /* continue */
-    }
-    try {
-      if (typeof this.client.interface?.openChatWindow === 'function') {
-        await this.client.interface.openChatWindow(chatId);
-        await new Promise((r) => setTimeout(r, 800));
+  /** Envoi bas niveau une fois le chat présent dans le store (évite getChat cassé). */
+  async sendViaStore(chatId, body) {
+    return this.client.pupPage.evaluate(
+      async (chatId, content, options) => {
+        const WidFactory = window.require('WAWebWidFactory');
+        const FindChat = window.require('WAWebFindChatAction');
+        const ChatCol = window.require('WAWebCollections').Chat;
+        const wid = WidFactory.createWid(chatId);
+        let chat = ChatCol.get(wid);
+        if (!chat) {
+          for (const flow of ['newChatFlow', undefined]) {
+            try {
+              const res = flow
+                ? await FindChat.findOrCreateLatestChat(wid, flow)
+                : await FindChat.findOrCreateLatestChat(wid);
+              chat = res?.chat || null;
+              if (chat) break;
+            } catch (e) {
+              if (!flow) return { error: String(e?.message || e) };
+            }
+          }
+        }
+        if (!chat) return { error: `chat_missing:${chatId}` };
+
+        const msg = await window.WWebJS.sendMessage(chat, content, options);
+        return msg
+          ? window.WWebJS.getMessageModel(msg)
+          : { error: 'msg_null' };
+      },
+      chatId,
+      body,
+      {
+        linkPreview: false,
+        waitUntilMsgSent: true,
+        parseVCards: true,
+        mentionedJidList: [],
+        ignoreQuoteErrors: true,
       }
-    } catch (err) {
-      this.pushLog('warn', `openChatWindow(${chatId}): ${err instanceof Error ? err.message : err}`);
-    }
-    try {
-      return await this.client.getChatById(chatId);
-    } catch {
-      return null;
-    }
+    );
   }
 
   waitForAck(message, minAck = ACK_SERVER, timeoutMs = 25000) {
@@ -298,50 +402,74 @@ export class WhatsAppChannel {
       this.pushLog('info', `envoi vers soi-même (${e164}) — chat « Message à vous-même »`);
     }
 
-    const candidates = await this.resolveChatIds(digits);
-    if (!candidates.length) {
-      throw new Error(`Numéro non WhatsApp: ${e164}`);
+    // Vérifie que le numéro existe sur WhatsApp
+    try {
+      const numberId = await this.client.getNumberId(digits);
+      if (!numberId) {
+        throw new Error(`Numéro non WhatsApp: ${e164}`);
+      }
+      const serialized =
+        numberId._serialized ||
+        (numberId.user && numberId.server ? `${numberId.user}@${numberId.server}` : null);
+      if (serialized) {
+        this.pushLog('info', `compte WA trouvé ${e164} → ${serialized}`);
+      }
+    } catch (err) {
+      if (String(err.message || '').includes('non WhatsApp')) throw err;
+      this.pushLog('warn', `getNumberId: ${err instanceof Error ? err.message : err}`);
     }
 
-    const errors = [];
+    const resolved = await this.resolveChatForSend(digits);
+    if (!resolved?.ok || !resolved.chatId) {
+      const detail = (resolved?.errors || []).slice(0, 5).join(' | ') || 'aucune stratégie LID/chat';
+      throw new Error(
+        `Impossible de créer le chat WhatsApp pour ${e164} (LID non synchronisé). ${detail}`
+      );
+    }
 
-    for (const chatId of candidates) {
+    this.pushLog('info', `chat prêt ${e164} → ${resolved.chatId}`);
+
+    const raw = await this.sendViaStore(resolved.chatId, body);
+    if (raw?.error || !raw?.id) {
+      // Dernier recours: API wwebjs classique
       try {
-        await this.ensureChatOpen(chatId);
-
-        // waitUntilMsgSent: sans ça, wwebjs ≥1.33 peut résoudre avant l'ACK serveur
-        // (voire renvoyer null si getChat échoue) → faux « envoyé ».
-        const result = await this.client.sendMessage(chatId, body, {
+        const result = await this.client.sendMessage(resolved.chatId, body, {
           waitUntilMsgSent: true,
           sendSeen: false,
           linkPreview: false,
         });
-
-        if (!result || !result.id) {
-          throw new Error(`sendMessage a renvoyé null (chat non résolu: ${chatId})`);
+        if (!result?.id) {
+          throw new Error(raw?.error || `sendMessage null (${resolved.chatId})`);
         }
-
         const ack = await this.waitForAck(result, ACK_SERVER, 25000);
-        const mid = result.id?._serialized || null;
-
         if (ack < ACK_SERVER) {
-          throw new Error(
-            `WhatsApp n'a pas accepté le message (ack=${ack}, attendu≥${ACK_SERVER}) via ${chatId}`
-          );
+          throw new Error(`ACK insuffisant (${ack}) via ${resolved.chatId}`);
         }
-
-        this.pushLog('info', `envoyé → ${e164} (${chatId}) ack=${ack} id=${mid}`);
-        return { ok: true, id: mid, to: e164, chatId, ack };
+        const mid = result.id._serialized;
+        this.pushLog('info', `envoyé → ${e164} (${resolved.chatId}) ack=${ack} id=${mid}`);
+        return { ok: true, id: mid, to: e164, chatId: resolved.chatId, ack };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        errors.push(`${chatId}: ${msg}`);
-        this.pushLog('warn', `échec envoi ${chatId}: ${msg}`);
+        throw new Error(
+          `Envoi WhatsApp échoué pour ${e164}: ${raw?.error || msg}`
+        );
       }
     }
 
-    const detail = errors.join(' | ');
-    this.pushLog('error', `échec total → ${e164}: ${detail}`);
-    throw new Error(`Envoi WhatsApp échoué pour ${e164}: ${detail}`);
+    const ack = await this.waitForAck(
+      { id: raw.id, ack: typeof raw.ack === 'number' ? raw.ack : 0 },
+      ACK_SERVER,
+      25000
+    );
+    if (ack < ACK_SERVER) {
+      throw new Error(
+        `WhatsApp n'a pas accepté le message pour ${e164} (ack=${ack}) via ${resolved.chatId}`
+      );
+    }
+
+    const mid = raw.id._serialized || null;
+    this.pushLog('info', `envoyé → ${e164} (${resolved.chatId}) ack=${ack} id=${mid}`);
+    return { ok: true, id: mid, to: e164, chatId: resolved.chatId, ack };
   }
 
   status() {
