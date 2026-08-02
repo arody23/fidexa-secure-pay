@@ -37,7 +37,7 @@ WhatsApp Web + Chromium est fragile en local Windows → Railway H24 est le bon 
 4. Variables :
 
 ```text
-PORT=3099
+# Ne pas définir PORT : Railway l’injecte automatiquement.
 SERVICE_SECRET=<secret long aléatoire>
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
@@ -56,6 +56,17 @@ NOTIFICATION_SERVICE_SECRET=<même que SERVICE_SECRET>
 ```
 
 6. Admin Fidexa → WhatsApp → scanner le QR une fois. La session reste sur le volume `/data`.
+
+## Fiabilité de livraison
+
+- Les routes paiement et OTP créent désormais des jobs persistants dans
+  `notification_jobs`; elles ne bloquent jamais sur Chromium/WhatsApp.
+- Le worker Railway traite un job à la fois, avec lease Postgres, idempotence et
+  retries bornés. Un redeploy récupère les jobs dont la lease a expiré.
+- `GET /health` vérifie Express; `GET /ready` vérifie aussi la queue et l’état
+  WhatsApp. Utilisez `/ready` pour l’alerte opérationnelle, pas seulement `/health`.
+- N’utilisez jamais le même `WWEBJS_AUTH_PATH` sur Windows et Railway. Tous les
+  dossiers `.wwebjs_auth*` sont locaux, secrets et exclus de Git.
 
 ## API principale
 

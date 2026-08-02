@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { renderTemplate, previewVariables } from '../lib/render.js';
+import crypto from 'crypto';
 
 /**
  * Service unique d'envoi de notifications.
@@ -65,6 +66,46 @@ export class NotificationService {
   }
 
   /**
+   * Enregistre une intention de notification durable. Cette opération ne contacte
+   * jamais WhatsApp : le consommateur Railway traite ensuite le job en arrière-plan.
+   */
+  async enqueueNotification(eventType, recipientPhone, variables = {}, opts = {}) {
+    const channelName = opts.channel || 'whatsapp';
+    if (!eventType || !recipientPhone) {
+      throw new Error('eventType et recipientPhone requis');
+    }
+
+    const idempotencyKey =
+      opts.idempotencyKey || `manual:${eventType}:${crypto.randomUUID()}`;
+    const row = {
+      idempotency_key: idempotencyKey,
+      event_type: eventType,
+      channel: channelName,
+      recipient: recipientPhone,
+      variables: variables || {},
+      metadata: opts.metadata || {},
+      max_attempts: Number(opts.maxAttempts || 5),
+    };
+
+    const { data, error } = await supabase
+      .from('notification_jobs')
+      .insert(row)
+      .select()
+      .single();
+
+    if (!error) return { job: data, duplicate: false };
+    if (error.code !== '23505') throw new Error(error.message);
+
+    const { data: existing, error: existingError } = await supabase
+      .from('notification_jobs')
+      .select('*')
+      .eq('idempotency_key', idempotencyKey)
+      .single();
+    if (existingError) throw new Error(existingError.message);
+    return { job: existing, duplicate: true };
+  }
+
+  /**
    * @param {string} eventType
    * @param {string} recipientPhone
    * @param {Record<string, string|number>} variables
@@ -84,6 +125,8 @@ export class NotificationService {
         status: 'failed',
         error: err,
         metadata: opts.metadata || {},
+        job_id: opts.jobId,
+        attempt: opts.attempt,
       });
       throw new Error(err);
     }
@@ -97,8 +140,10 @@ export class NotificationService {
         status: 'failed',
         error: 'template_disabled',
         metadata: opts.metadata || {},
+        job_id: opts.jobId,
+        attempt: opts.attempt,
       });
-      return { ok: false, skipped: true, reason: 'template_disabled' };
+      throw new Error('template_disabled');
     }
 
     const now = new Date();
@@ -121,6 +166,8 @@ export class NotificationService {
         status: 'sent',
         error: null,
         metadata: { ...(opts.metadata || {}), result },
+        job_id: opts.jobId,
+        attempt: opts.attempt,
       });
       return { ok: true, body, result };
     } catch (err) {
@@ -133,6 +180,8 @@ export class NotificationService {
         status: 'failed',
         error: message,
         metadata: opts.metadata || {},
+        job_id: opts.jobId,
+        attempt: opts.attempt,
       });
       throw err;
     }
@@ -147,6 +196,8 @@ export class NotificationService {
       status: row.status,
       error: row.error,
       metadata: row.metadata || {},
+      job_id: row.job_id || null,
+      attempt: row.attempt || null,
     });
     if (error) console.error('[notify] log insert failed', error.message);
   }

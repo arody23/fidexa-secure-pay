@@ -1,8 +1,10 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import express from 'express';
 import cors from 'cors';
 import { EmailChannel } from './channels/EmailChannel.js';
 import { NotificationService } from './services/NotificationService.js';
+import { NotificationQueue } from './services/NotificationQueue.js';
 import { OtpService } from './services/OtpService.js';
 import { supabase } from './lib/supabase.js';
 import { WhatsAppBridge } from './lib/whatsappBridge.js';
@@ -28,6 +30,7 @@ const whatsapp = new WhatsAppBridge();
 const email = new EmailChannel();
 const notificationService = new NotificationService({ whatsapp, email });
 const otpService = new OtpService(notificationService);
+const notificationQueue = new NotificationQueue(notificationService);
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
@@ -52,46 +55,62 @@ app.get('/health/detail', (_req, res) => {
     ok: true,
     whatsapp: whatsapp.status(),
     email: email.status(),
+    queue: notificationQueue.status(),
   });
 });
 
-/** API métier unique */
+/** Railway is live if Express responds; ready requires the queue and WhatsApp worker. */
+app.get('/ready', (_req, res) => {
+  const wa = whatsapp.status();
+  const queue = notificationQueue.status();
+  const ready = queue.running && wa.ready;
+  res.status(ready ? 200 : 503).json({ ready, whatsapp: wa, queue });
+});
+
+/** API métier unique — enregistre un job, sans attendre WhatsApp. */
 app.post('/v1/notify', requireServiceAuth, async (req, res) => {
   try {
-    const { eventType, recipientPhone, variables, channel, metadata } = req.body || {};
+    const { eventType, recipientPhone, variables, channel, metadata, idempotencyKey } = req.body || {};
     if (!eventType || !recipientPhone) {
       return res.status(400).json({ error: 'eventType et recipientPhone requis' });
     }
-    const result = await notificationService.sendNotification(
+    const result = await notificationService.enqueueNotification(
       eventType,
       recipientPhone,
       variables || {},
-      { channel, metadata }
+      { channel, metadata, idempotencyKey }
     );
-    res.json(result);
+    res.status(202).json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'send failed' });
   }
 });
 
-/** Après paiement: génère OTP + envoie WhatsApp */
+/** Après paiement: génère OTP + enregistre le message dans la queue. */
 app.post('/v1/otp/issue', requireServiceAuth, async (req, res) => {
   try {
     const { paymentLinkId, linkId, phone, variables } = req.body || {};
     if (!paymentLinkId || !linkId || !phone) {
       return res.status(400).json({ error: 'paymentLinkId, linkId, phone requis' });
     }
-    const result = await otpService.createAndSend({
+    const result = await otpService.createAndQueue({
       paymentLinkId,
       linkId,
       phone,
       variables: variables || {},
+      idempotencyKey: req.body?.idempotencyKey,
     });
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'otp issue failed';
-    console.error('[debug:H4] /v1/otp/issue failed:', message);
-    res.status(500).json({ error: message });
+    const status = message.includes('OTP_RATE_LIMITED') ? 429 : 500;
+    console.error('[notify] /v1/otp/issue failed:', message);
+    res.status(status).json({
+      error:
+        status === 429
+          ? 'Veuillez attendre une minute avant de demander un nouveau code.'
+          : message,
+    });
   }
 });
 
@@ -119,7 +138,7 @@ app.post('/v1/otp/validate-session', requireServiceAuth, async (req, res) => {
 
 /**
  * Événement métier (webhooks Edge Functions).
- * payment.completed → notifie + émet OTP d'accès suivi.
+ * payment.completed → enregistre les jobs notification/OTP sans attendre WhatsApp.
  */
 app.post('/v1/events/:eventType', requireServiceAuth, async (req, res) => {
   try {
@@ -132,14 +151,17 @@ app.post('/v1/events/:eventType', requireServiceAuth, async (req, res) => {
       paymentLinkId,
       linkId,
       clientPhone,
+      idempotencyKey,
     } = req.body || {};
 
     const results = [];
+    const eventKey = idempotencyKey || `event:${eventType}:${paymentLinkId || linkId || crypto.randomUUID()}`;
 
     if (recipientPhone) {
       results.push(
-        await notificationService.sendNotification(eventType, recipientPhone, variables || {}, {
+        await notificationService.enqueueNotification(eventType, recipientPhone, variables || {}, {
           metadata: { source: 'event' },
+          idempotencyKey: `${eventKey}:recipient`,
         })
       );
     }
@@ -149,11 +171,12 @@ app.post('/v1/events/:eventType', requireServiceAuth, async (req, res) => {
       const phone = clientPhone || recipientPhone;
       if (paymentLinkId && linkId && phone) {
         results.push(
-          await otpService.createAndSend({
+          await otpService.createAndQueue({
             paymentLinkId,
             linkId,
             phone,
             variables: variables || {},
+            idempotencyKey: `${eventKey}:otp`,
           })
         );
       }
@@ -162,8 +185,9 @@ app.post('/v1/events/:eventType', requireServiceAuth, async (req, res) => {
     // Email futur
     if (recipientEmail && process.env.EMAIL_ENABLED === 'true') {
       results.push(
-        await notificationService.sendNotification(eventType, recipientEmail, variables || {}, {
+        await notificationService.enqueueNotification(eventType, recipientEmail, variables || {}, {
           channel: 'email',
+          idempotencyKey: `${eventKey}:email`,
         })
       );
     }
@@ -207,14 +231,14 @@ app.post('/v1/templates/preview', requireServiceAuth, async (req, res) => {
 
 app.post('/v1/templates/test', requireServiceAuth, async (req, res) => {
   try {
-    const { eventType, recipientPhone, variables } = req.body || {};
-    const result = await notificationService.sendNotification(
+    const { eventType, recipientPhone, variables, idempotencyKey } = req.body || {};
+    const result = await notificationService.enqueueNotification(
       eventType,
       recipientPhone,
       variables || {},
-      { metadata: { test: true } }
+      { metadata: { test: true }, idempotencyKey }
     );
-    res.json(result);
+    res.status(202).json({ ok: true, ...result });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'test failed';
     console.error('[debug:H4] /v1/templates/test failed:', message);
@@ -270,6 +294,7 @@ app.get('/v1/admin/overview', requireServiceAuth, async (_req, res) => {
   res.json({
     whatsapp: whatsapp.adminStatus(),
     email: email.status(),
+    queue: notificationQueue.status(),
     logs,
   });
 });
@@ -297,9 +322,21 @@ const server = app.listen(port, '0.0.0.0', () => {
       console.error('[whatsapp-bridge] start failed:', err instanceof Error ? err.message : err);
     }
   }, 15000);
+  notificationQueue.start();
 });
 
 server.on('error', (err) => {
   console.error('[notify] listen error:', err);
   process.exit(1);
 });
+
+async function shutdown(signal) {
+  console.log(`[notify] ${signal} reçu — arrêt queue et worker`);
+  notificationQueue.stop();
+  whatsapp.stop();
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+
+process.once('SIGTERM', () => void shutdown('SIGTERM'));
+process.once('SIGINT', () => void shutdown('SIGINT'));

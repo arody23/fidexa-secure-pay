@@ -26,36 +26,45 @@ export class OtpService {
     this.sessionDays = Number(process.env.ORDER_SESSION_DAYS || 7);
   }
 
-  async createAndSend({ paymentLinkId, linkId, phone, variables = {} }) {
+  /**
+   * Crée un OTP puis enregistre son message dans la queue. Il ne contacte pas
+   * WhatsApp sur le chemin HTTP du paiement ou de la page commande.
+   */
+  async createAndQueue({ paymentLinkId, linkId, phone, variables = {}, idempotencyKey }) {
     if (!phone) throw new Error('Numéro client requis pour OTP WhatsApp');
 
     const code = randomOtp();
     const codeHash = sha256(code);
     const expiresAt = new Date(Date.now() + this.ttlMinutes * 60 * 1000).toISOString();
 
-    const { error } = await supabase.from('order_access_otps').insert({
-      payment_link_id: paymentLinkId,
-      link_id: linkId,
-      code_hash: codeHash,
-      expires_at: expiresAt,
+    const key =
+      idempotencyKey ||
+      `otp:${paymentLinkId}:${crypto.randomUUID()}`;
+    const otpVariables = {
+      ...variables,
+      otp: code,
+      otp_minutes: String(this.ttlMinutes),
+    };
+
+    const { data: job, error } = await supabase.rpc('issue_order_otp_job', {
+      p_payment_link_id: paymentLinkId,
+      p_link_id: linkId,
+      p_recipient: phone,
+      p_code_hash: codeHash,
+      p_expires_at: expiresAt,
+      p_variables: otpVariables,
+      p_idempotency_key: key,
+      p_metadata: { link_id: linkId, payment_link_id: paymentLinkId },
     });
     if (error) throw new Error(error.message);
 
-    // Dev aid: code visible dans les logs serveur (jamais renvoyé au client)
-    console.log(`[otp] link=${linkId} code=${code} expires=${expiresAt}`);
-
-    await this.notify.sendNotification(
-      'otp.order_access',
-      phone,
-      {
-        ...variables,
-        otp: code,
-        otp_minutes: String(this.ttlMinutes),
-      },
-      { metadata: { link_id: linkId, payment_link_id: paymentLinkId } }
-    );
-
-    return { ok: true, expiresAt, ttlMinutes: this.ttlMinutes };
+    return {
+      ok: true,
+      expiresAt,
+      ttlMinutes: this.ttlMinutes,
+      jobId: job?.id || null,
+      duplicate: Boolean(job?.created_at && job?.idempotency_key === key && job?.attempt_count > 0),
+    };
   }
 
   async verify({ linkId, code }) {

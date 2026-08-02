@@ -223,7 +223,7 @@ export async function markLinkPaid(
     console.warn('order_timeline insert skipped:', timelineError.message);
   }
 
-  // Notifications + OTP — await obligatoire (sinon Edge coupe le fetch avant envoi)
+  // Notifications + OTP — enqueue rapide seulement; WhatsApp est traité par Railway ensuite.
   try {
     const { data: link } = await supabase
       .from('payment_links')
@@ -266,6 +266,7 @@ export async function markLinkPaid(
         paymentLinkId: link.id,
         linkId: link.link_id,
         issueOrderOtp: true,
+        idempotencyKey: `payment:${link.id}:${opts.reference}:client`,
         variables,
       });
       console.log('[markLinkPaid] client notify', clientResult);
@@ -282,6 +283,7 @@ export async function markLinkPaid(
       if (provider?.phone) {
         const providerResult = await dispatchNotificationEvent('order.created', {
           recipientPhone: provider.phone,
+          idempotencyKey: `payment:${link.id}:${opts.reference}:provider`,
           variables: { ...variables, merchant_name: provider.full_name || merchantName },
         });
         console.log('[markLinkPaid] provider notify', providerResult);

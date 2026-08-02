@@ -131,6 +131,22 @@ export class WhatsAppChannel {
       this.pushLog('info', `prêt${this.info?.wid ? ` (+${this.info.wid})` : ''}`);
     });
 
+    this.client.on('message_ack', (message, ack) => {
+      // #region agent log
+      debugLog(
+        'WhatsAppChannel.js:message_ack',
+        'WhatsApp ACK event received',
+        {
+          ack,
+          server: message?.id?.server || null,
+          hasMessageKey: Boolean(message?.id?.id),
+        },
+        'H2',
+        (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
+      );
+      // #endregion
+    });
+
     this.client.on('auth_failure', (msg) => {
       this.ready = false;
       this.state = 'disconnected';
@@ -361,7 +377,40 @@ export class WhatsAppChannel {
         const sendToChat = async (chat) => {
           let msg = await window.WWebJS.sendMessage(chat, content, sendOptions);
           if (msg) return msg;
-          const message = { type: 'chat', body: content };
+
+          // Même structure que WWebJS.sendMessage. Le fallback précédent créait
+          // uniquement { type, body }, ce qui cassait WAWebSendMsgChatAction
+          // car message.id.remote était absent.
+          const { getMaybeMeLidUser, getMaybeMePnUser } = window.require(
+            'WAWebUserPrefsMeUser'
+          );
+          const from = chat.id.isLid()
+            ? getMaybeMeLidUser()
+            : getMaybeMePnUser();
+          const id = await window.require('WAWebMsgKey').newId();
+          const key = new (window.require('WAWebMsgKey'))({
+            from,
+            to: chat.id,
+            id,
+            selfDir: 'out',
+          });
+          const ephemeralFields = window
+            .require('WAWebGetEphemeralFieldsMsgActionsUtils')
+            .getEphemeralFields(chat);
+          const message = {
+            ...sendOptions,
+            id: key,
+            ack: 0,
+            body: content,
+            from,
+            to: chat.id,
+            local: true,
+            self: 'out',
+            t: Math.floor(Date.now() / 1000),
+            isNewMsg: true,
+            type: 'chat',
+            ...ephemeralFields,
+          };
           const [msgPromise, sendResultPromise] = SendAction.addAndSendMsgToChat(
             chat,
             message
@@ -433,7 +482,31 @@ export class WhatsAppChannel {
       };
       const onAck = (msg, ack) => {
         const id = msg?.id?._serialized;
-        if (targetId && id && id !== targetId) return;
+        const sameMessageKey = Boolean(
+          message?.id?.id && msg?.id?.id && message.id.id === msg.id.id
+        );
+        // #region agent log
+        debugLog(
+          'WhatsAppChannel.js:waitForAck',
+          'ACK compared with sent message',
+          {
+            ack,
+            sameSerializedId: Boolean(targetId && id && targetId === id),
+            sameMessageKey,
+            sentServer: message?.id?.server || null,
+            ackServer: msg?.id?.server || null,
+          },
+          'H2',
+          (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
+        );
+        // #endregion
+        // WhatsApp may rewrite the remote JID from @c.us to @lid; the message
+        // key remains stable even when _serialized changes.
+        if (targetId && id && id !== targetId && !sameMessageKey) return;
+        if (ack === -1) {
+          done(-1);
+          return;
+        }
         if (ack >= minAck) done(ack);
       };
       const timer = setTimeout(
@@ -583,6 +656,12 @@ export class WhatsAppChannel {
       (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
     );
     // #endregion
+
+    if (ack === -1) {
+      throw new Error(
+        `WhatsApp a rejeté le message (ack=-1) pour ${e164} via ${finalChatId}`
+      );
+    }
 
     if (ack < ACK_SERVER) {
       throw new Error(

@@ -50,6 +50,7 @@ export class WhatsAppBridge {
       if (!msg || typeof msg !== 'object') return;
       if (msg.type === 'status' && msg.data) {
         this.cachedStatus = msg.data;
+        if (msg.data.ready) this.restartCount = 0;
         return;
       }
       if (msg.id && this.pending.has(msg.id)) {
@@ -60,8 +61,16 @@ export class WhatsAppBridge {
       }
     });
 
+    this.child.on('error', (err) => {
+      console.error(`[whatsapp-bridge] worker IPC error: ${err.message}`);
+    });
+
     this.child.on('exit', (code) => {
       console.warn(`[whatsapp-bridge] worker exit code=${code}`);
+      for (const { reject } of this.pending.values()) {
+        reject(new Error(`WhatsApp worker arrêté (code ${code})`));
+      }
+      this.pending.clear();
       this.cachedStatus = {
         ...this.cachedStatus,
         ready: false,
@@ -70,13 +79,14 @@ export class WhatsAppBridge {
         qrDataUrl: null,
       };
       this.child = null;
-      // Évite une boucle OOM qui tue tout le container Railway
+      // Queue persistante + readiness permettent une reprise contrôlée sans
+      // laisser l'API afficher une fausse disponibilité WhatsApp.
       this.restartCount += 1;
-      if (this.restartCount <= 2) {
-        setTimeout(() => this.start(), 10000);
-      } else {
-        console.error('[whatsapp-bridge] trop de crashs — pas de restart auto (HTTP reste up)');
-      }
+      const retryDelayMs = Math.min(10000 * 2 ** Math.min(this.restartCount - 1, 3), 60000);
+      console.warn(
+        `[whatsapp-bridge] redémarrage dans ${retryDelayMs / 1000}s (tentative ${this.restartCount})`
+      );
+      setTimeout(() => this.start(), retryDelayMs);
     });
   }
 
@@ -122,7 +132,12 @@ export class WhatsAppBridge {
           reject(err);
         },
       });
-      this.child.send({ id, type, ...payload });
+      this.child.send({ id, type, ...payload }, (err) => {
+        if (!err || !this.pending.has(id)) return;
+        this.pending.delete(id);
+        clearTimeout(timer);
+        reject(new Error(`WhatsApp worker IPC impossible: ${err.message}`));
+      });
     });
   }
 
@@ -132,6 +147,13 @@ export class WhatsAppBridge {
 
   logout() {
     return this.call('logout');
+  }
+
+  /** Stop the child process without calling WhatsApp logout, preserving LocalAuth on /data. */
+  stop() {
+    if (this.child && !this.child.killed) {
+      this.child.kill('SIGTERM');
+    }
   }
 
   async send(to, body) {

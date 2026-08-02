@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { notifyServicePost } from '../_shared/notifyDispatch.ts';
+import { enqueueOrderOtp, notifyServicePost } from '../_shared/notifyDispatch.ts';
 
 /**
  * Proxy public (anon) vers le notification-service pour OTP accès /order.
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       }
 
       const appUrl = (Deno.env.get('APP_PUBLIC_URL') || 'https://fidexapay.com').replace(/\/$/, '');
-      const upstream = await notifyServicePost('/v1/otp/issue', {
+      const result = await enqueueOrderOtp({
         paymentLinkId: link.id,
         linkId: link.link_id,
         phone: link.client_phone,
@@ -98,9 +98,8 @@ Deno.serve(async (req) => {
           tracking_link: `${appUrl}/order/${link.link_id}`,
         },
       });
-      const data = await upstream.json();
-      return new Response(JSON.stringify(data), {
-        status: upstream.status,
+      return new Response(JSON.stringify(result), {
+        status: 202,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -127,9 +126,16 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error(err);
+    const message = err instanceof Error ? err.message : 'Erreur serveur';
+    const status = message.includes('OTP_RATE_LIMITED') ? 429 : 500;
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Erreur serveur' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        error:
+          status === 429
+            ? 'Veuillez attendre une minute avant de demander un nouveau code.'
+            : message,
+      }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
