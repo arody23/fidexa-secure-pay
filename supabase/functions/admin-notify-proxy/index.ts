@@ -60,6 +60,21 @@ Deno.serve(async (req) => {
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    if (
+      !/^https?:\/\//i.test(base) ||
+      base.includes('NOTIFICATION_SERVICE_URL') ||
+      base.includes('host.docker.internal')
+    ) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'NOTIFICATION_SERVICE_URL invalide. Dans Supabase → Edge Functions → Secrets, la VALEUR doit être ton URL Railway complète, ex. https://xxx.up.railway.app (pas le nom de la variable).',
+          configured: false,
+          got: base.slice(0, 80),
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const payload = await req.json().catch(() => ({}));
     const action = String(payload.action || 'overview');
@@ -91,18 +106,40 @@ Deno.serve(async (req) => {
     }
 
     const url = `${base.replace(/\/$/, '')}${route.path}`;
-    const upstream = await fetch(url, {
-      method: route.method,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Service-Secret': secret,
-      },
-      body: route.method === 'GET' ? undefined : JSON.stringify(route.body ?? {}),
-    });
+    let upstream: Response;
+    try {
+      upstream = await fetch(url, {
+        method: route.method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Service-Secret': secret,
+        },
+        body: route.method === 'GET' ? undefined : JSON.stringify(route.body ?? {}),
+      });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      return new Response(
+        JSON.stringify({
+          error: `Railway injoignable depuis Edge (${base}). Dans Railway → Settings → Networking, le port du domaine doit être le même que PORT (ex. 8080). Détail: ${detail}`,
+          upstream: base,
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const text = await upstream.text();
+    if (!upstream.ok) {
+      return new Response(
+        JSON.stringify({
+          error: `Railway a répondu HTTP ${upstream.status}`,
+          upstream: url,
+          body: text.slice(0, 500),
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     return new Response(text, {
-      status: upstream.status,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {

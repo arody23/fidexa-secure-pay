@@ -41,9 +41,11 @@ function requireServiceAuth(req, res, next) {
 }
 
 /** Healthcheck Railway — doit répondre vite (avant Chromium). */
-app.get('/health', (_req, res) => {
-  res.status(200).json({ ok: true, service: 'fidexa-notify' });
-});
+function healthOk(_req, res) {
+  res.status(200).json({ ok: true, service: 'fidexa-notify', port });
+}
+app.get('/', healthOk);
+app.get('/health', healthOk);
 
 app.get('/health/detail', (_req, res) => {
   res.json({
