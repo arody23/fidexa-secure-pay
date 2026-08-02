@@ -4,12 +4,24 @@ import cors from 'cors';
 import { EmailChannel } from './channels/EmailChannel.js';
 import { NotificationService } from './services/NotificationService.js';
 import { OtpService } from './services/OtpService.js';
-import { supabase } from './lib/supabase.js';
 import { WhatsAppBridge } from './lib/whatsappBridge.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3099);
 const serviceSecret = process.env.SERVICE_SECRET || '';
+
+console.log('[notify] boot', {
+  port,
+  node: process.version,
+  whatsapp: process.env.WHATSAPP_ENABLED !== 'false',
+  hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
+  hasServiceSecret: Boolean(serviceSecret),
+});
+
+if (!Number.isFinite(port) || port <= 0) {
+  console.error('[notify] PORT invalide:', process.env.PORT);
+  process.exit(1);
+}
 
 const whatsapp = new WhatsAppBridge();
 const email = new EmailChannel();
@@ -267,18 +279,17 @@ app.get('/v1/orders/:linkId', requireServiceAuth, async (req, res) => {
   res.json({ order: data });
 });
 
-// 0.0.0.0 obligatoire sur Railway — écoute HTTP avant Chromium/WhatsApp.
+// 0.0.0.0 obligatoire sur Railway — HTTP d'abord, Chromium après.
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`[notify] listening on 0.0.0.0:${port}`);
-  console.log('[notify] Dashboard WhatsApp: Admin Fidexa → WhatsApp');
-  // Laisse le healthcheck passer avant de lancer Puppeteer.
+  // Attendre que /health soit servi avant Puppeteer (mémoire).
   setTimeout(() => {
     try {
       whatsapp.start();
     } catch (err) {
       console.error('[whatsapp-bridge] start failed:', err instanceof Error ? err.message : err);
     }
-  }, 3000);
+  }, 15000);
 });
 
 server.on('error', (err) => {

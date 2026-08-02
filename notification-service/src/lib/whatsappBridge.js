@@ -12,6 +12,7 @@ export class WhatsAppBridge {
   constructor() {
     this.child = null;
     this.pending = new Map();
+    this.restartCount = 0;
     this.cachedStatus = {
       engine: 'whatsapp-web.js',
       officialApi: false,
@@ -32,8 +33,11 @@ export class WhatsAppBridge {
     if (process.env.WHATSAPP_ENABLED === 'false') {
       this.cachedStatus.state = 'disabled';
       this.cachedStatus.enabled = false;
+      console.warn('[whatsapp-bridge] désactivé (WHATSAPP_ENABLED=false)');
       return;
     }
+    if (this.child) return;
+
     const workerPath = path.join(__dirname, '..', 'whatsapp-worker.js');
     this.child = fork(workerPath, [], {
       cwd: path.join(__dirname, '..', '..'),
@@ -65,8 +69,13 @@ export class WhatsAppBridge {
         qrDataUrl: null,
       };
       this.child = null;
-      // auto-restart
-      setTimeout(() => this.start(), 3000);
+      // Évite une boucle OOM qui tue tout le container Railway
+      this.restartCount += 1;
+      if (this.restartCount <= 2) {
+        setTimeout(() => this.start(), 10000);
+      } else {
+        console.error('[whatsapp-bridge] trop de crashs — pas de restart auto (HTTP reste up)');
+      }
     });
   }
 

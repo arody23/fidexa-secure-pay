@@ -63,6 +63,10 @@ export class WhatsAppChannel {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--disable-extensions',
+        '--disable-software-rasterizer',
+        '--js-flags=--max-old-space-size=256',
+        '--single-process',
       ],
     };
     if (chromePath) puppeteerOpts.executablePath = chromePath;
