@@ -89,7 +89,9 @@ app.post('/v1/otp/issue', requireServiceAuth, async (req, res) => {
     });
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'otp issue failed' });
+    const message = err instanceof Error ? err.message : 'otp issue failed';
+    console.error('[debug:H4] /v1/otp/issue failed:', message);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -214,7 +216,9 @@ app.post('/v1/templates/test', requireServiceAuth, async (req, res) => {
     );
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'test failed' });
+    const message = err instanceof Error ? err.message : 'test failed';
+    console.error('[debug:H4] /v1/templates/test failed:', message);
+    res.status(500).json({ error: message });
   }
 });
 

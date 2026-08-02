@@ -2,6 +2,7 @@ import { fork } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
+import { debugLog } from './debugLog.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -100,6 +101,15 @@ export class WhatsAppBridge {
       const id = randomUUID();
       const timer = setTimeout(() => {
         this.pending.delete(id);
+        // #region agent log
+        debugLog(
+          'whatsappBridge.js:call',
+          'worker IPC timeout',
+          { type, timeoutMs },
+          'H3',
+          (line) => console.warn(line)
+        );
+        // #endregion
         reject(new Error(`WhatsApp worker timeout (${type})`));
       }, timeoutMs);
       this.pending.set(id, {

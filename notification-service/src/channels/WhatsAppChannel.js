@@ -5,6 +5,7 @@
 import qrcodeTerminal from 'qrcode-terminal';
 import QRCode from 'qrcode';
 import pkg from 'whatsapp-web.js';
+import { debugLog } from '../lib/debugLog.js';
 
 const { Client, LocalAuth } = pkg;
 
@@ -397,6 +398,15 @@ export class WhatsAppChannel {
 
     const digits = this.normalizePhone(to);
     const e164 = this.formatE164(digits);
+    // #region agent log
+    debugLog(
+      'WhatsAppChannel.js:send',
+      'send entry',
+      { cc: digits.slice(0, 3), digitLen: digits.length },
+      'H5',
+      (line) => this.pushLog('info', line)
+    );
+    // #endregion
     const selfWid = this.info?.wid || this.client.info?.wid?.user || null;
     if (selfWid && digits === String(selfWid).replace(/\D/g, '')) {
       this.pushLog('info', `envoi vers soi-même (${e164}) — chat « Message à vous-même »`);
@@ -429,7 +439,35 @@ export class WhatsAppChannel {
 
     this.pushLog('info', `chat prêt ${e164} → ${resolved.chatId}`);
 
+    // #region agent log
+    const sendStart = Date.now();
+    debugLog(
+      'WhatsAppChannel.js:send',
+      'before sendViaStore',
+      { chatIdSuffix: String(resolved.chatId).split('@')[1] || 'unknown', bodyLen: String(body).length },
+      'H1',
+      (line) => this.pushLog('info', line)
+    );
+    // #endregion
+
     const raw = await this.sendViaStore(resolved.chatId, body);
+
+    // #region agent log
+    debugLog(
+      'WhatsAppChannel.js:send',
+      'after sendViaStore',
+      {
+        ms: Date.now() - sendStart,
+        hasError: Boolean(raw?.error),
+        hasId: Boolean(raw?.id),
+        ack: typeof raw?.ack === 'number' ? raw.ack : null,
+        error: raw?.error ? String(raw.error).slice(0, 120) : null,
+      },
+      'H1',
+      (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
+    );
+    // #endregion
+
     if (raw?.error || !raw?.id) {
       // Dernier recours: API wwebjs classique
       try {
@@ -461,6 +499,17 @@ export class WhatsAppChannel {
       ACK_SERVER,
       25000
     );
+
+    // #region agent log
+    debugLog(
+      'WhatsAppChannel.js:send',
+      'after waitForAck',
+      { ack, minAck: ACK_SERVER },
+      'H2',
+      (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
+    );
+    // #endregion
+
     if (ack < ACK_SERVER) {
       throw new Error(
         `WhatsApp n'a pas accepté le message pour ${e164} (ack=${ack}) via ${resolved.chatId}`
