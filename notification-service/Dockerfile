@@ -20,7 +20,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --legacy-peer-deps
 COPY src ./src
 
-# Volume Railway → monter /data (session WhatsApp persistante)
-VOLUME ["/data"]
+# Session WhatsApp : créer un Railway Volume monté sur /data (pas de VOLUME Docker)
 EXPOSE 3099
 CMD ["node", "src/index.js"]
