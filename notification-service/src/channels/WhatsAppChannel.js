@@ -176,11 +176,15 @@ export class WhatsAppChannel {
     }
   }
 
-  toChatId(phone) {
+  normalizePhone(phone) {
     let digits = String(phone || '').replace(/\D/g, '');
     if (!digits) throw new Error('Numéro WhatsApp invalide');
     if (digits.startsWith('00')) digits = digits.slice(2);
-    return `${digits}@c.us`;
+    // CD/CG souvent saisis en 0XXXXXXXXX → préfixe 243
+    if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
+      digits = `243${digits.slice(1)}`;
+    }
+    return digits;
   }
 
   async send(to, body) {
@@ -190,9 +194,18 @@ export class WhatsAppChannel {
     if (!this.client || !this.ready) {
       throw new Error('WhatsApp non prêt — Admin → WhatsApp → scannez le QR');
     }
-    const chatId = this.toChatId(to);
+    const digits = this.normalizePhone(to);
+    let chatId = `${digits}@c.us`;
+    try {
+      const numberId = await this.client.getNumberId(digits);
+      if (numberId?._serialized) chatId = numberId._serialized;
+      else throw new Error(`Numéro non WhatsApp: +${digits}`);
+    } catch (err) {
+      if (String(err.message || '').includes('non WhatsApp')) throw err;
+      // fallback chatId classique
+    }
     const result = await this.client.sendMessage(chatId, body);
-    this.pushLog('info', `envoyé → ${maskPhone(to)}`);
+    this.pushLog('info', `envoyé → ${maskPhone(to)} (${chatId})`);
     return { ok: true, id: result?.id?._serialized || null };
   }
 

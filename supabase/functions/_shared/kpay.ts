@@ -223,73 +223,73 @@ export async function markLinkPaid(
     console.warn('order_timeline insert skipped:', timelineError.message);
   }
 
-  // Notifications + OTP accès suivi (service Node) — fire-and-forget
-  void (async () => {
-    try {
-      const { data: link } = await supabase
-        .from('payment_links')
-        .select(
-          'id, link_id, amount, currency, client_name, client_email, client_phone, provider_id, description'
-        )
-        .eq('id', linkDbId)
+  // Notifications + OTP — await obligatoire (sinon Edge coupe le fetch avant envoi)
+  try {
+    const { data: link } = await supabase
+      .from('payment_links')
+      .select(
+        'id, link_id, amount, currency, client_name, client_email, client_phone, provider_id, description'
+      )
+      .eq('id', linkDbId)
+      .maybeSingle();
+    if (!link) return;
+
+    let merchantName = 'Prestataire';
+    if (link.provider_id) {
+      const { data: provider } = await supabase
+        .from('users')
+        .select('full_name, phone')
+        .eq('id', link.provider_id)
         .maybeSingle();
-      if (!link) return;
-
-      let merchantName = 'Prestataire';
-      if (link.provider_id) {
-        const { data: provider } = await supabase
-          .from('users')
-          .select('full_name, phone')
-          .eq('id', link.provider_id)
-          .maybeSingle();
-        if (provider?.full_name) merchantName = provider.full_name;
-      }
-
-      const appUrl = (Deno.env.get('APP_PUBLIC_URL') || 'https://fidexapay.com').replace(/\/$/, '');
-      const trackingLink = `${appUrl}/order/${link.link_id}`;
-      const paymentLink = `${appUrl}/pay/${link.link_id}`;
-      const variables = {
-        client_name: link.client_name || 'Client',
-        merchant_name: merchantName,
-        amount: String(link.amount ?? ''),
-        currency: String(link.currency || 'FCFA'),
-        order_reference: opts.reference || link.link_id,
-        transaction_id: opts.kpayPaymentId || opts.reference || '',
-        tracking_link: trackingLink,
-        payment_link: paymentLink,
-      };
-
-      // Client: paiement reçu + OTP d'accès page suivi
-      if (link.client_phone) {
-        await dispatchNotificationEvent('payment.completed', {
-          recipientPhone: link.client_phone,
-          recipientEmail: link.client_email,
-          clientPhone: link.client_phone,
-          paymentLinkId: link.id,
-          linkId: link.link_id,
-          issueOrderOtp: true,
-          variables,
-        });
-      }
-
-      // Prestataire: nouvelle commande (si téléphone dispo)
-      if (link.provider_id) {
-        const { data: provider } = await supabase
-          .from('users')
-          .select('phone, full_name')
-          .eq('id', link.provider_id)
-          .maybeSingle();
-        if (provider?.phone) {
-          await dispatchNotificationEvent('order.created', {
-            recipientPhone: provider.phone,
-            variables: { ...variables, merchant_name: provider.full_name || merchantName },
-          });
-        }
-      }
-    } catch (err) {
-      console.error('[markLinkPaid] notify dispatch error', err);
+      if (provider?.full_name) merchantName = provider.full_name;
     }
-  })();
+
+    const appUrl = (Deno.env.get('APP_PUBLIC_URL') || 'https://fidexapay.com').replace(/\/$/, '');
+    const trackingLink = `${appUrl}/order/${link.link_id}`;
+    const paymentLink = `${appUrl}/pay/${link.link_id}`;
+    const variables = {
+      client_name: link.client_name || 'Client',
+      merchant_name: merchantName,
+      amount: String(link.amount ?? ''),
+      currency: String(link.currency || 'FCFA'),
+      order_reference: opts.reference || link.link_id,
+      transaction_id: opts.kpayPaymentId || opts.reference || '',
+      tracking_link: trackingLink,
+      payment_link: paymentLink,
+    };
+
+    if (link.client_phone) {
+      const clientResult = await dispatchNotificationEvent('payment.completed', {
+        recipientPhone: link.client_phone,
+        recipientEmail: link.client_email,
+        clientPhone: link.client_phone,
+        paymentLinkId: link.id,
+        linkId: link.link_id,
+        issueOrderOtp: true,
+        variables,
+      });
+      console.log('[markLinkPaid] client notify', clientResult);
+    } else {
+      console.warn('[markLinkPaid] pas de client_phone — OTP/paiement WhatsApp ignorés');
+    }
+
+    if (link.provider_id) {
+      const { data: provider } = await supabase
+        .from('users')
+        .select('phone, full_name')
+        .eq('id', link.provider_id)
+        .maybeSingle();
+      if (provider?.phone) {
+        const providerResult = await dispatchNotificationEvent('order.created', {
+          recipientPhone: provider.phone,
+          variables: { ...variables, merchant_name: provider.full_name || merchantName },
+        });
+        console.log('[markLinkPaid] provider notify', providerResult);
+      }
+    }
+  } catch (err) {
+    console.error('[markLinkPaid] notify dispatch error', err);
+  }
 }
 
 export async function fetchKPayPayment(id: string) {
