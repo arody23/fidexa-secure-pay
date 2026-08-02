@@ -463,6 +463,7 @@ export class WhatsAppChannel {
 
   waitForAck(message, minAck = ACK_SERVER, timeoutMs = 25000) {
     if (!message) return Promise.resolve(-1);
+    if (message.ack === -1) return Promise.resolve(-1);
     if (typeof message.ack === 'number' && message.ack >= minAck) {
       return Promise.resolve(message.ack);
     }
@@ -544,105 +545,53 @@ export class WhatsAppChannel {
       this.pushLog('info', `envoi vers soi-même (${e164}) — chat « Message à vous-même »`);
     }
 
-    // Vérifie que le numéro existe sur WhatsApp
+    // WhatsApp Web résout aujourd'hui certains numéros vers un @lid. Utiliser
+    // exactement l'identifiant fourni par la bibliothèque évite de créer un
+    // message local sur @c.us puis d'attendre l'ACK d'un autre chat.
+    let targetId = null;
     try {
       const numberId = await this.client.getNumberId(digits);
       if (!numberId) {
         throw new Error(`Numéro non WhatsApp: ${e164}`);
       }
-      const serialized =
+      targetId =
         numberId._serialized ||
         (numberId.user && numberId.server ? `${numberId.user}@${numberId.server}` : null);
-      if (serialized) {
-        this.pushLog('info', `compte WA trouvé ${e164} → ${serialized}`);
+      if (!targetId) {
+        throw new Error(`Identifiant WhatsApp introuvable: ${e164}`);
       }
+      this.pushLog('info', `compte WA trouvé ${e164} → ${targetId}`);
     } catch (err) {
       if (String(err.message || '').includes('non WhatsApp')) throw err;
-      this.pushLog('warn', `getNumberId: ${err instanceof Error ? err.message : err}`);
-    }
-
-    const resolved = await this.resolveChatForSend(digits);
-    if (!resolved?.ok || !resolved.chatId) {
-      const detail = (resolved?.errors || []).slice(0, 5).join(' | ') || 'aucune stratégie LID/chat';
       throw new Error(
-        `Impossible de créer le chat WhatsApp pour ${e164} (LID non synchronisé). ${detail}`
+        `Impossible de résoudre le compte WhatsApp pour ${e164}: ${
+          err instanceof Error ? err.message : err
+        }`
       );
     }
 
-    this.pushLog('info', `chat prêt ${e164} → ${resolved.chatId}`);
-
-    await this.openPhoneChat(digits);
-    const sendTargets = this.buildSendTargets(digits, resolved);
-    this.pushLog('info', `cibles envoi: ${sendTargets.map((id) => id.split('@')[1] || id).join(', ')}`);
-
-    let raw = null;
-    let usedChatId = null;
     const sendStart = Date.now();
-
-    for (const chatId of sendTargets) {
-      // #region agent log
-      debugLog(
-        'WhatsAppChannel.js:send',
-        'before sendViaStore',
-        { chatIdSuffix: String(chatId).split('@')[1] || 'unknown', bodyLen: String(body).length },
-        'H1',
-        (line) => this.pushLog('info', line)
+    let raw;
+    try {
+      raw = await this.client.sendMessage(targetId, body, {
+        waitUntilMsgSent: true,
+        sendSeen: false,
+        linkPreview: false,
+      });
+    } catch (err) {
+      throw new Error(
+        `Envoi WhatsApp impossible pour ${e164} via ${targetId}: ${
+          err instanceof Error ? err.message : err
+        }`
       );
-      // #endregion
-
-      raw = await this.sendViaStore(chatId, body, { waitUntilMsgSent: false });
-
-      // #region agent log
-      debugLog(
-        'WhatsAppChannel.js:send',
-        'after sendViaStore',
-        {
-          ms: Date.now() - sendStart,
-          via: raw?.via || chatId,
-          hasError: Boolean(raw?.error),
-          hasId: Boolean(raw?.id),
-          ack: typeof raw?.ack === 'number' ? raw.ack : null,
-          error: raw?.error ? String(raw.error).slice(0, 120) : null,
-        },
-        'H1',
-        (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
-      );
-      // #endregion
-
-      if (!raw?.error && raw?.id) {
-        usedChatId = raw.via || chatId;
-        break;
-      }
     }
 
-    if (raw?.error || !raw?.id) {
-      // Dernier recours: API wwebjs classique sur @c.us puis LID
-      for (const chatId of sendTargets) {
-        try {
-          const result = await this.client.sendMessage(chatId, body, {
-            waitUntilMsgSent: false,
-            sendSeen: false,
-            linkPreview: false,
-          });
-          if (!result?.id) continue;
-          usedChatId = chatId;
-          raw = { id: result.id, ack: result.ack };
-          break;
-        } catch {
-          /* try next */
-        }
-      }
-      if (!raw?.id) {
-        throw new Error(
-          `Envoi WhatsApp échoué pour ${e164}: ${raw?.error || 'msg_null sur toutes les cibles'}`
-        );
-      }
+    if (!raw?.id) {
+      throw new Error(`Envoi WhatsApp sans identifiant pour ${e164} via ${targetId}`);
     }
-
-    const finalChatId = usedChatId || resolved.chatId;
 
     const ack = await this.waitForAck(
-      { id: raw.id, ack: typeof raw.ack === 'number' ? raw.ack : 0 },
+      raw,
       ACK_SERVER,
       25000
     );
@@ -651,7 +600,13 @@ export class WhatsAppChannel {
     debugLog(
       'WhatsAppChannel.js:send',
       'after waitForAck',
-      { ack, minAck: ACK_SERVER, via: finalChatId },
+      {
+        ack,
+        minAck: ACK_SERVER,
+        via: targetId,
+        sentMessageKey: raw.id?.id || null,
+        sendMs: Date.now() - sendStart,
+      },
       'H2',
       (line, data) => this.pushLog('info', `${line} ${JSON.stringify(data)}`)
     );
@@ -659,19 +614,19 @@ export class WhatsAppChannel {
 
     if (ack === -1) {
       throw new Error(
-        `WhatsApp a rejeté le message (ack=-1) pour ${e164} via ${finalChatId}`
+        `WhatsApp a rejeté le message (ack=-1) pour ${e164} via ${targetId}`
       );
     }
 
     if (ack < ACK_SERVER) {
       throw new Error(
-        `WhatsApp n'a pas accepté le message pour ${e164} (ack=${ack}) via ${finalChatId}`
+        `WhatsApp n'a pas accepté le message pour ${e164} (ack=${ack}) via ${targetId}`
       );
     }
 
     const mid = raw.id._serialized || null;
-    this.pushLog('info', `envoyé → ${e164} (${finalChatId}) ack=${ack} id=${mid}`);
-    return { ok: true, id: mid, to: e164, chatId: finalChatId, ack };
+    this.pushLog('info', `envoyé → ${e164} (${targetId}) ack=${ack} id=${mid}`);
+    return { ok: true, id: mid, to: e164, chatId: targetId, ack };
   }
 
   status() {
