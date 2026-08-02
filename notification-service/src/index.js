@@ -4,6 +4,7 @@ import cors from 'cors';
 import { EmailChannel } from './channels/EmailChannel.js';
 import { NotificationService } from './services/NotificationService.js';
 import { OtpService } from './services/OtpService.js';
+import { supabase } from './lib/supabase.js';
 import { WhatsAppBridge } from './lib/whatsappBridge.js';
 
 const app = express();
