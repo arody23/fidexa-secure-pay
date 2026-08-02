@@ -180,11 +180,16 @@ export class WhatsAppChannel {
     let digits = String(phone || '').replace(/\D/g, '');
     if (!digits) throw new Error('Numéro WhatsApp invalide');
     if (digits.startsWith('00')) digits = digits.slice(2);
-    // CD/CG souvent saisis en 0XXXXXXXXX → préfixe 243
+    // CD souvent saisi en 0XXXXXXXXX → préfixe 243
     if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
       digits = `243${digits.slice(1)}`;
     }
     return digits;
+  }
+
+  /** Affichage E.164 (+243…) — le masquage ne sert qu’aux logs publics, pas à l’envoi. */
+  formatE164(digits) {
+    return `+${String(digits || '').replace(/\D/g, '')}`;
   }
 
   async send(to, body) {
@@ -195,18 +200,24 @@ export class WhatsAppChannel {
       throw new Error('WhatsApp non prêt — Admin → WhatsApp → scannez le QR');
     }
     const digits = this.normalizePhone(to);
-    let chatId = `${digits}@c.us`;
+    const e164 = this.formatE164(digits);
+
+    // Vérifie que le numéro existe sur WhatsApp, mais envoie toujours en @c.us
+    // (le @lid renvoyé par getNumberId peut marquer "envoyé" sans livraison fiable).
     try {
       const numberId = await this.client.getNumberId(digits);
-      if (numberId?._serialized) chatId = numberId._serialized;
-      else throw new Error(`Numéro non WhatsApp: +${digits}`);
+      if (!numberId) {
+        throw new Error(`Numéro non WhatsApp: ${e164}`);
+      }
     } catch (err) {
       if (String(err.message || '').includes('non WhatsApp')) throw err;
-      // fallback chatId classique
+      this.pushLog('warn', `getNumberId échec pour ${e164} — tentative @c.us quand même`);
     }
+
+    const chatId = `${digits}@c.us`;
     const result = await this.client.sendMessage(chatId, body);
-    this.pushLog('info', `envoyé → ${maskPhone(to)} (${chatId})`);
-    return { ok: true, id: result?.id?._serialized || null };
+    this.pushLog('info', `envoyé → ${e164} (${chatId})`);
+    return { ok: true, id: result?.id?._serialized || null, to: e164, chatId };
   }
 
   status() {
@@ -240,10 +251,4 @@ export class WhatsAppChannel {
       },
     };
   }
-}
-
-function maskPhone(phone) {
-  const d = String(phone || '').replace(/\D/g, '');
-  if (d.length < 6) return '***';
-  return `${d.slice(0, 3)}***${d.slice(-3)}`;
 }
