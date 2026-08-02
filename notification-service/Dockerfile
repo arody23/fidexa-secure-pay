@@ -5,6 +5,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
     ca-certificates \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
@@ -13,7 +27,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true \
     WWEBJS_AUTH_PATH=/data/.wwebjs_auth \
     NODE_ENV=production \
     WHATSAPP_ENABLED=true \
-    PORT=3099
+    HOST=0.0.0.0
 
 WORKDIR /app
 COPY package.json package-lock.json ./

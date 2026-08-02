@@ -5,4 +5,5 @@ dockerfilePath = "Dockerfile"
 [deploy]
 restartPolicyType = "ON_FAILURE"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 120
+restartPolicyMaxRetries = 5

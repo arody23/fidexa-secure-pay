@@ -27,7 +27,12 @@ function requireServiceAuth(req, res, next) {
   next();
 }
 
+/** Healthcheck Railway — doit répondre vite (avant Chromium). */
 app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true, service: 'fidexa-notify' });
+});
+
+app.get('/health/detail', (_req, res) => {
   res.json({
     ok: true,
     whatsapp: whatsapp.status(),
@@ -262,8 +267,21 @@ app.get('/v1/orders/:linkId', requireServiceAuth, async (req, res) => {
   res.json({ order: data });
 });
 
-app.listen(port, () => {
-  console.log(`[notify] listening on :${port}`);
+// 0.0.0.0 obligatoire sur Railway — écoute HTTP avant Chromium/WhatsApp.
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`[notify] listening on 0.0.0.0:${port}`);
   console.log('[notify] Dashboard WhatsApp: Admin Fidexa → WhatsApp');
-  whatsapp.start();
+  // Laisse le healthcheck passer avant de lancer Puppeteer.
+  setTimeout(() => {
+    try {
+      whatsapp.start();
+    } catch (err) {
+      console.error('[whatsapp-bridge] start failed:', err instanceof Error ? err.message : err);
+    }
+  }, 3000);
+});
+
+server.on('error', (err) => {
+  console.error('[notify] listen error:', err);
+  process.exit(1);
 });
