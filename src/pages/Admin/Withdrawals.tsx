@@ -44,6 +44,10 @@ export default function AdminWithdrawals() {
   const [notes, setNotes] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [companyForm, setCompanyForm] = useState({
+    amount: '', currency: 'CDF', phone: '', provider: 'Airtel', country: 'CD', description: '',
+  });
+  const [companyLoading, setCompanyLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -135,6 +139,30 @@ export default function AdminWithdrawals() {
     }
   };
 
+  const requestCompanyWithdrawal = async () => {
+    try {
+      setCompanyLoading(true);
+      const { data, error } = await supabase.functions.invoke('kpay-company-withdraw', {
+        body: { ...companyForm, amount: Number(companyForm.amount) },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Retrait entreprise refusé');
+      toast({
+        title: 'Retrait entreprise envoyé',
+        description: 'KPay confirme le statut final automatiquement via le webhook.',
+      });
+      setCompanyForm((value) => ({ ...value, amount: '', phone: '', description: '' }));
+    } catch (err) {
+      toast({
+        title: 'Retrait entreprise non envoyé',
+        description: err instanceof Error ? err.message : 'Erreur inconnue',
+        variant: 'destructive',
+      });
+    } finally {
+      setCompanyLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -181,6 +209,52 @@ export default function AdminWithdrawals() {
             : 'Flux admin : 1) Approuver → 2) Payer manuellement sur le numéro/compte indiqué → 3) Marquer « Payé ».'}
         </AlertDescription>
       </Alert>
+
+      <Card className="border-primary/30">
+        <CardHeader>
+          <CardTitle className="text-base">Retrait de la caisse Fidexa</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Réservé à l’administration. Cette action demande un payout KPay depuis le solde entreprise ;
+            elle ne prélève jamais le wallet d’un prestataire.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <Label>Montant</Label>
+              <Input type="number" min="1" value={companyForm.amount}
+                onChange={(e) => setCompanyForm((v) => ({ ...v, amount: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Devise</Label>
+              <select className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={companyForm.currency} onChange={(e) => setCompanyForm((v) => ({ ...v, currency: e.target.value }))}>
+                <option value="CDF">CDF</option><option value="FCFA">FCFA</option>
+              </select>
+            </div>
+            <div>
+              <Label>Numéro destinataire</Label>
+              <Input placeholder="+243…" value={companyForm.phone}
+                onChange={(e) => setCompanyForm((v) => ({ ...v, phone: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Opérateur</Label>
+              <select className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={companyForm.provider} onChange={(e) => setCompanyForm((v) => ({ ...v, provider: e.target.value }))}>
+                <option>Airtel</option><option>Orange</option><option>Vodacom M-Pesa</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label>Motif interne</Label>
+            <Textarea value={companyForm.description} rows={2}
+              onChange={(e) => setCompanyForm((v) => ({ ...v, description: e.target.value }))} />
+          </div>
+          <Button onClick={() => void requestCompanyWithdrawal()} disabled={companyLoading}>
+            {companyLoading ? 'Envoi…' : 'Demander le retrait entreprise via KPay'}
+          </Button>
+        </CardContent>
+      </Card>
 
       {loadError && (
         <Alert variant="destructive">

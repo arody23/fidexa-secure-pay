@@ -11,12 +11,16 @@ Remplace GeniusPay. Sandbox d’abord (`kpay_test_` / `sk_test_`), puis live apr
 | `KPAY_BASE_URL` | Optionnel — défaut `https://admin.kpay.site` |
 | `KPAY_WEBHOOK_SECRET` | Secret HMAC pour `X-KPAY-Signature` |
 
-Frontend (`.env`) :
+Frontend Vercel (variables publiques seulement) :
 
 ```env
 VITE_KPAY_ENABLED=true
 VITE_KPAY_PAYOUT_ENABLED=true
 ```
+
+Ne mettez jamais `KPAY_API_KEY`, `KPAY_SECRET_KEY` ou
+`KPAY_WEBHOOK_SECRET` dans Vercel, Railway ou une variable `VITE_*`. Ces
+secrets appartiennent exclusivement aux Edge Functions Supabase.
 
 ## Edge Functions
 
@@ -76,6 +80,23 @@ curl -s https://admin.kpay.site/api/v1/payments/me \
 2. Remplacer les secrets par `kpay_live_` / `sk_live_`
 3. Garder la même URL webhook
 4. Tester un petit montant réel
+5. Tester un retrait réel de faible montant après avoir vérifié le solde wallet
+
+## Remboursements KPay
+
+KPay ne fournit pas d'endpoint public de refund direct. Fidexa traite donc
+un remboursement client comme un payout Mobile Money explicite, validé par
+l'admin dans l'application. Le webhook signé confirme ensuite le résultat :
+
+- `payout.completed` crédite le remboursement au client, marque la commande
+  comme remboursée et crédite le prestataire uniquement si l'admin l'a prévu ;
+- `payout.failed` / `payout.cancelled` conserve la commande et enregistre
+  l'échec ;
+- les webhooks `refund.*` du dashboard KPay restent aussi pris en charge ;
+- les données de remboursement sont stockées dans `refund_settlements`.
+
+Configurer aussi l'URL de webhook **Remboursements** dans KPay vers le même
+endpoint `kpay-webhook`.
 
 ## Flux
 

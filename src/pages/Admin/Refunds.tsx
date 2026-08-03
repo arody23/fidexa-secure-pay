@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RefreshCw, Scale } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +45,9 @@ export default function AdminRefunds() {
   const [rows, setRows] = useState<RefundRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [settlements, setSettlements] = useState<Record<string, {
+    amount: string; providerCredit: string; phone: string; provider: string; country: string;
+  }>>({});
   const [acting, setActing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -106,8 +110,47 @@ export default function AdminRefunds() {
     }
   };
 
+  const field = (id: string) => settlements[id] ?? {
+    amount: '', providerCredit: '0', phone: '', provider: 'Airtel', country: 'CD',
+  };
+  const setField = (id: string, patch: Partial<ReturnType<typeof field>>) =>
+    setSettlements((prev) => ({ ...prev, [id]: { ...field(id), ...patch } }));
+
+  const payRefund = async (row: RefundRequest) => {
+    const values = field(row.id);
+    try {
+      setActing(row.id);
+      const { data, error } = await supabase.functions.invoke('kpay-settle-refund', {
+        body: {
+          refundRequestId: row.id,
+          clientAmount: Number(values.amount),
+          providerCreditAmount: Number(values.providerCredit || 0),
+          clientPhone: values.phone,
+          clientProvider: values.provider,
+          clientCountry: values.country,
+          adminNote: notes[row.id]?.trim() || undefined,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Paiement de remboursement refusé');
+      toast({
+        title: 'Remboursement envoyé à KPay',
+        description: 'Le statut final sera confirmé automatiquement par le webhook KPay.',
+      });
+      await load();
+    } catch (err) {
+      toast({
+        title: 'Remboursement non envoyé',
+        description: err instanceof Error ? err.message : 'Erreur inconnue',
+        variant: 'destructive',
+      });
+    } finally {
+      setActing(null);
+    }
+  };
+
   const open = rows.filter((r) =>
-    ['pending', 'awaiting_provider', 'awaiting_client', 'under_review'].includes(r.status)
+    ['pending', 'awaiting_provider', 'awaiting_client', 'under_review', 'approved'].includes(r.status)
   );
 
   return (
@@ -180,35 +223,65 @@ export default function AdminRefunds() {
                     placeholder="Motif de la décision selon la politique de remboursement…"
                   />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => void decide(row.id, 'approved')}
-                    disabled={acting === row.id}
-                  >
-                    Approuver remboursement
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => void decide(row.id, 'rejected')}
-                    disabled={acting === row.id}
-                  >
-                    Rejeter (reprendre commande)
-                  </Button>
-                </div>
+                {row.status !== 'approved' ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => void decide(row.id, 'approved')} disabled={acting === row.id}>
+                      Approuver et préparer le règlement
+                    </Button>
+                    <Button variant="outline" onClick={() => void decide(row.id, 'rejected')} disabled={acting === row.id}>
+                      Rejeter (reprendre commande)
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <p className="text-sm font-medium">Règlement validé par l’admin</p>
+                    <p className="text-xs text-muted-foreground">
+                      Saisissez le montant réel à envoyer au client. Le crédit prestataire est optionnel et
+                      ne lui est attribué qu’après confirmation KPay. Le total ne peut pas dépasser 85% de la commande.
+                    </p>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <Label>Montant client ({row.payment_links?.currency || 'devise commande'})</Label>
+                        <Input type="number" min="1" value={field(row.id).amount}
+                          onChange={(e) => setField(row.id, { amount: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Crédit prestataire (optionnel)</Label>
+                        <Input type="number" min="0" value={field(row.id).providerCredit}
+                          onChange={(e) => setField(row.id, { providerCredit: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Numéro Mobile Money du client</Label>
+                        <Input placeholder="+243…" value={field(row.id).phone}
+                          onChange={(e) => setField(row.id, { phone: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Opérateur</Label>
+                        <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          value={field(row.id).provider} onChange={(e) => setField(row.id, { provider: e.target.value })}>
+                          <option>Airtel</option><option>Orange</option><option>Vodacom M-Pesa</option>
+                        </select>
+                      </div>
+                    </div>
+                    <Button onClick={() => void payRefund(row)} disabled={acting === row.id}>
+                      Envoyer le remboursement client via KPay
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {rows.filter((r) => ['approved', 'rejected'].includes(r.status)).length > 0 && (
+      {rows.filter((r) => ['completed', 'failed', 'rejected'].includes(r.status)).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Historique récent</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {rows
-              .filter((r) => ['approved', 'rejected'].includes(r.status))
+              .filter((r) => ['completed', 'failed', 'rejected'].includes(r.status))
               .slice(0, 20)
               .map((r) => (
                 <div key={r.id} className="flex flex-wrap items-center gap-2 border-b py-2 last:border-0">

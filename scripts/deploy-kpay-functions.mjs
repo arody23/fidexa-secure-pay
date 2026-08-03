@@ -99,6 +99,8 @@ const functions = [
   { slug: 'kpay-verify-payment', verifyJwt: false },
   { slug: 'kpay-create-payout', verifyJwt: false }, // auth checked inside (admin JWT)
   { slug: 'kpay-webhook', verifyJwt: false },
+  { slug: 'kpay-settle-refund', verifyJwt: false }, // auth admin checked inside
+  { slug: 'kpay-company-withdraw', verifyJwt: false }, // auth admin checked inside
 ];
 
 for (const fn of functions) {
