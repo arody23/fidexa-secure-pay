@@ -31,11 +31,13 @@ async function invokeFunction<T>(name: string, body: Record<string, unknown>, au
 
 export interface CreateKPayPaymentResponse {
   success: boolean;
-  checkoutUrl: string;
+  checkoutUrl?: string;
   reference: string;
   paymentId?: string;
   amount?: number;
   currency?: string;
+  provider?: string;
+  paymentMode?: 'gateway' | 'ussd';
   originalAmount?: number;
   originalCurrency?: string;
   fees?: number | null;

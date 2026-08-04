@@ -59,6 +59,122 @@ export function normalizeCurrencyCode(currency?: string | null): string {
   return 'FCFA';
 }
 
+function kpayCurrencyCode(currency: string): string {
+  return currency === 'FCFA' ? 'XAF' : currency;
+}
+
+const PROVIDER_CURRENCIES: Record<string, string> = {
+  MTN_MOMO_BEN: 'XOF',
+  MOOV_BEN: 'XOF',
+  MTN_MOMO_CMR: 'XAF',
+  ORANGE_CMR: 'XAF',
+  MTN_MOMO_CIV: 'XOF',
+  ORANGE_CIV: 'XOF',
+  VODACOM_MPESA_COD: 'CDF',
+  AIRTEL_COD: 'CDF',
+  ORANGE_COD: 'CDF',
+  AIRTEL_GAB: 'XAF',
+  MPESA_KEN: 'KES',
+  AIRTEL_COG: 'XAF',
+  MTN_MOMO_COG: 'XAF',
+  AIRTEL_RWA: 'RWF',
+  MTN_MOMO_RWA: 'RWF',
+  FREE_SEN: 'XOF',
+  ORANGE_SEN: 'XOF',
+  ORANGE_SLE: 'SLE',
+  AIRTEL_OAPI_UGA: 'UGX',
+  MTN_MOMO_UGA: 'UGX',
+  AIRTEL_OAPI_ZMB: 'ZMW',
+  MTN_MOMO_ZMB: 'ZMW',
+  ZAMTEL_ZMB: 'ZMW',
+};
+
+export function currencyForKPayProvider(provider: string): string {
+  const currency = PROVIDER_CURRENCIES[provider];
+  if (!currency) {
+    throw new Error(`Devise inconnue pour l'opérateur KPay ${provider}`);
+  }
+  return currency;
+}
+
+export async function predictKPayProvider(phoneNumber: string): Promise<{
+  provider: string;
+  country: string;
+  phoneNumber: string;
+}> {
+  const res = await kpayFetch('/api/v1/payments/predict-provider', {
+    method: 'POST',
+    body: JSON.stringify({ phoneNumber }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.provider || !data.phoneNumber) {
+    throw new Error(
+      data.message ||
+        data.error ||
+        'Impossible d’identifier l’opérateur Mobile Money de ce numéro.'
+    );
+  }
+  return {
+    provider: String(data.provider),
+    country: String(data.country || ''),
+    phoneNumber: String(data.phoneNumber),
+  };
+}
+
+export async function buildKPayProviderAmount(
+  amount: number,
+  currency: string | null | undefined,
+  provider: string,
+  opts?: { minAmount?: number }
+): Promise<{
+  amount: number;
+  settlementCurrency: string;
+  originalAmount: number;
+  originalCurrency: string;
+  conversionMode: 'passthrough' | 'live-rate';
+}> {
+  const originalCurrency = normalizeCurrencyCode(currency);
+  const sourceCurrency = kpayCurrencyCode(originalCurrency);
+  const settlementCurrency = currencyForKPayProvider(provider);
+  const originalAmount = Number(amount);
+  const minAmount = opts?.minAmount ?? 50;
+
+  if (!Number.isFinite(originalAmount) || originalAmount <= 0) {
+    throw new Error(`Montant invalide pour KPay: ${amount}`);
+  }
+
+  if (sourceCurrency === settlementCurrency) {
+    return {
+      amount: Math.max(minAmount, Math.round(originalAmount)),
+      settlementCurrency,
+      originalAmount,
+      originalCurrency,
+      conversionMode: 'passthrough',
+    };
+  }
+
+  const res = await kpayFetch(
+    `/api/v1/payments/exchange-rate?from=${encodeURIComponent(sourceCurrency)}&to=${encodeURIComponent(settlementCurrency)}`
+  );
+  const data = await res.json();
+  const rate = Number(data.rate);
+  if (!res.ok || !Number.isFinite(rate) || rate <= 0) {
+    throw new Error(
+      data.message ||
+        data.error ||
+        `Taux KPay indisponible pour ${sourceCurrency} → ${settlementCurrency}.`
+    );
+  }
+
+  return {
+    amount: Math.max(minAmount, Math.round(originalAmount * rate)),
+    settlementCurrency,
+    originalAmount,
+    originalCurrency,
+    conversionMode: 'live-rate',
+  };
+}
+
 /**
  * Montant pour l'API KPay (GATEWAY / withdraw).
  * KPay déduit la devise du provider ; zone CFA → montant entier XAF/XOF 1:1.
@@ -445,9 +561,11 @@ export function phonePrefixDigitsForCountry(iso2: string): string {
 export interface CreateKPayGatewayPaymentParams {
   amount: number;
   externalId: string;
-  returnUrl: string;
+  returnUrl?: string;
   cancelUrl?: string;
   description?: string;
+  provider?: string;
+  phoneNumber?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -455,10 +573,18 @@ export async function createKPayGatewayPayment(params: CreateKPayGatewayPaymentP
   const payload: Record<string, unknown> = {
     amount: params.amount,
     externalId: params.externalId,
-    returnUrl: params.returnUrl,
     metadata: params.metadata ?? {},
   };
-  if (params.cancelUrl) payload.cancelUrl = params.cancelUrl;
+  if (params.provider && params.phoneNumber) {
+    payload.provider = params.provider;
+    payload.phoneNumber = params.phoneNumber;
+  } else {
+    if (!params.returnUrl) {
+      throw new Error('returnUrl requis pour un paiement KPay Gateway');
+    }
+    payload.returnUrl = params.returnUrl;
+    if (params.cancelUrl) payload.cancelUrl = params.cancelUrl;
+  }
   if (params.description) payload.description = params.description.slice(0, 500);
 
   const res = await kpayFetch('/api/v1/payments/init', {

@@ -1,10 +1,11 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
-  buildKPayAmount,
+  buildKPayProviderAmount,
   corsHeaders,
   createKPayGatewayPayment,
   fetchKPayPayment,
   markLinkPaid,
+  predictKPayProvider,
   resolveLinkCurrency,
 } from '../_shared/kpay.ts';
 
@@ -14,7 +15,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { linkId, customerName, customerEmail, origin, forceNew } = await req.json();
+    const { linkId, customerName, customerEmail, phoneNumber, origin, forceNew } = await req.json();
 
     if (!linkId) {
       return new Response(JSON.stringify({ error: 'linkId requis' }), {
@@ -31,7 +32,7 @@ Deno.serve(async (req) => {
     const { data: link, error: linkError } = await supabase
       .from('payment_links')
       .select(
-        'id, link_id, amount, description, is_paid, client_name, client_email, currency, provider_id, kpay_reference, kpay_payment_id, kpay_checkout_url, kpay_status'
+        'id, link_id, amount, description, is_paid, client_name, client_email, client_phone, currency, provider_id, kpay_reference, kpay_payment_id, kpay_checkout_url, kpay_status'
       )
       .eq('link_id', linkId)
       .single();
@@ -97,8 +98,19 @@ Deno.serve(async (req) => {
       }
     }
 
+    const payerPhone = String(phoneNumber || link.client_phone || '').replace(/\D/g, '');
+    if (payerPhone.length < 9) {
+      throw new Error('Un numéro Mobile Money valide est requis pour initier le paiement.');
+    }
+
+    const predictedProvider = await predictKPayProvider(payerPhone);
     const currency = await resolveLinkCurrency(supabase, link);
-    const charge = buildKPayAmount(Number(link.amount), currency, { minAmount: 50 });
+    const charge = await buildKPayProviderAmount(
+      Number(link.amount),
+      currency,
+      predictedProvider.provider,
+      { minAmount: 50 }
+    );
     const siteOrigin = (origin || 'http://localhost:5173').replace(/\/$/, '');
     // Nouveau externalId à chaque forceNew / session expirée pour éviter 409
     const externalId = `fidexa-pay-${link.id}-${Date.now()}`;
@@ -109,6 +121,8 @@ Deno.serve(async (req) => {
       returnUrl: `${siteOrigin}/pay/${linkId}?kpay=success`,
       cancelUrl: `${siteOrigin}/pay/${linkId}?kpay=cancel`,
       description: (link.description || 'Commande FidexaPay').slice(0, 500),
+      provider: predictedProvider.provider,
+      phoneNumber: predictedProvider.phoneNumber,
       metadata: {
         link_id: link.link_id,
         payment_link_id: link.id,
@@ -119,6 +133,8 @@ Deno.serve(async (req) => {
         api_amount: String(charge.amount),
         settlement_currency: charge.settlementCurrency,
         conversion_mode: charge.conversionMode,
+        kpay_provider: predictedProvider.provider,
+        kpay_provider_country: predictedProvider.country,
       },
     });
 
@@ -126,8 +142,8 @@ Deno.serve(async (req) => {
     const reference = tx.reference as string | undefined;
     const paymentId = tx.id as string | undefined;
 
-    if (!checkoutUrl || !reference || !paymentId) {
-      console.error('KPay response missing gatewayUrl/reference/id:', tx);
+    if (!reference || !paymentId) {
+      console.error('KPay response missing reference/id:', tx);
       return new Response(JSON.stringify({ error: 'Réponse KPay invalide' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -141,7 +157,7 @@ Deno.serve(async (req) => {
         kpay_reference: reference,
         kpay_payment_id: paymentId,
         kpay_status: tx.status || 'PENDING',
-        kpay_checkout_url: checkoutUrl,
+        kpay_checkout_url: checkoutUrl ?? null,
         kpay_amount: charge.amount,
         kpay_fees: tx.feeAmount ?? null,
         payment_method: 'kpay',
@@ -154,14 +170,24 @@ Deno.serve(async (req) => {
       console.error('DB update error:', updateError);
     }
 
+    // Les versions déjà déployées du frontend attendent une URL de checkout.
+    // Pour un paiement USSD, on les redirige vers la page Fidexa afin qu'elles
+    // déclenchent immédiatement la vérification du paiement en attente.
+    const paymentMode = checkoutUrl ? 'gateway' : 'ussd';
+    const continuationUrl =
+      checkoutUrl ??
+      `${siteOrigin}/pay/${linkId}?kpay=success&reference=${encodeURIComponent(reference)}`;
+
     return new Response(
       JSON.stringify({
         success: true,
-        checkoutUrl,
+        checkoutUrl: continuationUrl,
         reference,
         paymentId,
         amount: charge.amount,
         currency: charge.settlementCurrency,
+        provider: predictedProvider.provider,
+        paymentMode,
         originalAmount: charge.originalAmount,
         originalCurrency: charge.originalCurrency,
         conversionMode: charge.conversionMode,

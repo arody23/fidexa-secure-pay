@@ -76,6 +76,7 @@ const ClientPayment = () => {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [paying, setPaying] = useState(false);
+  const [awaitingKPayConfirmation, setAwaitingKPayConfirmation] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   /** WhatsApp client — requis pour OTP d'accès au suivi commande */
   const [clientWhatsApp, setClientWhatsApp] = useState('');
@@ -238,6 +239,7 @@ const ClientPayment = () => {
           linkId: paymentData.link_id,
           customerName: paymentData.client_name || undefined,
           customerEmail: paymentData.client_email || undefined,
+          phoneNumber: phoneDigits.startsWith('00') ? phoneDigits.slice(2) : phoneDigits,
           // Nouveau checkout à chaque clic — évite les sessions GATEWAY « pending » bloquées
           forceNew: true,
         });
@@ -247,11 +249,47 @@ const ClientPayment = () => {
           return;
         }
 
-        if (!result.checkoutUrl) {
-          throw new Error('URL de paiement KPay manquante');
+        if (result.checkoutUrl && result.paymentMode !== 'ussd') {
+          window.location.href = result.checkoutUrl;
+          return;
         }
 
-        window.location.href = result.checkoutUrl;
+        if (!result.paymentId) {
+          throw new Error('Identifiant de paiement KPay manquant');
+        }
+
+        setAwaitingKPayConfirmation(true);
+        toast({
+          title: 'Validez le paiement sur votre téléphone',
+          description: `Une demande ${result.provider || 'Mobile Money'} a été envoyée pour ${result.amount} ${result.currency}.`,
+        });
+
+        const pollPayment = async (remainingAttempts: number): Promise<void> => {
+          try {
+            const verification = await verifyKPayPayment(paymentData.link_id, {
+              paymentId: result.paymentId,
+              reference: result.reference,
+            });
+            if (verification.success || verification.alreadyPaid) {
+              navigate(`/order/${linkId}`, { replace: true });
+              return;
+            }
+            if (verification.pending && remainingAttempts > 0) {
+              window.setTimeout(() => void pollPayment(remainingAttempts - 1), 5000);
+              return;
+            }
+          } catch (pollError) {
+            console.warn('KPay payment polling failed:', pollError);
+          }
+          setAwaitingKPayConfirmation(false);
+          toast({
+            title: 'Paiement non confirmé',
+            description: 'Le paiement n’a pas été validé. Vous pouvez réessayer.',
+            variant: 'destructive',
+          });
+        };
+
+        window.setTimeout(() => void pollPayment(18), 5000);
         return;
       }
 
@@ -603,7 +641,7 @@ const ClientPayment = () => {
                   <>
                     <div className="space-y-2 rounded-lg border border-border p-3 sm:p-4">
                       <Label htmlFor="clientWhatsApp" className="text-sm font-medium">
-                        WhatsApp (pour le code d&apos;accès au suivi)
+                        Numéro Mobile Money et WhatsApp
                       </Label>
                       <Input
                         id="clientWhatsApp"
@@ -613,7 +651,7 @@ const ClientPayment = () => {
                         onChange={(e) => setClientWhatsApp(e.target.value)}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Après paiement, un OTP WhatsApp vous permettra d&apos;ouvrir la page de suivi en toute sécurité.
+                        Ce numéro recevra la demande de paiement Mobile Money, puis le code WhatsApp d&apos;accès au suivi.
                       </p>
                     </div>
                     <div className="space-y-3 rounded-lg border border-border p-3 sm:p-4">
@@ -698,14 +736,14 @@ const ClientPayment = () => {
                       size="xl"
                       className="hidden w-full md:flex"
                       onClick={handlePay}
-                      disabled={paying || !acceptedTerms}
+                      disabled={paying || awaitingKPayConfirmation || !acceptedTerms}
                     >
                       {paying ? (
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       ) : (
                         <CreditCard className="mr-2 h-5 w-5" />
                       )}
-                      {paying ? 'Redirection...' : 'Payer en sécurité'}
+                      {paying ? 'Initialisation...' : awaitingKPayConfirmation ? 'Validation en attente...' : 'Payer en sécurité'}
                     </Button>
                   </>
                 ) : (
@@ -741,14 +779,14 @@ const ClientPayment = () => {
             size="lg"
             className="w-full"
             onClick={handlePay}
-            disabled={paying || !acceptedTerms}
+            disabled={paying || awaitingKPayConfirmation || !acceptedTerms}
           >
             {paying ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
               <Shield className="mr-2 h-5 w-5" />
             )}
-            {paying ? 'Redirection…' : 'Payer en sécurité'}
+            {paying ? 'Initialisation…' : awaitingKPayConfirmation ? 'Validation en attente…' : 'Payer en sécurité'}
           </Button>
         </div>
       )}
