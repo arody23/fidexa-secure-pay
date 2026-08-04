@@ -70,6 +70,7 @@ export async function createKPayPayment(params: {
 
 export interface KPayAvailabilityResponse {
   availableProviderCodes: string[];
+  availabilityKnown: boolean;
   fetchedAt: string;
 }
 

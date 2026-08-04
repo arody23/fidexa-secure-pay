@@ -166,7 +166,9 @@ const ClientPayment = () => {
   useEffect(() => {
     if (!KPAY_ENABLED) return;
     getKPayAvailability()
-      .then((result) => setAvailableProviderCodes(result.availableProviderCodes))
+      .then((result) =>
+        setAvailableProviderCodes(result.availabilityKnown ? result.availableProviderCodes : null)
+      )
       .catch((availabilityError) => {
         console.warn('KPay availability unavailable:', availabilityError);
         setAvailableProviderCodes(null);

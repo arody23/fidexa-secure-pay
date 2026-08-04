@@ -12,6 +12,10 @@ function isAvailable(item: unknown): boolean {
   const row = item as Record<string, unknown>;
   if (typeof row.available === 'boolean') return row.available;
   if (typeof row.isAvailable === 'boolean') return row.isAvailable;
+  const operationTypes = row.operationTypes;
+  if (operationTypes && typeof operationTypes === 'object') {
+    return String((operationTypes as Record<string, unknown>).DEPOSIT || '').toUpperCase() === 'OPERATIONAL';
+  }
   return String(row.status || '').toUpperCase() === 'AVAILABLE';
 }
 
@@ -27,11 +31,16 @@ Deno.serve(async (req) => {
       throw new Error(data.message || data.error || 'Disponibilité KPay indisponible');
     }
 
-    const entries = Array.isArray(data)
+    const countryEntries = Array.isArray(data)
       ? data
       : Array.isArray(data.providers)
-      ? data.providers
+      ? [{ providers: data.providers }]
       : [];
+    const entries = countryEntries.flatMap((country) => {
+      if (!country || typeof country !== 'object') return [];
+      const providers = (country as Record<string, unknown>).providers;
+      return Array.isArray(providers) ? providers : [];
+    });
     const availableProviderCodes = entries
       .filter(isAvailable)
       .map(getProviderCode)
@@ -40,6 +49,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         availableProviderCodes,
+        availabilityKnown: entries.length > 0,
         fetchedAt: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
