@@ -58,6 +58,7 @@ export async function createKPayPayment(params: {
   linkId: string;
   customerName?: string;
   customerEmail?: string;
+  phoneNumber?: string;
   origin?: string;
   forceNew?: boolean;
 }): Promise<CreateKPayPaymentResponse> {
@@ -65,6 +66,15 @@ export async function createKPayPayment(params: {
     ...params,
     origin: params.origin ?? window.location.origin,
   });
+}
+
+export interface KPayAvailabilityResponse {
+  availableProviderCodes: string[];
+  fetchedAt: string;
+}
+
+export async function getKPayAvailability(): Promise<KPayAvailabilityResponse> {
+  return invokeFunction('kpay-availability', {});
 }
 
 export async function verifyKPayPayment(

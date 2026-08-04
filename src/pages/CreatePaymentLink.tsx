@@ -11,16 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { copyToClipboard } from "@/lib/clipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeCurrency } from "@/lib/currency";
-
-const COUNTRIES = [
-  { code: "BJ", name: "Bénin", prefix: "+229" },
-  { code: "BF", name: "Burkina Faso", prefix: "+226" },
-  { code: "CI", name: "Côte d'Ivoire", prefix: "+225" },
-  { code: "CD", name: "RD Congo", prefix: "+243" },
-  { code: "CG", name: "Congo Brazzaville", prefix: "+242" },
-  { code: "ML", name: "Mali", prefix: "+223" },
-  { code: "TG", name: "Togo", prefix: "+228" },
-];
+import { getKPayCountry, KPAY_COUNTRIES } from "@/lib/kpayProviders";
 
 const CreatePaymentLink = () => {
   const { toast } = useToast();
@@ -53,7 +44,7 @@ const CreatePaymentLink = () => {
         throw new Error("Vous devez être connecté pour créer un lien de paiement");
       }
 
-      const country = COUNTRIES.find((c) => c.code === formData.countryCode);
+      const country = getKPayCountry(formData.countryCode);
       const linkCurrency = normalizeCurrency(currency || "FCFA");
       const linkAmount = parseFloat(formData.amount);
       if (!Number.isFinite(linkAmount) || linkAmount <= 0) {
@@ -67,8 +58,9 @@ const CreatePaymentLink = () => {
         description: formData.description,
         delivery_days: parseInt(formData.deliveryDays),
         client_name: formData.clientName || null,
+        client_country: country.code,
         client_phone: formData.clientPhone
-          ? `${country?.prefix ?? "+229"}${formData.clientPhone}`
+          ? `${country.phonePrefix}${formData.clientPhone}`
           : null,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       };
@@ -225,9 +217,9 @@ const CreatePaymentLink = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {COUNTRIES.map((country) => (
+                          {KPAY_COUNTRIES.map((country) => (
                             <SelectItem key={country.code} value={country.code}>
-                              {country.prefix} {country.name}
+                              {country.phonePrefix} {country.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

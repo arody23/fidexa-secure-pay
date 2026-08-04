@@ -18,7 +18,9 @@ export type Database = {
         Row: {
           amount: number
           client_email: string | null
+          client_country: string | null
           client_name: string | null
+          client_momo_phone: string | null
           client_phone: string | null
           created_at: string
           delivery_days: number
@@ -54,7 +56,9 @@ export type Database = {
         Insert: {
           amount: number
           client_email?: string | null
+          client_country?: string | null
           client_name?: string | null
+          client_momo_phone?: string | null
           client_phone?: string | null
           created_at?: string
           delivery_days?: number
@@ -89,7 +93,9 @@ export type Database = {
         Update: {
           amount?: number
           client_email?: string | null
+          client_country?: string | null
           client_name?: string | null
+          client_momo_phone?: string | null
           client_phone?: string | null
           created_at?: string
           delivery_days?: number

@@ -18,17 +18,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
-import { MobileMoneyRow } from "@/components/brand/MobileMoneyIcons";
 import StarRating from "@/components/StarRating";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { createKPayPayment, verifyKPayPayment } from "@/lib/kpay";
+import { createKPayPayment, getKPayAvailability, verifyKPayPayment } from "@/lib/kpay";
 import { KPAY_ENABLED } from "@/config";
 import { SITE } from "@/config/site";
 import { formatAmount } from "@/lib/currency";
+import { getKPayCountry, KPAY_COUNTRIES } from "@/lib/kpayProviders";
 import OrderTracker from "@/components/OrderTracker";
 
 interface PaymentLink {
@@ -39,6 +40,9 @@ interface PaymentLink {
   delivery_days: number;
   client_name: string | null;
   client_email: string | null;
+  client_country?: string | null;
+  client_momo_phone?: string | null;
+  client_phone?: string | null;
   status: string;
   is_paid: boolean;
   order_status?: string;
@@ -62,6 +66,15 @@ interface Provider {
   bio?: string | null;
 }
 
+function normalizePhoneForCountry(phone: string, countryCode: string): string {
+  const trimmed = phone.trim();
+  const digits = trimmed.replace(/\D/g, '').replace(/^00/, '');
+  if (trimmed.startsWith('+') || trimmed.startsWith('00')) return digits;
+  const prefix = getKPayCountry(countryCode).phonePrefix.replace('+', '');
+  if (digits.startsWith(prefix)) return digits;
+  return `${prefix}${digits.replace(/^0/, '')}`;
+}
+
 const ClientPayment = () => {
   const { linkId } = useParams();
   const navigate = useNavigate();
@@ -78,10 +91,16 @@ const ClientPayment = () => {
   const [paying, setPaying] = useState(false);
   const [awaitingKPayConfirmation, setAwaitingKPayConfirmation] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  /** WhatsApp client — requis pour OTP d'accès au suivi commande */
-  const [clientWhatsApp, setClientWhatsApp] = useState('');
+  const [clientCountry, setClientCountry] = useState('CD');
+  const [clientMomoPhone, setClientMomoPhone] = useState('');
+  const [clientWhatsAppPhone, setClientWhatsAppPhone] = useState('');
+  const [availableProviderCodes, setAvailableProviderCodes] = useState<string[] | null>(null);
 
   const linkCurrency = paymentData?.currency || provider?.currency || 'FCFA';
+  const selectedKPayCountry = getKPayCountry(clientCountry);
+  const visibleProviders = selectedKPayCountry.providers.filter(
+    (item) => availableProviderCodes === null || availableProviderCodes.includes(item.code)
+  );
 
   useEffect(() => {
     const fetchPaymentLink = async () => {
@@ -127,11 +146,12 @@ const ClientPayment = () => {
           console.error("Erreur chargement prestataire:", providerError);
         }
 
+        const legacyPhone = String((data as PaymentLink).client_phone || '');
         setPaymentData(data as any);
         setProvider(providerData as any || null);
-        if ((data as any).client_phone) {
-          setClientWhatsApp(String((data as any).client_phone));
-        }
+        setClientCountry((data as PaymentLink).client_country || 'CD');
+        setClientMomoPhone((data as PaymentLink).client_momo_phone || legacyPhone);
+        setClientWhatsAppPhone(legacyPhone);
       } catch (err) {
         console.error("Error fetching payment link:", err);
         setError("Erreur lors du chargement du lien de paiement");
@@ -142,6 +162,16 @@ const ClientPayment = () => {
 
     fetchPaymentLink();
   }, [linkId]);
+
+  useEffect(() => {
+    if (!KPAY_ENABLED) return;
+    getKPayAvailability()
+      .then((result) => setAvailableProviderCodes(result.availableProviderCodes))
+      .catch((availabilityError) => {
+        console.warn('KPay availability unavailable:', availabilityError);
+        setAvailableProviderCodes(null);
+      });
+  }, []);
 
   useEffect(() => {
     if (!loading && paymentData?.is_paid && linkId) {
@@ -215,11 +245,29 @@ const ClientPayment = () => {
       return;
     }
 
-    const phoneDigits = clientWhatsApp.replace(/\D/g, '');
-    if (phoneDigits.length < 9) {
+    if (availableProviderCodes !== null && visibleProviders.length === 0) {
       toast({
-        title: 'WhatsApp requis',
-        description: 'Indiquez votre numéro WhatsApp pour recevoir le code d’accès au suivi de commande.',
+        title: 'Paiement indisponible',
+        description: 'Aucun opérateur Mobile Money n’est disponible dans ce pays actuellement.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const mobileMoneyPhone = normalizePhoneForCountry(clientMomoPhone, clientCountry);
+    const whatsappPhone = normalizePhoneForCountry(clientWhatsAppPhone, clientCountry);
+    if (mobileMoneyPhone.length < 9) {
+      toast({
+        title: 'Numéro Mobile Money requis',
+        description: 'Indiquez le numéro qui recevra la demande de paiement.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (whatsappPhone.length < 9) {
+      toast({
+        title: 'Numéro WhatsApp requis',
+        description: 'Indiquez le numéro qui recevra le code d’accès au suivi.',
         variant: 'destructive',
       });
       return;
@@ -228,18 +276,22 @@ const ClientPayment = () => {
     try {
       setPaying(true);
 
-      // Persiste le numéro avant checkout (OTP post-paiement)
-      await supabase
+      const { error: contactUpdateError } = await supabase
         .from('payment_links')
-        .update({ client_phone: phoneDigits.startsWith('00') ? phoneDigits.slice(2) : phoneDigits })
+        .update({
+          client_country: clientCountry,
+          client_momo_phone: mobileMoneyPhone,
+          client_phone: whatsappPhone,
+        })
         .eq('id', paymentData.id);
+      if (contactUpdateError) throw contactUpdateError;
 
       if (KPAY_ENABLED) {
         const result = await createKPayPayment({
           linkId: paymentData.link_id,
           customerName: paymentData.client_name || undefined,
           customerEmail: paymentData.client_email || undefined,
-          phoneNumber: phoneDigits.startsWith('00') ? phoneDigits.slice(2) : phoneDigits,
+          phoneNumber: mobileMoneyPhone,
           // Nouveau checkout à chaque clic — évite les sessions GATEWAY « pending » bloquées
           forceNew: true,
         });
@@ -589,16 +641,8 @@ const ClientPayment = () => {
                     {formatAmount(paymentData.amount, linkCurrency)}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Montant facturé dans la devise du prestataire — KPay convertit selon l'opérateur Mobile Money
-                    (XOF) si besoin.
+                    Le montant est converti au taux KPay en vigueur dans la devise de votre opérateur, si nécessaire.
                   </p>
-                </div>
-
-                <div>
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Réseaux Mobile Money acceptés
-                  </p>
-                  <MobileMoneyRow />
                 </div>
 
                 <div className="space-y-3">
@@ -639,20 +683,80 @@ const ClientPayment = () => {
 
                 {!paymentData.is_paid ? (
                   <>
-                    <div className="space-y-2 rounded-lg border border-border p-3 sm:p-4">
-                      <Label htmlFor="clientWhatsApp" className="text-sm font-medium">
-                        Numéro Mobile Money et WhatsApp
-                      </Label>
-                      <Input
-                        id="clientWhatsApp"
-                        type="tel"
-                        placeholder="2438XXXXXXX"
-                        value={clientWhatsApp}
-                        onChange={(e) => setClientWhatsApp(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Ce numéro recevra la demande de paiement Mobile Money, puis le code WhatsApp d&apos;accès au suivi.
-                      </p>
+                    <div className="space-y-4 rounded-lg border border-border p-3 sm:p-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="clientCountry" className="text-sm font-medium">
+                          Pays du client
+                        </Label>
+                        <Select value={clientCountry} onValueChange={setClientCountry}>
+                          <SelectTrigger id="clientCountry">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {KPAY_COUNTRIES.map((country) => (
+                              <SelectItem key={country.code} value={country.code}>
+                                {country.phonePrefix} {country.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Vérifiez ou corrigez le pays avant de saisir le numéro Mobile Money.
+                        </p>
+                      </div>
+
+                      <div className="rounded-md bg-muted/50 p-3">
+                        <p className="text-xs font-medium text-foreground">
+                          Moyens de paiement disponibles au {selectedKPayCountry.name}
+                        </p>
+                        {visibleProviders.length ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {visibleProviders.map((providerOption) => (
+                              <Badge key={providerOption.code} variant="secondary">
+                                {providerOption.label}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Aucun opérateur disponible pour ce pays actuellement.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="clientMomoPhone" className="text-sm font-medium">
+                          Numéro Mobile Money
+                        </Label>
+                        <Input
+                          id="clientMomoPhone"
+                          type="tel"
+                          inputMode="tel"
+                          placeholder={`${selectedKPayCountry.phonePrefix} 8XXXXXXX`}
+                          value={clientMomoPhone}
+                          onChange={(event) => setClientMomoPhone(event.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Ce numéro recevra uniquement la demande de paiement USSD.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="clientWhatsAppPhone" className="text-sm font-medium">
+                          Numéro WhatsApp pour le code de suivi
+                        </Label>
+                        <Input
+                          id="clientWhatsAppPhone"
+                          type="tel"
+                          inputMode="tel"
+                          placeholder={`${selectedKPayCountry.phonePrefix} 8XXXXXXX`}
+                          value={clientWhatsAppPhone}
+                          onChange={(event) => setClientWhatsAppPhone(event.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Ce numéro recevra le code WhatsApp après la confirmation du paiement.
+                        </p>
+                      </div>
                     </div>
                     <div className="space-y-3 rounded-lg border border-border p-3 sm:p-4">
                       <p className="text-sm font-medium text-foreground">

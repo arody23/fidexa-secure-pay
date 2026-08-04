@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
   buildKPayProviderAmount,
+  countryIso2ToIso3,
   corsHeaders,
   createKPayGatewayPayment,
   fetchKPayPayment,
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
     const { data: link, error: linkError } = await supabase
       .from('payment_links')
       .select(
-        'id, link_id, amount, description, is_paid, client_name, client_email, client_phone, currency, provider_id, kpay_reference, kpay_payment_id, kpay_checkout_url, kpay_status'
+        'id, link_id, amount, description, is_paid, client_name, client_email, client_country, client_momo_phone, client_phone, currency, provider_id, kpay_reference, kpay_payment_id, kpay_checkout_url, kpay_status'
       )
       .eq('link_id', linkId)
       .single();
@@ -98,12 +99,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    const payerPhone = String(phoneNumber || link.client_phone || '').replace(/\D/g, '');
+    const payerPhone = String(phoneNumber || link.client_momo_phone || link.client_phone || '').replace(/\D/g, '');
     if (payerPhone.length < 9) {
       throw new Error('Un numéro Mobile Money valide est requis pour initier le paiement.');
     }
 
     const predictedProvider = await predictKPayProvider(payerPhone);
+    const selectedCountry = String(link.client_country || '').toUpperCase();
+    if (
+      selectedCountry &&
+      predictedProvider.country.toUpperCase() !== countryIso2ToIso3(selectedCountry)
+    ) {
+      throw new Error(
+        'Le numéro Mobile Money ne correspond pas au pays sélectionné. Vérifiez les deux informations.'
+      );
+    }
     const currency = await resolveLinkCurrency(supabase, link);
     const charge = await buildKPayProviderAmount(
       Number(link.amount),
