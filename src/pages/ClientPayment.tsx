@@ -253,33 +253,9 @@ const ClientPayment = () => {
 
         window.location.href = result.checkoutUrl;
         return;
-      } else {
-        // MODE TEST: Simuler le paiement
-        console.log('📝 MODE TEST: Mise à jour de payment_links...');
-        
-        const { error: updateError } = await supabase
-          .from("payment_links")
-          .update({ 
-            is_paid: true, 
-            status: "paid",
-          })
-          .eq("id", paymentData.id);
-
-        if (updateError) {
-          console.error('❌ Erreur UPDATE:', updateError);
-          throw updateError;
-        }
-
-        console.log('✅ Payment status updated successfully');
-        
-        toast({
-          title: "Paiement simulé (Mode Test)",
-          description: "Redirection vers votre commande...",
-        });
-
-        navigate(`/order/${linkId}`, { replace: true });
-        return;
       }
+
+      throw new Error('Le paiement KPay n’est pas configuré.');
     } catch (err) {
       console.error("❌ ERROR in handlePay:", err);
       console.error("Error details:", {
