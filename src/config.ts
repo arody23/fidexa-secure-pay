@@ -13,7 +13,9 @@ export const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || '';
 export const PAYPAL_ENV = import.meta.env.VITE_PAYPAL_ENV || 'sandbox';
 
 // Configuration KPay (Mobile Money — clés secrètes côté Supabase Edge Functions)
-export const KPAY_ENABLED = import.meta.env.VITE_KPAY_ENABLED === 'true';
+// KPay est le moyen de paiement de production. Une variable explicite à
+// "false" est nécessaire pour le désactiver sur un environnement local.
+export const KPAY_ENABLED = import.meta.env.VITE_KPAY_ENABLED !== 'false';
 /** Payout automatique prestataires via KPay (sandbox puis live) */
 export const KPAY_PAYOUT_ENABLED = import.meta.env.VITE_KPAY_PAYOUT_ENABLED === 'true';
 
