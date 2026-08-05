@@ -2,8 +2,8 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/config';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * En local (Vite) → /__notify-admin (proxy → localhost:3099).
- * En prod → Edge admin-notify-proxy → Railway.
+ * Par défaut → Edge admin-notify-proxy → Railway.
+ * Option local : VITE_NOTIFY_LOCAL=true → proxy Vite → localhost:3099.
  */
 async function invoke(action: string, body: Record<string, unknown> = {}) {
   const {
@@ -11,7 +11,7 @@ async function invoke(action: string, body: Record<string, unknown> = {}) {
   } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('Session admin requise');
 
-  const useLocalProxy = import.meta.env.DEV;
+  const useLocalProxy = import.meta.env.DEV && import.meta.env.VITE_NOTIFY_LOCAL === 'true';
   const url = useLocalProxy
     ? '/__notify-admin'
     : `${SUPABASE_URL}/functions/v1/admin-notify-proxy`;

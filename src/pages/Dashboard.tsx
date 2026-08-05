@@ -9,10 +9,12 @@ import {
   Link2,
   TrendingUp,
   Plus,
+  ArrowUpRight,
+  Wallet,
+  CircleDollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import StatCard from "@/components/StatCard";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useProvider } from "@/contexts/ProviderContext";
@@ -134,7 +136,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
@@ -152,59 +154,64 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      <Card className="order-first">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Gains après commission
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-semibold">
-            {formatAmount(stats.monthlyVolume, currency)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Total des fonds libérés ce mois (net de commission)
-          </p>
-        </CardContent>
-      </Card>
+      <section className="grid gap-4 lg:grid-cols-[1.45fr_.55fr]">
+        <Card className="border-[#d6e3f1] bg-[#0b3b78] text-white shadow-[0_18px_45px_rgba(11,59,120,.16)]">
+          <CardContent className="flex min-h-52 flex-col justify-between p-6 sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-white/70">Fonds libérés ce mois</p>
+                <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{formatAmount(stats.monthlyVolume, currency)}</p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-[#6ce0a0]">
+                <CircleDollarSign className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 border-t border-white/15 pt-5 text-sm text-white/75">
+              <span>Net de commission</span>
+              <Link to="/dashboard/transactions" className="inline-flex items-center gap-1 font-medium text-white hover:text-[#6ce0a0]">
+                Voir les transactions <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+        <Link to="/dashboard/withdrawal" className="group">
+          <Card className="h-full border-[#d6e3f1] bg-[#eff8f3] transition duration-300 group-hover:-translate-y-0.5 group-hover:border-[#94d9b5]">
+            <CardContent className="flex min-h-52 flex-col justify-between p-6">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#178c52] shadow-sm">
+                <Wallet className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[#56736a]">Retraits prestataire</p>
+                <p className="mt-1 text-lg font-semibold text-[#0b3b78]">Gérez votre solde disponible</p>
+              </div>
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-[#178c52]">Demander un retrait <ArrowUpRight className="h-4 w-4" /></span>
+            </CardContent>
+          </Card>
+        </Link>
+      </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link to="/dashboard/active-orders">
-          <StatCard
-            title="En cours"
-            value={stats.pending}
-            icon={<Clock className="h-6 w-6" />}
-            variant="warning"
-          />
-        </Link>
-        <Link to="/dashboard/orders?filter=delivered">
-          <StatCard
-            title="Livrées"
-            value={stats.delivered}
-            icon={<CheckCircle className="h-6 w-6" />}
-            variant="success"
-          />
-        </Link>
-        <Link to="/dashboard/orders?filter=cancelled">
-          <StatCard
-            title="Annulées"
-            value={stats.cancelled}
-            icon={<XCircle className="h-6 w-6" />}
-            variant="default"
-          />
-        </Link>
-        <Link to="/dashboard/orders?filter=disputed">
-          <StatCard
-            title="En litige"
-            value={stats.dispute}
-            icon={<AlertTriangle className="h-6 w-6" />}
-            variant="primary"
-          />
-        </Link>
-      </div>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { to: "/dashboard/active-orders", label: "À livrer ou à suivre", value: stats.pending, icon: Clock, tone: "text-[#a96500] bg-[#fff6e8]" },
+          { to: "/dashboard/orders?filter=delivered", label: "Commandes validées", value: stats.delivered, icon: CheckCircle, tone: "text-[#178c52] bg-[#edf9f2]" },
+          { to: "/dashboard/orders?filter=cancelled", label: "Commandes annulées", value: stats.cancelled, icon: XCircle, tone: "text-[#63758a] bg-[#f2f5f8]" },
+          { to: "/dashboard/orders?filter=disputed", label: "Dossiers à résoudre", value: stats.dispute, icon: AlertTriangle, tone: "text-[#1354b8] bg-[#eef5ff]" },
+        ].map((metric) => (
+          <Link key={metric.label} to={metric.to} className="group">
+            <Card className="h-full border-[#dce7f3] transition duration-300 group-hover:-translate-y-0.5 group-hover:border-[#9fc0e7]">
+              <CardContent className="p-5">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${metric.tone}`}>
+                  <metric.icon className="h-5 w-5" strokeWidth={1.8} />
+                </div>
+                <p className="mt-6 text-3xl font-semibold tracking-tight text-[#0b2f63]">{metric.value}</p>
+                <p className="mt-1 text-sm text-[#5b738c]">{metric.label}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </section>
 
-      <Card>
+      <Card className="border-[#dce7f3]">
           <CardHeader>
             <CardTitle className="text-lg">Actions rapides</CardTitle>
           </CardHeader>

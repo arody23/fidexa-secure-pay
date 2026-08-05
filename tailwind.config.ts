@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Inter', 'sans-serif'],
-        body: ['Lato', 'sans-serif'],
+        display: ['Geist Variable', 'Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['Geist Variable', 'Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['Geist Mono Variable', 'Geist Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -33,6 +34,7 @@ export default {
           coral: "hsl(var(--fidexa-coral))",
           white: "hsl(var(--fidexa-white))",
           black: "hsl(var(--fidexa-black))",
+          ink: "hsl(var(--fidexa-ink))",
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",

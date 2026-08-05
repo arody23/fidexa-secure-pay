@@ -158,8 +158,9 @@ export default function AdminWhatsApp() {
             {error}
             <br />
             <span className="text-xs opacity-90">
-              En local : notification-service sur :3099 + frontend Vite (:8080). En prod : URL
-              Railway dans le secret Supabase NOTIFICATION_SERVICE_URL (pas host.docker.internal).
+              Secret Supabase NOTIFICATION_SERVICE_URL = URL Railway complète
+              (https://….up.railway.app), pas le texte &quot;NOTIFICATION_SERVICE_URL&quot;.
+              NOTIFICATION_SERVICE_SECRET = même valeur que SERVICE_SECRET Railway.
             </span>
           </AlertDescription>
         </Alert>

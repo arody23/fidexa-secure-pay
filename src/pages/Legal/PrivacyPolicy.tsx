@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
       </ul>
       <h2>Partage des données</h2>
       <p>
-        Nous partageons les données strictement nécessaires avec nos prestataires de paiement (ex. GeniusPay) pour
+        Nous partageons les données strictement nécessaires avec nos prestataires de paiement (ex. KPay) pour
         l&apos;exécution des transactions. Nous ne vendons pas vos données.
       </p>
       <h2>Vos droits</h2>

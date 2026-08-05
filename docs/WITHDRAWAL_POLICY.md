@@ -40,12 +40,12 @@ sequenceDiagram
   participant P as Prestataire
   participant A as Admin
 
-  C->>F: Paiement GeniusPay
+  C->>F: Paiement KPay
   P->>F: Commencer → Finaliser
   C->>F: Valider livraison
   F->>P: net_amount crédité (solde)
   P->>F: Demande retrait (Mobile Money / banque)
-  A->>F: Approuver → Payer manuellement → Marquer payé
+  A->>F: Approuver et payer via KPay
   F->>P: Notification + solde mis à jour
 ```
 
@@ -58,13 +58,13 @@ sequenceDiagram
 
 ### Côté admin (`/admin/withdrawals`)
 
-**Payout automatique GeniusPay** (Mobile Money) :
+**Payout automatique KPay** (Mobile Money) :
 
-1. **Approuver et payer** → payout GeniusPay vers le numéro indiqué
+1. **Approuver et payer** → withdraw KPay vers le numéro indiqué
 2. Webhook `payout.completed` → statut **Payé** automatiquement
 3. **Marquer payé** — fallback si payout reste en pending
 
-**Flux manuel** (virement bancaire ou sans GeniusPay) :
+**Flux manuel** (virement bancaire) :
 
 1. **Approuver (manuel)** → statut En cours
 2. Payer hors plateforme
@@ -106,10 +106,10 @@ sequenceDiagram
 ## Mise en production (retraits)
 
 - [ ] Domaine prod + HTTPS
-- [ ] GeniusPay **Live** (encaissement)
-- [ ] Compte Mobile Money / banque **FidexaPay** pour payer les prestataires
-- [ ] Process ops documenté (qui approuve, qui paie, horaires)
-- [ ] Option future : payout automatique via API GeniusPay / opérateur
+- [ ] KPay **Live** (clés `kpay_live_` / `sk_live_` après KYC)
+- [ ] Wallet KPay approvisionné pour les payouts
+- [ ] Process ops documenté (qui approuve, horaires)
+- [ ] Webhook KPay pointant vers `kpay-webhook`
 
 ---
 

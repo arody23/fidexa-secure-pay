@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" fill="none" aria-hidden="true">
+  <defs>
+    <filter id="mintGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Continent base (light blue-grey, maquette landing-04) -->
+  <path
+    id="africa-base"
+    fill="#D4DEE8"
+    d="M178 18c14 2 28 8 38 18 8 8 14 18 13 29-1 8-1 14 4 20 6 8 10 16 9 26-2 12-8 22-16 30-4 5-5 11-2 16 3 6 3 13-2 19-6 9-15 16-26 20-8 3-14 8-16 15-2 6-6 11-12 13-8 2-16 0-21-6-3-4-8-6-13-5-6 1-12-1-16-7-4-6-3-13 2-18 3-4 3-9 0-13-4-6-4-13-1-19 3-6 3-13-0-18-3-5-2-11 3-15 6-5 13-6 20-4 5 2 9 1 12-2 5-5 10-9 18-9 3 0 6-1 9-3 8-6 18-10 29-10 2 0 4 0 6-1z"
+  />
+
+  <!-- Covered countries  navy fill (#1A3A5C) -->
+  <path id="ml" fill="#1A3A5C" d="M118 98 L152 92 L168 108 L162 132 L138 138 L112 128 Z" />
+  <path id="bf" fill="#1A3A5C" d="M138 138 L168 132 L182 152 L176 168 L148 172 L128 158 Z" />
+  <path id="ci" fill="#1A3A5C" d="M108 168 L132 158 L142 182 L128 208 L102 198 L96 178 Z" />
+  <path id="tg" fill="#1A3A5C" d="M142 182 L152 178 L156 198 L150 214 L140 210 Z" />
+  <path id="bj" fill="#1A3A5C" d="M152 178 L168 172 L174 192 L168 212 L154 208 L148 188 Z" />
+  <path id="cg" fill="#1A3A5C" d="M198 198 L228 188 L238 208 L228 222 L204 218 Z" />
+  <path id="cd" fill="#1A3A5C" d="M188 218 L238 208 L252 248 L242 298 L208 312 L178 278 L182 238 Z" />
+</svg>

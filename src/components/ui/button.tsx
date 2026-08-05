@@ -10,27 +10,31 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:bg-fidexa-red-light active:scale-[0.98]",
+          "bg-primary text-primary-foreground shadow-sm hover:bg-fidexa-navy-light active:scale-[0.98]",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
-          "border-2 border-border bg-transparent text-foreground hover:bg-secondary hover:border-primary",
+          "border border-border bg-transparent text-foreground hover:bg-muted hover:border-primary/40",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground hover:bg-fidexa-green-dark",
         ghost: 
-          "text-foreground hover:bg-secondary hover:text-foreground",
+          "text-foreground hover:bg-muted hover:text-foreground",
         link: 
           "text-primary underline-offset-4 hover:underline",
         hero: 
-          "bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:bg-fidexa-red-light active:scale-[0.98]",
+          "rounded-full bg-fidexa-green text-fidexa-ink shadow-none hover:bg-fidexa-green-light active:scale-[0.98]",
         "hero-outline":
-          "border-2 border-foreground/20 bg-transparent text-foreground hover:bg-foreground/5 hover:border-foreground/40",
+          "rounded-full border border-fidexa-navy/15 bg-transparent text-fidexa-navy hover:bg-fidexa-navy/5 hover:border-fidexa-navy/25",
+        "hero-dark":
+          "rounded-full bg-fidexa-green text-fidexa-ink shadow-none hover:bg-fidexa-green-light active:scale-[0.98]",
+        "hero-outline-dark":
+          "rounded-full border border-white/25 bg-transparent text-white hover:bg-white/10 hover:border-white/40",
         dark:
-          "bg-foreground text-background shadow-md hover:bg-foreground/90 active:scale-[0.98]",
+          "bg-fidexa-ink text-white shadow-sm hover:bg-fidexa-navy active:scale-[0.98]",
         success:
-          "bg-success text-success-foreground shadow-md hover:bg-success/90",
+          "bg-success text-success-foreground shadow-sm hover:bg-success/90",
         warning:
-          "bg-warning text-warning-foreground shadow-md hover:bg-warning/90",
+          "bg-warning text-warning-foreground shadow-sm hover:bg-warning/90",
       },
       size: {
         default: "h-11 px-6 py-2",
