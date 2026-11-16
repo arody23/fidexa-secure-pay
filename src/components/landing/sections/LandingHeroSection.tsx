@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
 import { COVERED_COUNTRIES } from '@/components/brand/AfricaCoverageMap';
@@ -23,12 +23,12 @@ export function LandingHeroSection({ user, onOpenMenu }: Props) {
       />
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[#061a38]/20" />
 
-      <header className="relative z-10 mx-auto mt-3 flex h-14 max-w-7xl items-center justify-between rounded-2xl bg-white px-4 text-[#0b2f63] shadow-[0_10px_30px_rgba(0,0,0,.14)] sm:mt-4 sm:px-5 lg:h-16">
+      <header className="relative z-10 mx-3 mt-3 flex h-14 max-w-7xl items-center justify-between rounded-2xl bg-white px-3 text-[#0b2f63] shadow-[0_10px_30px_rgba(0,0,0,.14)] sm:mx-4 sm:mt-4 sm:px-5 lg:mx-auto lg:h-16">
         <Logo size="sm" />
         <nav className="hidden items-center gap-7 text-xs font-medium text-[#526d87] lg:flex">
           <a href="#escrow" className="transition hover:text-[#0b3b78]">Comment ça marche</a>
           <a href="#payments" className="transition hover:text-[#0b3b78]">Mobile Money</a>
-          <a href="#mission" className="transition hover:text-[#0b3b78]">Fonctionnalités</a>
+          <a href="#use-cases" className="transition hover:text-[#0b3b78]">Cas d&apos;usage</a>
           <a href="#coverage" className="transition hover:text-[#0b3b78]">Pays couverts</a>
         </nav>
         <div className="flex items-center gap-3 sm:gap-4">
@@ -73,31 +73,27 @@ export function LandingHeroSection({ user, onOpenMenu }: Props) {
           <img
             src="/assets/logo/fidexapay-mark.png"
             alt=""
-            className="mb-4 h-36 w-36 object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,.3)] sm:h-48 sm:w-48"
+            className="mb-5 h-16 w-16 object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,.3)] sm:mb-6 sm:h-24 sm:w-24 md:h-28 md:w-28"
           />
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-[#071a35]/50 px-4 py-2 text-xs font-semibold text-white backdrop-blur-sm sm:text-sm">
-            <ShieldCheck className="h-4 w-4 text-[#64db9a]" />
-            Paiement sécurisé par escrow
-          </div>
-          <h1 className="max-w-5xl text-[clamp(2.65rem,6vw,5.75rem)] font-semibold leading-[.98] tracking-[-0.055em]">
+          <h1 className="max-w-5xl text-[clamp(2rem,8vw,5.75rem)] font-semibold leading-[1.02] tracking-[-0.045em] sm:leading-[.98] sm:tracking-[-0.055em]">
             Payez et livrez en toute sérénité.
           </h1>
-          <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 sm:mt-6 sm:text-lg">
             FidexaPay conserve les fonds jusqu&apos;à la validation de la livraison, pour protéger
             chaque client et chaque prestataire.
           </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button size="lg" className="h-12 bg-[#2bb673] px-7 text-white hover:bg-[#24a367]" asChild>
+          <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-9 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
+            <Button size="lg" className="h-12 w-full bg-[#2bb673] px-7 text-white hover:bg-[#24a367] sm:w-auto" asChild>
               <Link to="/auth/signup">
                 Créer mon compte prestataire
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="h-12 border-white/50 bg-white/10 px-7 text-white hover:bg-white hover:text-[#0b2f63]" asChild>
+            <Button variant="outline" size="lg" className="h-12 w-full border-white/50 bg-white/10 px-7 text-white hover:bg-white hover:text-[#0b2f63] sm:w-auto" asChild>
               <a href="#escrow">Découvrir le fonctionnement</a>
             </Button>
           </div>
-          <div className="mt-8 flex items-center gap-2 text-sm text-white/75">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-white/75 sm:mt-8">
             <span>Disponible dans</span>
             <div className="flex -space-x-1.5" aria-label="Pays actuellement couverts">
               {COVERED_COUNTRIES.map((country) => (

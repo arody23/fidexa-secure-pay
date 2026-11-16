@@ -31,8 +31,8 @@ export function useProviderPaymentLinks<T = Record<string, unknown>>() {
   useEffect(() => {
     if (!profile?.id) return;
 
-    setLoading(true);
-    fetchData();
+    // Do not flip loading on realtime refresh — keep current data on screen
+    void fetchData();
 
     const channel = supabase
       .channel(`payment-links-${profile.id}`)
@@ -45,7 +45,7 @@ export function useProviderPaymentLinks<T = Record<string, unknown>>() {
           filter: `provider_id=eq.${profile.id}`,
         },
         () => {
-          fetchData();
+          void fetchData();
         }
       )
       .subscribe();

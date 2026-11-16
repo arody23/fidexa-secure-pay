@@ -1,14 +1,15 @@
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 export const COVERED_COUNTRIES = [
-  { id: 'bj', name: 'Bénin', flagSrc: '/assets/flags/bj.svg' },
-  { id: 'bf', name: 'Burkina Faso', flagSrc: '/assets/flags/bf.svg' },
-  { id: 'ci', name: "Côte d'Ivoire", flagSrc: '/assets/flags/ci.svg' },
-  { id: 'cd', name: 'RD Congo', flagSrc: '/assets/flags/cd.svg' },
-  { id: 'cg', name: 'Congo', flagSrc: '/assets/flags/cg.svg' },
-  { id: 'ml', name: 'Mali', flagSrc: '/assets/flags/ml.svg' },
-  { id: 'tg', name: 'Togo', flagSrc: '/assets/flags/tg.svg' },
+  { id: 'bj', name: 'Bénin', flagSrc: '/assets/flags/bj.svg', x: 36.2, y: 44.5 },
+  { id: 'bf', name: 'Burkina Faso', flagSrc: '/assets/flags/bf.svg', x: 32.8, y: 38.5 },
+  { id: 'ci', name: "Côte d'Ivoire", flagSrc: '/assets/flags/ci.svg', x: 28.5, y: 46.5 },
+  { id: 'cd', name: 'RD Congo', flagSrc: '/assets/flags/cd.svg', x: 54.5, y: 60 },
+  { id: 'cg', name: 'Congo', flagSrc: '/assets/flags/cg.svg', x: 48.5, y: 56 },
+  { id: 'ml', name: 'Mali', flagSrc: '/assets/flags/ml.svg', x: 29.5, y: 32 },
+  { id: 'tg', name: 'Togo', flagSrc: '/assets/flags/tg.svg', x: 34.8, y: 45.5 },
 ] as const;
 
 type AfricaCoverageMapProps = {
@@ -47,21 +48,78 @@ export function AfricaCoverageMap({
           className="h-full w-full object-contain"
           loading="lazy"
         />
-        <div
-          className={cn(
-            'pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full border px-4 py-2.5 shadow-sm backdrop-blur-sm',
-            isLight
-              ? 'border-black/[0.06] bg-white/95'
-              : 'border-white/10 bg-[#0B1220]/85'
-          )}
-        >
-          <img src={activeCountry.flagSrc} alt="" className="h-5 w-7 rounded-sm object-cover" />
-          <span className={cn('text-sm font-semibold', isLight ? 'text-[#1A3A5C]' : 'text-white')}>
-            {activeCountry.name}
-          </span>
-          <span className={cn('h-4 w-px', isLight ? 'bg-black/10' : 'bg-white/15')} aria-hidden />
-          <span className={cn('text-xs', isLight ? 'text-[#6B7280]' : 'text-white/60')}>Couvert</span>
-        </div>
+
+        {COVERED_COUNTRIES.map((country, i) => {
+          const isActive = i === active;
+          return (
+            <div
+              key={country.id}
+              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${country.x}%`, top: `${country.y}%` }}
+              aria-hidden
+            >
+              <AnimatePresence>
+                {isActive && (
+                  <>
+                    <motion.span
+                      key={`pulse-${country.id}`}
+                      initial={{ opacity: 0.6, scale: 0.6 }}
+                      animate={{ opacity: [0.55, 0], scale: [0.7, 2.4] }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+                      className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2bb673]/35"
+                    />
+                    <motion.span
+                      key={`glow-${country.id}`}
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: [0.35, 0.75, 0.35], scale: [1, 1.25, 1] }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                      className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2bb673]/25 blur-md"
+                    />
+                  </>
+                )}
+              </AnimatePresence>
+              <motion.span
+                animate={
+                  isActive
+                    ? { scale: [1, 1.2, 1], boxShadow: ['0 0 0 0 rgba(43,182,115,0.5)', '0 0 0 10px rgba(43,182,115,0)', '0 0 0 0 rgba(43,182,115,0.5)'] }
+                    : { scale: 1, boxShadow: '0 0 0 0 rgba(43,182,115,0)' }
+                }
+                transition={isActive ? { duration: 1.5, repeat: Infinity } : { duration: 0.25 }}
+                className={cn(
+                  'relative block h-3 w-3 rounded-full border-2 border-white',
+                  isActive ? 'bg-[#2bb673]' : 'bg-[#9bb8d4]/70'
+                )}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 flex justify-center">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeCountry.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.28 }}
+            className={cn(
+              'inline-flex items-center gap-3 rounded-full border px-4 py-2.5 shadow-sm',
+              isLight
+                ? 'border-black/[0.06] bg-white'
+                : 'border-white/10 bg-[#0B1220]/85'
+            )}
+          >
+            <img src={activeCountry.flagSrc} alt="" className="h-5 w-7 rounded-sm object-cover" />
+            <span className={cn('text-sm font-semibold', isLight ? 'text-[#1A3A5C]' : 'text-white')}>
+              {activeCountry.name}
+            </span>
+            <span className={cn('h-4 w-px', isLight ? 'bg-black/10' : 'bg-white/15')} aria-hidden />
+            <span className={cn('text-xs', isLight ? 'text-[#6B7280]' : 'text-white/60')}>Couvert</span>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {showLegend && (

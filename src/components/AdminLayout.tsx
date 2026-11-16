@@ -67,7 +67,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Menu */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-4">
           {ADMIN_MENU.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -90,7 +90,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-slate-700">
+        <div className="shrink-0 border-t border-slate-700 p-4">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-slate-800 transition-all"

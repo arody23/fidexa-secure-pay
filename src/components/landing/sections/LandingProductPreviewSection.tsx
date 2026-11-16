@@ -24,11 +24,11 @@ export function LandingProductPreviewSection() {
             </Link>
           </Button>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-[#cbdcf2] bg-white p-2 shadow-[0_22px_60px_rgba(11,47,99,.14)] sm:p-3">
+        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-[#cbdcf2] bg-white p-1.5 shadow-[0_22px_60px_rgba(11,47,99,.14)] sm:p-3">
           <img
             src="/assets/landing/fidexapay-dashboard-preview.png"
             alt="Aperçu du tableau de bord prestataire FidexaPay"
-            className="w-full rounded-xl object-cover"
+            className="h-auto w-full max-w-full rounded-xl object-cover object-top"
             loading="lazy"
           />
         </div>

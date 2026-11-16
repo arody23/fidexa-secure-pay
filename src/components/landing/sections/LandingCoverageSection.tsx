@@ -23,8 +23,8 @@ export function LandingCoverageSection({ activeCountry, onSelectCountry }: Props
               {COVERED_COUNTRIES.length} pays couverts
             </h2>
             <p className="mt-4 max-w-prose text-sm leading-relaxed text-[#6B7280] sm:text-base">
-              FidexaPay vous permet d&apos;envoyer, recevoir et dépenser de l&apos;argent dans{' '}
-              {COVERED_COUNTRIES.length} pays d&apos;Afrique de l&apos;Ouest et d&apos;Afrique centrale.
+              Encaissez vos missions dans {COVERED_COUNTRIES.length} pays d&apos;Afrique de l&apos;Ouest
+              et d&apos;Afrique centrale, via Mobile Money local.
             </p>
             <ul className="mt-8 space-y-2">
               {COVERED_COUNTRIES.map((c, i) => (

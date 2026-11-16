@@ -69,7 +69,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
       <aside className="fixed left-0 top-0 z-40 hidden h-[100dvh] w-[17rem] border-r border-[#dbe6f2] bg-white lg:block">
         <div className="flex h-full flex-col">
           <div className="flex h-[4.75rem] items-center justify-between border-b border-[#e4edf6] px-5">
-            <Logo size="sm" />
+            <Logo size="sm" to="/dashboard" />
             <NotificationBell />
           </div>
           <nav className="flex-1 space-y-1 overflow-y-auto p-3">
@@ -106,7 +106,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
       </aside>
 
       <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-[#dbe6f2] bg-white/95 px-3 backdrop-blur-xl sm:h-16 sm:px-4 lg:hidden">
-        <Logo size="sm" />
+        <Logo size="sm" to="/dashboard" />
         <div className="flex items-center gap-1">
           <NotificationBell />
           <Button
@@ -129,8 +129,8 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
             onClick={() => setMobileMenuOpen(false)}
           />
           <aside className="absolute right-0 top-0 flex h-full w-[min(18rem,88vw)] flex-col border-l border-border bg-card shadow-xl">
-            <div className="flex h-14 items-center justify-between border-b border-border/80 px-4 sm:h-16">
-              <Logo size="sm" />
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-border/80 px-4 sm:h-16">
+              <Logo size="sm" to="/dashboard" />
               <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} aria-label="Fermer">
                 <X className="h-5 w-5" />
               </Button>
@@ -156,7 +156,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
                 );
               })}
             </nav>
-            <div className="border-t border-border/80 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 border-t border-border/80 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"

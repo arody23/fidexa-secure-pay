@@ -1,50 +1,72 @@
 import { Link } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MVP_SUBSCRIPTION } from '@/config/site';
-import { LandingSectionTitle } from '@/components/landing/LandingSectionTitle';
 
-/** Ref: landing-07-pricing.png — commission = valeur produit réelle */
+/** Pricing — plan style SaaS, fond bleu foncé dégradé */
 export function LandingPricingSection() {
   return (
-    <section id="pricing" className="bg-[#F5F7FA] py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <LandingSectionTitle className="mb-12">Abonnement</LandingSectionTitle>
+    <section id="pricing" className="relative overflow-hidden bg-[#071a35] py-24 text-white sm:py-32 md:py-40">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 70% 55% at 50% -10%, rgba(43,182,115,0.22), transparent 55%), linear-gradient(160deg, #071a35 0%, #0b3b78 48%, #082848 100%)',
+        }}
+      />
 
-        <div className="mx-auto max-w-md rounded-2xl border border-[#2BB673]/30 bg-white p-8 shadow-[0_0_0_1px_hsl(152_62%_44%/0.06),0_12px_40px_-12px_rgba(26,58,92,0.12)]">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2BB673]">Recommandé</p>
-          <h3 className="mt-2 text-xl font-semibold text-[#1A3A5C]">{MVP_SUBSCRIPTION.name}</h3>
-          <p className="mt-6 font-display text-5xl font-semibold tracking-tight text-[#1A3A5C]">Gratuit</p>
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">Un plan simple pour démarrer</h2>
+          <p className="mt-4 text-base text-white/70 sm:text-lg">
+            Pas d&apos;abonnement mensuel. Vous ne payez qu&apos;une commission quand une mission est validée.
+          </p>
+        </div>
 
-          <div className="my-8 flex items-center gap-3">
-            <div className="h-px flex-1 bg-black/[0.08]" />
-            <span className="text-xs text-[#6B7280]">Commission sur transaction</span>
-            <div className="h-px flex-1 bg-black/[0.08]" />
+        <div className="mx-auto mt-12 max-w-md">
+          <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.07] p-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-10">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#6ce0a0]">
+                  Plan {MVP_SUBSCRIPTION.name}
+                </p>
+                <h3 className="mt-2 text-2xl font-semibold">Pour prestataires</h3>
+              </div>
+              <span className="rounded-full bg-[#2bb673]/20 px-3 py-1 text-xs font-semibold text-[#6ce0a0]">
+                Recommandé
+              </span>
+            </div>
+
+            <div className="mt-8 flex items-end gap-2">
+              <span className="text-5xl font-semibold tracking-tight sm:text-6xl">$0</span>
+              <span className="mb-2 text-sm text-white/55">USD / mois</span>
+            </div>
+            <p className="mt-2 text-sm text-white/65">
+              Puis {MVP_SUBSCRIPTION.commission}&nbsp;% de commission sur chaque transaction validée.
+            </p>
+
+            <ul className="mt-8 space-y-3.5">
+              {MVP_SUBSCRIPTION.features.map((f) => (
+                <li key={f} className="flex items-start gap-3 text-sm text-white/85">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2bb673]">
+                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                  </span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              className="mt-9 h-12 w-full rounded-xl bg-[#2bb673] text-base font-semibold text-white hover:bg-[#24a367]"
+              size="lg"
+              asChild
+            >
+              <Link to="/auth/signup">Commencer gratuitement</Link>
+            </Button>
+            <p className="mt-4 text-center text-xs text-white/45">
+              Aucune carte bancaire requise pour créer votre compte.
+            </p>
           </div>
-          <div className="mb-8 flex justify-center">
-            <span className="rounded-full bg-[#E8F8F0] px-6 py-2.5 font-mono text-2xl font-semibold text-[#2BB673]">
-              {MVP_SUBSCRIPTION.commission} %
-            </span>
-          </div>
-
-          <ul className="mb-8 divide-y divide-black/[0.06]">
-            {MVP_SUBSCRIPTION.features.map((f) => (
-              <li key={f} className="flex items-center gap-3 py-3.5 first:pt-0 last:pb-0">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2BB673]">
-                  <CheckCircle className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-                </span>
-                <span className="text-sm text-[#1A3A5C]">{f}</span>
-              </li>
-            ))}
-          </ul>
-
-          <Button
-            className="h-12 w-full rounded-xl bg-[#1A3A5C] text-white hover:bg-[#1A3A5C]/90"
-            size="lg"
-            asChild
-          >
-            <Link to="/auth/signup">Commencer gratuitement</Link>
-          </Button>
         </div>
       </div>
     </section>

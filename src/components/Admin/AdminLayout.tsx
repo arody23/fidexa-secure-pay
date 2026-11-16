@@ -69,7 +69,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       >
         <div className="flex h-full flex-col">
           {/* Logo Section */}
-          <div className="flex h-24 items-center border-b border-border px-6 justify-between">
+          <div className="flex h-24 shrink-0 items-center justify-between border-b border-border px-6">
             {sidebarOpen && <Logo to="/admin" />}
             <Button
               variant="ghost"
@@ -83,9 +83,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Admin Badge */}
           {sidebarOpen && (
-            <div className="px-6 py-4 border-b border-border bg-primary/5">
+            <div className="shrink-0 border-b border-border bg-primary/5 px-6 py-4">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                   <Shield className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
@@ -96,8 +96,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           )}
 
-          {/* Navigation */}
-          <nav className="flex-1 space-y-1 p-4">
+          {/* Navigation — scrollable so logout stays reachable */}
+          <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-4">
             {navItems.map((item) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;
@@ -123,8 +123,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             })}
           </nav>
 
-          {/* Logout Button */}
-          <div className="border-t border-border p-4">
+          {/* Logout Button — sticky footer */}
+          <div className="shrink-0 border-t border-border p-4">
             <Button
               onClick={handleLogout}
               variant="destructive"
@@ -168,10 +168,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               className="fixed left-0 top-0 z-50 h-screen w-64 border-r border-border bg-card lg:hidden"
             >
               <div className="flex h-full flex-col">
-                <div className="flex h-24 items-center border-b border-border px-6">
+                <div className="flex h-24 shrink-0 items-center border-b border-border px-6">
                   <Logo to="/admin" />
                 </div>
-                <nav className="flex-1 space-y-1 p-4">
+                <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-4">
                   {navItems.map((item) => {
                     const isActive = location.pathname === item.href;
                     const Icon = item.icon;
@@ -195,7 +195,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     );
                   })}
                 </nav>
-                <div className="border-t border-border p-4">
+                <div className="shrink-0 border-t border-border p-4">
                   <Button onClick={handleLogout} variant="destructive" className="w-full">
                     <LogOut className="mr-2 h-5 w-5" />
                     Déconnexion

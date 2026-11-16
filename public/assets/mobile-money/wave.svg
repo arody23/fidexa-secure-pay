@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 72" fill="none" role="img" aria-label="Wave">
+  <rect width="220" height="72" rx="14" fill="#1DC8FF"/>
+  <path d="M34 44c8.5-10 16-15.5 24.5-15.5S73 34 81.5 44c-8.5-4.8-16-7-24.5-7S42.5 39.2 34 44Z" fill="#fff" opacity=".9"/>
+  <path d="M34 50c8.5-10 16-15.5 24.5-15.5S73 40 81.5 50c-8.5-4.8-16-7-24.5-7S42.5 45.2 34 50Z" fill="#fff"/>
+  <text x="98" y="44" fill="#003A5D" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.5">Wave</text>
+</svg>

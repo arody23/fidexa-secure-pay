@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" fill="none" role="img" aria-label="Moov Money">
+  <rect width="240" height="72" rx="14" fill="#00A3E0"/>
+  <path d="M28 48V24h8.2l7.4 16.8L51 24H59v24h-6.4V33.2L45.4 48h-5.6l-7.2-14.8V48H28Z" fill="#fff"/>
+  <path d="M66 48V24h19.2c5.8 0 9.6 3.4 9.6 8.4 0 3.4-1.8 6-4.8 7.3L97.6 48h-7.2l-6.4-7.8H72.4V48H66Zm6.4-13.2h11.6c2.4 0 3.9-1.2 3.9-3.2s-1.5-3.2-3.9-3.2H72.4v6.4Z" fill="#fff"/>
+  <path d="M110 48V24h6.4v24H110Z" fill="#fff"/>
+  <path d="M126 48V24h6.4v18.4H146V48h-20Z" fill="#fff"/>
+  <circle cx="168" cy="36" r="16" fill="#FFD200"/>
+  <path d="M162.2 40.2 168 28.5l5.8 11.7h-3.1l-.8-1.7h-3.8l-.8 1.7h-3.1Zm4.5-3.5h2.6L168 31.6l-1.3 5.1Z" fill="#003A70"/>
+  <text x="190" y="42" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">Money</text>
+</svg>

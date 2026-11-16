@@ -14,7 +14,6 @@ import {
   LandingTestimonialsSection,
   type TestimonialItem,
 } from '@/components/landing/sections/LandingTestimonialsSection';
-import { LandingWhySection } from '@/components/landing/sections/LandingWhySection';
 import { LandingUseCasesSection } from '@/components/landing/sections/LandingUseCasesSection';
 import { MVP_SUBSCRIPTION } from '@/config/site';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +24,7 @@ const FICTIONAL_TESTIMONIALS: TestimonialItem[] = [
     key: 'f1',
     name: 'Awa K.',
     subtitle: 'Graphiste · Abidjan',
-    text: 'Avant, je livrais sans être payée. Avec FidexaPay, le client paie d’abord et je suis tranquille.',
+    text: 'Honnêtement, j’en avais marre de relancer. Maintenant le client paie d’abord, je travaille, et je suis payée après validation. Simple.',
     rating: 5,
     avatar: null,
   },
@@ -33,15 +32,15 @@ const FICTIONAL_TESTIMONIALS: TestimonialItem[] = [
     key: 'f2',
     name: 'Jean-Paul M.',
     subtitle: 'Développeur · Kinshasa',
-    text: 'Le Mobile Money + escrow m’a fait gagner des clients qui avaient peur de payer en avance.',
+    text: 'Des clients me disaient “je te paie après”. Avec l’escrow, ils acceptent de payer sans peur — et moi aussi je livre plus sereinement.',
     rating: 5,
     avatar: null,
   },
   {
     key: 'f3',
     name: 'Fatou D.',
-    subtitle: 'Styliste · Cotonou',
-    text: 'Simple à expliquer au client : il paie, je livre, les fonds sont libérés. Zéro stress.',
+    subtitle: 'Community manager · Cotonou',
+    text: 'J’envoie juste le lien WhatsApp. Pas besoin qu’ils s’inscrivent. En 2 minutes c’est réglé.',
     rating: 5,
     avatar: null,
   },
@@ -49,7 +48,7 @@ const FICTIONAL_TESTIMONIALS: TestimonialItem[] = [
     key: 'f4',
     name: 'Ibrahim S.',
     subtitle: 'Formateur · Bamako',
-    text: 'J’ai arrêté les litiges interminables. FidexaPay joue vraiment le rôle de tiers de confiance.',
+    text: 'Avant, un élève pouvait disparaître après 2 séances. Là, le paiement est déjà sécurisé. Ça change tout.',
     rating: 4,
     avatar: null,
   },
@@ -57,7 +56,7 @@ const FICTIONAL_TESTIMONIALS: TestimonialItem[] = [
     key: 'f5',
     name: 'Grace N.',
     subtitle: 'Consultante · Lomé',
-    text: 'Créer un lien prend deux minutes. Mes clients paient sans créer de compte. Parfait.',
+    text: 'Ce que j’aime : je vois où en est la mission, le client aussi. Moins de messages “tu as reçu ?”.',
     rating: 5,
     avatar: null,
   },
@@ -65,7 +64,7 @@ const FICTIONAL_TESTIMONIALS: TestimonialItem[] = [
     key: 'f6',
     name: 'Kevin O.',
     subtitle: 'Photographe · Ouagadougou',
-    text: 'La séquestration des fonds a changé ma façon de travailler. Je recommande à tous les freelances.',
+    text: 'Je l’utilise pour les shoots événementiels. Le client confirme, les fonds arrivent. Pas de mauvaise surprise.',
     rating: 5,
     avatar: null,
   },
@@ -74,34 +73,54 @@ const FICTIONAL_TESTIMONIALS: TestimonialItem[] = [
 const FAQ = [
   {
     q: 'Le client doit-il créer un compte ?',
-    a: 'Non. Il ouvre le lien, paie via Mobile Money, et suit la commande. Aucune inscription obligatoire côté acheteur.',
+    a: 'Non. Il ouvre votre lien, paie en Mobile Money, puis suit la mission. Aucune inscription côté client.',
   },
   {
-    q: 'Quand le prestataire reçoit-il l’argent ?',
-    a: 'Après validation de la livraison (ou selon la procédure litige). Les fonds restent séquestrés jusque-là.',
+    q: 'Quand est-ce que je reçois mon argent ?',
+    a: 'Après validation de la livraison par le client. Jusque-là, les fonds restent séquestrés sur FidexaPay.',
   },
   {
-    q: 'Quels moyens de paiement ?',
-    a: 'Mobile Money via KPay (Orange, MTN, Airtel…). La conversion devises est gérée au checkout.',
+    q: 'Quels moyens de paiement sont acceptés ?',
+    a: 'Les principaux réseaux Mobile Money (Orange, MTN, Airtel, etc.) selon le pays. La conversion de devise est gérée au paiement.',
   },
   {
     q: 'Combien coûte FidexaPay ?',
-    a: `Inscription gratuite. Commission ${MVP_SUBSCRIPTION.commission} % sur les transactions validées (plan Basique).`,
+    a: `Le compte prestataire est gratuit. Commission ${MVP_SUBSCRIPTION.commission} % uniquement sur les transactions validées (plan Basique).`,
+  },
+  {
+    q: 'Où est conservé l’argent en séquestre ?',
+    a: 'Les fonds sont détenus par PawaPay, notre agrégateur de paiement agréé. FidexaPay ne conserve aucune somme : la plateforme orchestre uniquement le flux escrow, la validation et la libération vers le prestataire.',
+  },
+  {
+    q: 'Que se passe-t-il en cas de litige ?',
+    a: 'Le client peut signaler un problème avant la libération des fonds. Notre équipe suit une procédure claire pour trancher et protéger les deux parties.',
+  },
+  {
+    q: 'Puis-je retirer mes fonds en Mobile Money ?',
+    a: 'Oui. Une fois les fonds libérés sur votre solde, vous demandez un retrait vers votre numéro Mobile Money, sous réserve de vérification KYC.',
+  },
+  {
+    q: 'FidexaPay convient-il aux freelances et agences ?',
+    a: 'Oui. La plateforme est conçue pour les prestataires de service : design, développement, formation, conseil, création de contenu, etc.',
+  },
+  {
+    q: 'Dans quels pays FidexaPay est-il disponible ?',
+    a: 'Actuellement dans plusieurs pays d’Afrique de l’Ouest et d’Afrique centrale. La liste évolue au fur et à mesure des intégrations opérateurs.',
   },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-black/[0.06] last:border-0">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-4 py-4 text-left"
+        className="flex w-full items-center justify-between gap-4 py-5 text-left transition-colors hover:text-[#0b3b78]"
       >
-        <span className="pr-2 text-sm font-medium text-[#1A3A5C] sm:text-base">{q}</span>
+        <span className="pr-2 text-base font-medium text-[#0b2f63] sm:text-lg">{q}</span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-[#6B7280] transition duration-300 ${open ? 'rotate-180' : ''}`}
+          className={`h-5 w-5 shrink-0 text-[#6B7280] transition duration-300 ${open ? 'rotate-180 text-[#0b3b78]' : ''}`}
         />
       </button>
       <AnimatePresence initial={false}>
@@ -112,7 +131,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <p className="pb-4 text-sm leading-relaxed text-[#6B7280]">{a}</p>
+            <p className="max-w-2xl pb-5 text-sm leading-relaxed text-[#526d87] sm:text-base">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -179,8 +198,9 @@ const Landing = () => {
               { href: '#payments', label: 'Mobile Money' },
               { href: '#escrow', label: 'Escrow' },
               { href: '#coverage', label: 'Couverture' },
-              { href: '#mission', label: 'Pourquoi' },
+              { href: '#use-cases', label: 'Cas d’usage' },
               { href: '#pricing', label: 'Tarifs' },
+              { href: '#faq', label: 'FAQ' },
             ].map((l) => (
               <a
                 key={l.href}
@@ -209,7 +229,6 @@ const Landing = () => {
       <LandingMobileMoneySection />
       <LandingEscrowSection />
       <LandingCoverageSection activeCountry={activeCountry} onSelectCountry={setActiveCountry} />
-      <LandingWhySection />
       <LandingUseCasesSection />
       <LandingTestimonialsSection
         items={testimonials}
@@ -219,13 +238,17 @@ const Landing = () => {
       />
       <LandingPricingSection />
 
-      <section id="faq" className="bg-white py-20 sm:py-24">
-        <div className="mx-auto max-w-2xl px-4 sm:px-6">
-          <h2 className="text-center text-2xl font-semibold text-[#1A3A5C] sm:text-3xl">
-            Questions fréquentes
-          </h2>
-          <p className="mb-8 mt-2 text-center text-sm text-[#6B7280]">Avant de démarrer</p>
-          <div className="rounded-2xl border border-black/[0.06] bg-white px-4 shadow-sm sm:px-5">
+      <section id="faq" className="bg-[#F5F7FA] py-24 sm:py-32 md:py-40">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-semibold tracking-tight text-[#0b2f63] sm:text-5xl">
+              Questions fréquentes
+            </h2>
+            <p className="mt-4 text-base text-[#526d87]">
+              Tout ce qu&apos;un prestataire veut savoir avant d&apos;envoyer son premier lien.
+            </p>
+          </div>
+          <div className="mt-12 divide-y divide-[#d7e3f0] border-y border-[#d7e3f0]">
             {FAQ.map((item) => (
               <FaqItem key={item.q} q={item.q} a={item.a} />
             ))}

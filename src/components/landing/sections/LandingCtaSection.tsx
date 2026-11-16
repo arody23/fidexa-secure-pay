@@ -6,7 +6,7 @@ import Logo from '@/components/Logo';
 /** Ref: landing-08-cta.png */
 export function LandingCtaSection() {
   return (
-    <section className="relative overflow-hidden bg-[#0B1220] py-24 text-white sm:py-32">
+    <section className="relative overflow-hidden bg-[#0B1220] py-24 text-white sm:py-32 md:py-40">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -19,14 +19,15 @@ export function LandingCtaSection() {
         <h2 className="text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-[1.08] tracking-tight">
           Sécurisez votre
           <br />
-          prochaine vente
+          prochaine collaboration
         </h2>
-        <p className="mx-auto mt-5 max-w-md text-sm text-white/60 sm:text-base">
-          Inscription gratuite · Mobile Money · Escrow · Support
+        <p className="mx-auto mt-5 max-w-lg text-sm leading-relaxed text-white/65 sm:text-base">
+          Créez votre compte, envoyez un lien de paiement, et laissez l&apos;escrow protéger la mission
+          jusqu&apos;à validation.
         </p>
         <Button variant="hero" size="lg" className="mt-10 h-14 px-10 text-base" asChild>
           <Link to="/auth/signup">
-            Créer mon compte
+            Créer mon compte prestataire
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
@@ -35,8 +36,8 @@ export function LandingCtaSection() {
           <ul className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-0">
             {[
               { icon: Shield, text: 'Transactions sécurisées' },
-              { icon: Lock, text: 'Vos fonds sont protégés' },
-              { icon: Headphones, text: 'Support réactif 24/7' },
+              { icon: Lock, text: 'Fonds protégés jusqu’à validation' },
+              { icon: Headphones, text: 'Support réactif' },
             ].map(({ icon: Icon, text }, i) => (
               <li
                 key={text}

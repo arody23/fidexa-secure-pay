@@ -6,7 +6,7 @@ export const SITE = {
     'FidexaPay protège les paiements Mobile Money entre prestataires et clients : fonds séquestrés jusqu\'à validation de la livraison.',
   email: 'contact@fidexapay.com',
   supportEmail: 'support@fidexapay.com',
-  phone: '+234 842 726 674',
+  phone: '+243 822726674',
   address: 'Kinshasa, République Démocratique du Congo',
   founded: '2026',
   /** URL vidéo démo (YouTube embed ou fichier /assets/demo.mp4) */

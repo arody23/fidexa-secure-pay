@@ -14,7 +14,6 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useProvider } from "@/contexts/ProviderContext";
@@ -155,144 +154,142 @@ const Dashboard = () => {
       </div>
 
       <section className="grid gap-4 lg:grid-cols-[1.45fr_.55fr]">
-        <Card className="border-[#d6e3f1] bg-[#0b3b78] text-white shadow-[0_18px_45px_rgba(11,59,120,.16)]">
-          <CardContent className="flex min-h-52 flex-col justify-between p-6 sm:p-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-white/70">Fonds libérés ce mois</p>
-                <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{formatAmount(stats.monthlyVolume, currency)}</p>
-              </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-[#6ce0a0]">
-                <CircleDollarSign className="h-5 w-5" />
-              </div>
+        <div className="flex min-h-44 flex-col justify-between rounded-2xl bg-[#0b3b78] p-6 text-white sm:min-h-52 sm:p-8">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-white/70">Fonds libérés ce mois</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                {formatAmount(stats.monthlyVolume, currency)}
+              </p>
             </div>
-            <div className="flex items-center justify-between gap-4 border-t border-white/15 pt-5 text-sm text-white/75">
-              <span>Net de commission</span>
-              <Link to="/dashboard/transactions" className="inline-flex items-center gap-1 font-medium text-white hover:text-[#6ce0a0]">
-                Voir les transactions <ArrowUpRight className="h-4 w-4" />
-              </Link>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-[#6ce0a0]">
+              <CircleDollarSign className="h-5 w-5" />
             </div>
-          </CardContent>
-        </Card>
-        <Link to="/dashboard/withdrawal" className="group">
-          <Card className="h-full border-[#d6e3f1] bg-[#eff8f3] transition duration-300 group-hover:-translate-y-0.5 group-hover:border-[#94d9b5]">
-            <CardContent className="flex min-h-52 flex-col justify-between p-6">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#178c52] shadow-sm">
-                <Wallet className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[#56736a]">Retraits prestataire</p>
-                <p className="mt-1 text-lg font-semibold text-[#0b3b78]">Gérez votre solde disponible</p>
-              </div>
-              <span className="inline-flex items-center gap-1 text-sm font-medium text-[#178c52]">Demander un retrait <ArrowUpRight className="h-4 w-4" /></span>
-            </CardContent>
-          </Card>
+          </div>
+          <div className="flex items-center justify-between gap-4 border-t border-white/15 pt-5 text-sm text-white/75">
+            <span>Net de commission</span>
+            <Link
+              to="/dashboard/transactions"
+              className="inline-flex items-center gap-1 font-medium text-white hover:text-[#6ce0a0]"
+            >
+              Voir les transactions <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+        <Link
+          to="/dashboard/withdrawal"
+          className="flex min-h-44 flex-col justify-between rounded-2xl border border-[#cfe9da] bg-[#eff8f3] p-6 sm:min-h-52"
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#178c52]">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-[#56736a]">Retraits prestataire</p>
+            <p className="mt-1 text-lg font-semibold text-[#0b3b78]">Gérez votre solde disponible</p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-[#178c52]">
+            Demander un retrait <ArrowUpRight className="h-4 w-4" />
+          </span>
         </Link>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {[
           { to: "/dashboard/active-orders", label: "À livrer ou à suivre", value: stats.pending, icon: Clock, tone: "text-[#a96500] bg-[#fff6e8]" },
           { to: "/dashboard/orders?filter=delivered", label: "Commandes validées", value: stats.delivered, icon: CheckCircle, tone: "text-[#178c52] bg-[#edf9f2]" },
           { to: "/dashboard/orders?filter=cancelled", label: "Commandes annulées", value: stats.cancelled, icon: XCircle, tone: "text-[#63758a] bg-[#f2f5f8]" },
           { to: "/dashboard/orders?filter=disputed", label: "Dossiers à résoudre", value: stats.dispute, icon: AlertTriangle, tone: "text-[#1354b8] bg-[#eef5ff]" },
         ].map((metric) => (
-          <Link key={metric.label} to={metric.to} className="group">
-            <Card className="h-full border-[#dce7f3] transition duration-300 group-hover:-translate-y-0.5 group-hover:border-[#9fc0e7]">
-              <CardContent className="p-5">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${metric.tone}`}>
-                  <metric.icon className="h-5 w-5" strokeWidth={1.8} />
-                </div>
-                <p className="mt-6 text-3xl font-semibold tracking-tight text-[#0b2f63]">{metric.value}</p>
-                <p className="mt-1 text-sm text-[#5b738c]">{metric.label}</p>
-              </CardContent>
-            </Card>
+          <Link key={metric.label} to={metric.to} className="rounded-xl p-4 transition-colors hover:bg-white/80 sm:p-5">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${metric.tone}`}>
+              <metric.icon className="h-5 w-5" strokeWidth={1.8} />
+            </div>
+            <p className="mt-4 text-2xl font-semibold tracking-tight text-[#0b2f63] sm:mt-6 sm:text-3xl">
+              {metric.value}
+            </p>
+            <p className="mt-1 text-xs text-[#5b738c] sm:text-sm">{metric.label}</p>
           </Link>
         ))}
       </section>
 
-      <Card className="border-[#dce7f3]">
-          <CardHeader>
-            <CardTitle className="text-lg">Actions rapides</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-3">
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/dashboard/create-link">
-                <Link2 className="mr-2 h-4 w-4" />
-                Nouveau lien
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/dashboard/orders">
-                <Package className="mr-2 h-4 w-4" />
-                Commandes
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/dashboard/subscriptions">
-                <TrendingUp className="mr-2 h-4 w-4" />
-                Abonnement
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Actions rapides</h2>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Button variant="outline" className="w-full justify-start" asChild>
+            <Link to="/dashboard/create-link">
+              <Link2 className="mr-2 h-4 w-4" />
+              Nouveau lien
+            </Link>
+          </Button>
+          <Button variant="outline" className="w-full justify-start" asChild>
+            <Link to="/dashboard/orders">
+              <Package className="mr-2 h-4 w-4" />
+              Commandes
+            </Link>
+          </Button>
+          <Button variant="outline" className="w-full justify-start" asChild>
+            <Link to="/dashboard/subscriptions">
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Abonnement
+            </Link>
+          </Button>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6">
-          <CardTitle className="truncate text-lg">Liens de paiement récents</CardTitle>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="truncate text-lg font-semibold">Liens de paiement récents</h2>
           <Button variant="ghost" size="sm" asChild className="shrink-0">
             <Link to="/dashboard/orders">Voir tout</Link>
           </Button>
-        </CardHeader>
-        <CardContent className="overflow-x-hidden px-4 sm:px-6">
-          {paymentLinks.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              Aucun lien de paiement créé
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {paymentLinks.slice(0, 5).map((link) => (
-                <div
-                  key={link.id}
-                  className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 hover:bg-muted/50"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                      <Package className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{link.client_name}</p>
-                      <p className="truncate text-xs text-muted-foreground sm:text-sm">
-                        {link.link_id}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(link.created_at).toLocaleDateString("fr-FR")}
-                      </p>
-                    </div>
+        </div>
+        {paymentLinks.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">
+            Aucun lien de paiement créé
+          </div>
+        ) : (
+          <div className="divide-y divide-border/70">
+            {paymentLinks.slice(0, 5).map((link) => (
+              <div
+                key={link.id}
+                className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:py-4"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <Package className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-                    <p className="font-semibold">
-                      {formatAmount(
-                        convertAmount(link.amount, link.currency || currency, currency),
-                        currency
-                      )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{link.client_name}</p>
+                    <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                      {link.link_id}
                     </p>
-                    <StatusBadge
-                      status={
-                        (link.is_paid
-                          ? link.status === "pending"
-                            ? "paid"
-                            : link.status
-                          : link.status) as OrderStatus
-                      }
-                    />
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(link.created_at).toLocaleDateString("fr-FR")}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                  <p className="font-semibold">
+                    {formatAmount(
+                      convertAmount(link.amount, link.currency || currency, currency),
+                      currency
+                    )}
+                  </p>
+                  <StatusBadge
+                    status={
+                      (link.is_paid
+                        ? link.status === "pending"
+                          ? "paid"
+                          : link.status
+                        : link.status) as OrderStatus
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

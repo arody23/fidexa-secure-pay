@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle, Shield, Smartphone, Store, User } from 'lucide-react';
+import { ArrowRight, Briefcase, Shield, Smartphone, User } from 'lucide-react';
 import Logo from '@/components/Logo';
 
 /** Escrow flow chart — ref landing-03 */
@@ -22,8 +22,8 @@ export function EscrowFlowDiagram() {
           <FlowNode icon={User} label="Client" sub="Initie le paiement" />
           <FlowArrow step="1" title="Paiement" text="Le client paie via Mobile Money." />
           <FlowEscrowCard />
-          <FlowArrow step="2" title="Livraison" text="Le vendeur livre le bien ou service." />
-          <FlowNode icon={Store} label="Vendeur" sub="Reçoit après validation" />
+          <FlowArrow step="2" title="Livraison" text="Le prestataire livre le service." />
+          <FlowNode icon={Briefcase} label="Prestataire" sub="Reçoit après validation" />
         </div>
         <div className="mt-6 flex justify-center">
           <div className="flex max-w-md items-center gap-2 rounded-xl border border-dashed border-fidexa-green/35 bg-accent/50 px-4 py-3 text-center">
@@ -43,8 +43,8 @@ export function EscrowFlowDiagram() {
           { icon: User, label: 'Client', sub: 'Initie le paiement' },
           { step: '1', title: 'Paiement', text: 'Le client paie via Mobile Money.' },
           { escrow: true },
-          { step: '2', title: 'Livraison', text: 'Le vendeur livre le bien ou service.' },
-          { icon: Store, label: 'Vendeur', sub: 'Reçoit après validation' },
+          { step: '2', title: 'Livraison', text: 'Le prestataire livre le service.' },
+          { icon: Briefcase, label: 'Prestataire', sub: 'Reçoit après validation' },
           { step: '3', title: 'Validation', text: 'Le client confirme la livraison.' },
         ].map((item, i) => {
           if ('escrow' in item && item.escrow) {

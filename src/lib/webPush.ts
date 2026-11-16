@@ -10,6 +10,22 @@ export function isPushSupported(): boolean {
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
+/** True if permission is granted and a push subscription exists (or permission alone if SW not ready). */
+export async function isPushEnabled(): Promise<boolean> {
+  if (!isPushSupported()) return false;
+  if (Notification.permission !== 'granted') return false;
+  try {
+    const registration =
+      (await navigator.serviceWorker.getRegistration()) ??
+      (await navigator.serviceWorker.ready.catch(() => null));
+    if (!registration) return true;
+    const sub = await registration.pushManager.getSubscription();
+    return Boolean(sub);
+  } catch {
+    return Notification.permission === 'granted';
+  }
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const t = window.setTimeout(() => reject(new Error(`${label} (délai ${ms}ms dépassé)`)), ms);

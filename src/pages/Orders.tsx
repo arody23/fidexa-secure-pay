@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Package, Search, MoreVertical, Copy, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -173,108 +172,99 @@ const Orders = () => {
         </div>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Package className="h-5 w-5 shrink-0 text-primary" />
-            {filteredOrders.length} commande
-            {filteredOrders.length > 1 ? "s" : ""}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 sm:px-6">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="py-12 text-center">
-              <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">Aucune commande trouvée</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="rounded-xl border border-border p-3 sm:p-4 hover:border-primary/30"
-                >
-                  <div className="flex flex-col gap-3">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted sm:h-12 sm:w-12">
-                        <Package className="h-5 w-5 text-muted-foreground sm:h-6 sm:w-6" />
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-semibold">{order.client_name}</p>
-                          <StatusBadge
-                            status={
-                              (order.is_paid
-                                ? order.status === "pending"
-                                  ? "paid"
-                                  : order.status
-                                : order.status) as OrderStatus
-                            }
-                          />
-                        </div>
-                        <p className="truncate text-xs text-muted-foreground sm:text-sm">
-                          {order.link_id}
-                        </p>
-                        <p className="line-clamp-2 text-sm text-muted-foreground">
-                          {order.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(order.created_at).toLocaleDateString("fr-FR")} · {order.delivery_days}j
-                        </p>
-                      </div>
+      <div className="space-y-1">
+        <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Package className="h-4 w-4 shrink-0 text-primary" />
+          {filteredOrders.length} commande
+          {filteredOrders.length > 1 ? "s" : ""}
+        </p>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="py-12 text-center">
+            <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
+            <p className="text-muted-foreground">Aucune commande trouvée</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/70">
+            {filteredOrders.map((order) => (
+              <div key={order.id} className="py-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted sm:h-11 sm:w-11">
+                      <Package className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-                      <p className="text-base font-semibold sm:text-lg">
-                        {formatAmount(
-                          convertAmount(order.amount, order.currency || currency, currency),
-                          currency
-                        )}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate font-semibold">{order.client_name}</p>
+                        <StatusBadge
+                          status={
+                            (order.is_paid
+                              ? order.status === "pending"
+                                ? "paid"
+                                : order.status
+                              : order.status) as OrderStatus
+                          }
+                        />
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                        {order.link_id}
                       </p>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="gap-1">
-                            <MoreVertical className="h-4 w-4" />
-                            Actions
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => copyOrderLink(order.link_id)}>
-                            {copiedId === order.link_id ? (
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                            ) : (
-                              <Copy className="mr-2 h-4 w-4" />
-                            )}
-                            Copier le lien
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
-                            <Package className="mr-2 h-4 w-4" />
-                            Voir les détails
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <p className="line-clamp-2 text-sm text-muted-foreground">
+                        {order.description}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(order.created_at).toLocaleDateString("fr-FR")} · {order.delivery_days}j
+                      </p>
                     </div>
                   </div>
+                  <div className="flex items-center justify-between gap-2 pl-[3.25rem]">
+                    <p className="text-base font-semibold sm:text-lg">
+                      {formatAmount(
+                        convertAmount(order.amount, order.currency || currency, currency),
+                        currency
+                      )}
+                    </p>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="gap-1">
+                          <MoreVertical className="h-4 w-4" />
+                          Actions
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => copyOrderLink(order.link_id)}>
+                          {copiedId === order.link_id ? (
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                          ) : (
+                            <Copy className="mr-2 h-4 w-4" />
+                          )}
+                          Copier le lien
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
+                          <Package className="mr-2 h-4 w-4" />
+                          Voir les détails
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center">
-          <Card className="max-h-[85vh] w-full max-w-md overflow-y-auto">
-            <CardHeader>
-              <CardTitle className="text-lg">Détail de la commande</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-background p-5 shadow-xl">
+            <h2 className="text-lg font-semibold">Détail de la commande</h2>
+            <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between gap-2">
                 <span className="text-muted-foreground">Client</span>
-                <span className="font-medium text-right">{selectedOrder.client_name}</span>
+                <span className="text-right font-medium">{selectedOrder.client_name}</span>
               </div>
               <div className="flex justify-between gap-2">
                 <span className="text-muted-foreground">Lien</span>
@@ -317,8 +307,8 @@ const Orders = () => {
                 <span className="text-muted-foreground">Délai</span>
                 <span>{selectedOrder.delivery_days} jours</span>
               </div>
-              {(selectedOrder.order_status === "completed") && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+              {selectedOrder.order_status === "completed" && (
+                <div className="rounded-lg bg-amber-50 p-3 text-amber-900">
                   En attente de la validation du client
                 </div>
               )}
@@ -330,8 +320,8 @@ const Orders = () => {
                   Fermer
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
     </div>
