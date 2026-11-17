@@ -58,20 +58,40 @@ Deno.serve(async (req) => {
       });
     }
 
-    const payload = JSON.stringify({ title, body: body || title, url: url || '/dashboard/notifications' });
+    const appOrigin = (
+      Deno.env.get('APP_PUBLIC_URL') || 'https://fidexa-secure-pay.vercel.app'
+    ).replace(/\/$/, '');
+    const relativeOrAbs = url || '/dashboard/notifications';
+    const absoluteUrl = relativeOrAbs.startsWith('http')
+      ? relativeOrAbs
+      : `${appOrigin}${relativeOrAbs.startsWith('/') ? '' : '/'}${relativeOrAbs}`;
+
+    const payload = JSON.stringify({
+      title,
+      body: body || title,
+      url: absoluteUrl,
+    });
     let sent = 0;
     const stale: string[] = [];
+    const errors: string[] = [];
 
     for (const sub of subs) {
       try {
         await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          payload,
+          { TTL: 60 * 60 * 12, urgency: 'high' }
         );
         sent++;
       } catch (err: unknown) {
         const status = (err as { statusCode?: number })?.statusCode;
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('webpush fail', status, message, sub.endpoint?.slice(0, 48));
         if (status === 404 || status === 410) stale.push(sub.endpoint);
+        else errors.push(`${status || 'err'}: ${message}`);
       }
     }
 
@@ -79,9 +99,17 @@ Deno.serve(async (req) => {
       await supabase.from('push_subscriptions').delete().eq('user_id', user_id).in('endpoint', stale);
     }
 
-    return new Response(JSON.stringify({ success: true, sent }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        sent,
+        stale: stale.length,
+        errors: errors.slice(0, 5),
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   } catch (err) {
     console.error('send-web-push error:', err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Erreur' }), {

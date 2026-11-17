@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { notifyUser } from './notify.ts';
 import { corsHeaders } from './cors.ts';
 import { dispatchNotificationEvent } from './notifyDispatch.ts';
+import { resolveAppPublicUrl } from './appUrl.ts';
 
 export { corsHeaders };
 
@@ -360,7 +361,7 @@ export async function markLinkPaid(
       if (provider?.full_name) merchantName = provider.full_name;
     }
 
-    const appUrl = (Deno.env.get('APP_PUBLIC_URL') || 'https://fidexapay.com').replace(/\/$/, '');
+    const appUrl = resolveAppPublicUrl();
     const trackingLink = `${appUrl}/order/${link.link_id}`;
     const paymentLink = `${appUrl}/pay/${link.link_id}`;
     const variables = {

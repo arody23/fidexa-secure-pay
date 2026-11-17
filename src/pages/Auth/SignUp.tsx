@@ -117,7 +117,6 @@ export default function SignUp() {
       <Card className="border-border/50 bg-card/95 shadow-2xl backdrop-blur">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl">Créer un compte</CardTitle>
-          <p className="text-sm text-muted-foreground">Rejoignez FidexaPay — plan Basique gratuit</p>
         </CardHeader>
 
         <CardContent>
@@ -167,7 +166,6 @@ export default function SignUp() {
               <div className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm">
                 Prestataire
               </div>
-              <p className="text-xs text-muted-foreground">Seuls les prestataires peuvent créer un compte. Les clients accèdent via le lien de paiement.</p>
             </div>
 
             <Button

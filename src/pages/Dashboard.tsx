@@ -15,9 +15,6 @@ import {
   Shield,
   TrendingUp,
   PlayCircle,
-  BadgeCheck,
-  Sparkles,
-  Headphones,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
@@ -52,7 +49,6 @@ interface Stats {
   unpaidCount: number;
   successRate: number;
   avgTicket: number;
-  totalLinks: number;
 }
 
 function RecentLinksSection({
@@ -246,7 +242,6 @@ const Dashboard = () => {
               0
             ) / paidLinks.length
           : 0,
-      totalLinks: paymentLinks.length,
     };
   }, [paymentLinks, disputedLinkIds, currency]);
 
@@ -387,77 +382,6 @@ const Dashboard = () => {
             {stats.pending}
           </p>
         </Link>
-      </section>
-
-      {/* Accès rapides */}
-      <section className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
-        <div className="border-b border-[#eef3f9] px-4 py-2.5">
-          <h2 className="text-sm font-semibold leading-none text-[#0b2f63]">Accès rapides</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-px bg-[#eef3f9] sm:grid-cols-4">
-          {[
-            { to: "/dashboard/create-link", label: "Créer un lien", icon: Plus },
-            { to: "/dashboard/withdrawal", label: "Retirer", icon: Wallet },
-            { to: "/dashboard/subscriptions", label: "Abonnement", icon: Sparkles },
-            { to: "/dashboard/support", label: "Support", icon: Headphones },
-          ].map((a) => (
-            <Link
-              key={a.to}
-              to={a.to}
-              className="flex items-center gap-2.5 bg-white px-4 py-3 transition-colors hover:bg-[#f7fafd]"
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0b3b78]/8 text-[#0b3b78]">
-                <a.icon className="h-4 w-4" strokeWidth={1.75} />
-              </span>
-              <span className="text-xs font-semibold leading-tight text-[#0b2f63]">{a.label}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Santé du compte */}
-      <section className="grid gap-2.5 sm:grid-cols-2">
-        <Link
-          to={profile?.kyc_status === "verified" ? "/dashboard/profile" : "/dashboard/kyc"}
-          className="flex items-center justify-between gap-3 rounded-2xl border border-[#e2eaf3] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)] transition-colors hover:border-[#c5d4e8]"
-        >
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                profile?.kyc_status === "verified"
-                  ? "bg-[#edf9f2] text-[#178c52]"
-                  : "bg-[#fff8e8] text-[#b8860b]"
-              }`}
-            >
-              <BadgeCheck className="h-4 w-4" strokeWidth={1.75} />
-            </span>
-            <div className="min-w-0 leading-none">
-              <p className="text-sm font-semibold text-[#0b2f63]">Identité</p>
-              <p className="mt-1 text-[11px] text-[#8a9bb0]">
-                {profile?.kyc_status === "verified"
-                  ? "Profil vérifié"
-                  : profile?.kyc_status === "pending"
-                    ? "Vérification en cours"
-                    : "À vérifier pour les retraits"}
-              </p>
-            </div>
-          </div>
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-[#0b3b78]" />
-        </Link>
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e2eaf3] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#eef4ff] text-[#0b3b78]">
-              <Shield className="h-4 w-4" strokeWidth={1.75} />
-            </span>
-            <div className="min-w-0 leading-none">
-              <p className="text-sm font-semibold text-[#0b2f63]">Activité</p>
-              <p className="mt-1 text-[11px] text-[#8a9bb0]">
-                {stats.totalLinks} lien{stats.totalLinks > 1 ? "s" : ""} · {stats.paidCount} payé
-                {stats.paidCount > 1 ? "s" : ""}
-              </p>
-            </div>
-          </div>
-        </div>
       </section>
 
       <RecentLinksSection paymentLinks={paymentLinks} currency={currency} />

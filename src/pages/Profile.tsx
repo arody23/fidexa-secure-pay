@@ -203,21 +203,16 @@ export function Profile() {
                 {profile?.full_name?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
-            {profile?.kyc_status === 'verified' && (
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-white">
-                <VerifiedBadge size="sm" />
-              </span>
-            )}
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
               <Camera className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
           </Label>
           <div className="min-w-0 w-full flex-1 space-y-1.5 text-center sm:text-left">
-            <div className="flex items-center justify-center gap-1 sm:justify-start">
+            <div className="flex items-center justify-center gap-1.5 sm:justify-start">
               <p className="truncate text-base font-semibold leading-none text-[#0b2f63]">
                 {profile?.full_name || 'Profil'}
               </p>
-              {profile?.kyc_status === 'verified' && <VerifiedBadge size="sm" />}
+              {profile?.kyc_status === 'verified' && <VerifiedBadge size="md" />}
             </div>
             <p className="truncate text-xs leading-none text-[#8a9bb0]">{profile?.email}</p>
             <Label htmlFor="avatar-upload" className="inline-block cursor-pointer">

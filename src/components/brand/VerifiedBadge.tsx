@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-/** Badge type Meta / Instagram — pastille bleue + coche blanche */
+/** Badge vérifié style Meta / Instagram (pastille bleue + coche) */
 export function VerifiedBadge({
   className,
   size = 'md',
@@ -8,33 +8,24 @@ export function VerifiedBadge({
   className?: string;
   size?: 'sm' | 'md' | 'lg';
 }) {
-  const dim = size === 'sm' ? 'h-4 w-4' : size === 'lg' ? 'h-6 w-6' : 'h-5 w-5';
-  const check = size === 'sm' ? 'h-2 w-2' : size === 'lg' ? 'h-3 w-3' : 'h-2.5 w-2.5';
+  const dim = size === 'sm' ? 'h-4 w-4' : size === 'lg' ? 'h-[1.375rem] w-[1.375rem]' : 'h-5 w-5';
 
   return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full bg-[#1d9bf0] shadow-[0_0_0_1.5px_#fff]',
-        dim,
-        className
-      )}
+    <svg
+      viewBox="0 0 40 40"
+      className={cn(dim, 'shrink-0', className)}
       aria-label="Profil vérifié"
-      title="Profil vérifié"
+      role="img"
     >
-      <svg
-        viewBox="0 0 12 12"
-        className={cn(check, 'text-white')}
+      <circle cx="20" cy="20" r="20" fill="#1D9BF0" />
+      <path
+        d="M11.2 20.4 17 26.2 28.8 14.4"
         fill="none"
-        aria-hidden
-      >
-        <path
-          d="M2.5 6.2 4.8 8.5 9.5 3.5"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
+        stroke="#fff"
+        strokeWidth="3.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

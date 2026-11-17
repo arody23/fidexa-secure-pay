@@ -1,3 +1,8 @@
+/** URL publique de production (liens partage / WhatsApp côté client si besoin) */
+export const APP_PUBLIC_URL = (
+  import.meta.env.VITE_APP_PUBLIC_URL || 'https://fidexa-secure-pay.vercel.app'
+).replace(/\/$/, '');
+
 /** Infos légales & contact FidexaPay — mettre à jour avant prod */
 export const SITE = {
   name: 'FidexaPay',

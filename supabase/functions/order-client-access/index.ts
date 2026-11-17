@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { enqueueOrderOtp, notifyServicePost } from '../_shared/notifyDispatch.ts';
+import { resolveAppPublicUrl } from '../_shared/appUrl.ts';
 
 /**
  * Proxy public (anon) vers le notification-service pour OTP accès /order.
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const appUrl = (Deno.env.get('APP_PUBLIC_URL') || 'https://fidexapay.com').replace(/\/$/, '');
+      const appUrl = resolveAppPublicUrl();
       const result = await enqueueOrderOtp({
         paymentLinkId: link.id,
         linkId: link.link_id,
