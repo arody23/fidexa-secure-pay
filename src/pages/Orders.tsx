@@ -175,86 +175,86 @@ const Orders = () => {
       <div className="space-y-1">
         <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Package className="h-4 w-4 shrink-0 text-primary" />
-          {filteredOrders.length} commande
-          {filteredOrders.length > 1 ? "s" : ""}
+            {filteredOrders.length} commande
+            {filteredOrders.length > 1 ? "s" : ""}
         </p>
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="py-12 text-center">
-            <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">Aucune commande trouvée</p>
-          </div>
-        ) : (
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="py-12 text-center">
+              <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
+              <p className="text-muted-foreground">Aucune commande trouvée</p>
+            </div>
+          ) : (
           <div className="divide-y divide-border/70">
-            {filteredOrders.map((order) => (
+              {filteredOrders.map((order) => (
               <div key={order.id} className="py-4">
-                <div className="flex flex-col gap-3">
-                  <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted sm:h-11 sm:w-11">
                       <Package className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate font-semibold">{order.client_name}</p>
-                        <StatusBadge
-                          status={
-                            (order.is_paid
-                              ? order.status === "pending"
-                                ? "paid"
-                                : order.status
-                              : order.status) as OrderStatus
-                          }
-                        />
                       </div>
-                      <p className="truncate text-xs text-muted-foreground sm:text-sm">
-                        {order.link_id}
-                      </p>
-                      <p className="line-clamp-2 text-sm text-muted-foreground">
-                        {order.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(order.created_at).toLocaleDateString("fr-FR")} · {order.delivery_days}j
-                      </p>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate font-semibold">{order.client_name}</p>
+                          <StatusBadge
+                            status={
+                              (order.is_paid
+                                ? order.status === "pending"
+                                  ? "paid"
+                                  : order.status
+                                : order.status) as OrderStatus
+                            }
+                          />
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                          {order.link_id}
+                        </p>
+                        <p className="line-clamp-2 text-sm text-muted-foreground">
+                          {order.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(order.created_at).toLocaleDateString("fr-FR")} · {order.delivery_days}j
+                        </p>
+                      </div>
                     </div>
-                  </div>
                   <div className="flex items-center justify-between gap-2 pl-[3.25rem]">
-                    <p className="text-base font-semibold sm:text-lg">
-                      {formatAmount(
-                        convertAmount(order.amount, order.currency || currency, currency),
-                        currency
-                      )}
-                    </p>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <p className="text-base font-semibold sm:text-lg">
+                        {formatAmount(
+                          convertAmount(order.amount, order.currency || currency, currency),
+                          currency
+                        )}
+                      </p>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="gap-1">
-                          <MoreVertical className="h-4 w-4" />
-                          Actions
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => copyOrderLink(order.link_id)}>
-                          {copiedId === order.link_id ? (
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                          ) : (
-                            <Copy className="mr-2 h-4 w-4" />
-                          )}
-                          Copier le lien
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
-                          <Package className="mr-2 h-4 w-4" />
-                          Voir les détails
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            <MoreVertical className="h-4 w-4" />
+                            Actions
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => copyOrderLink(order.link_id)}>
+                            {copiedId === order.link_id ? (
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                            ) : (
+                              <Copy className="mr-2 h-4 w-4" />
+                            )}
+                            Copier le lien
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
+                            <Package className="mr-2 h-4 w-4" />
+                            Voir les détails
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
       </div>
 
       {selectedOrder && (

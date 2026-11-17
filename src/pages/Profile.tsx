@@ -61,7 +61,7 @@ export function Profile() {
       }
     } catch (err) {
       console.error('Error loading profile:', err);
-      setError('Erreur au chargement du profil');
+      setError('Impossible de charger les informations.');
     } finally {
       setLoading(false);
     }
@@ -87,12 +87,12 @@ export function Profile() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('Le fichier est trop volumineux (max 5MB)');
+      setError('Image trop volumineuse.');
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      setError('Veuillez sélectionner une image (JPG, PNG, GIF)');
+      setError('Format non supporté.');
       return;
     }
 
@@ -114,19 +114,19 @@ export function Profile() {
       const avatarUrl = await uploadUserAvatar(file);
 
       if (avatarUrl) {
-        setSuccess('Avatar mis à jour avec succès !');
+        setSuccess('Photo mise à jour.');
         setTimeout(async () => {
           await loadProfile();
           window.location.reload();
         }, 500);
       } else {
-        setError('Échec du téléchargement. Vérifiez que le bucket "avatars" existe dans Supabase Storage.');
+        setError('Échec du téléchargement.');
       }
 
-      setTimeout(() => setSuccess(''), 5000);
+      setTimeout(() => setSuccess(''), 4000);
     } catch (err: unknown) {
       console.error('Error uploading avatar:', err);
-      setError(`Erreur: ${err instanceof Error ? err.message : "Impossible de télécharger l'avatar"}`);
+      setError('Impossible de mettre à jour la photo.');
     } finally {
       setUploading(false);
       setImageToCrop(null);
@@ -146,17 +146,17 @@ export function Profile() {
       const updatedProfile = await updateUserProfile(formData);
 
       if (updatedProfile) {
-        setSuccess('Profil mis à jour avec succès.');
+        setSuccess('Enregistré.');
         await loadProfile();
         await refreshProfile();
       } else {
-        setError('Échec de la mise à jour. Vérifiez vos permissions.');
+        setError('Échec de la mise à jour.');
       }
 
-      setTimeout(() => setSuccess(''), 5000);
+      setTimeout(() => setSuccess(''), 4000);
     } catch (err: unknown) {
       console.error('Error saving profile:', err);
-      setError(`Erreur: ${err instanceof Error ? err.message : 'Impossible de sauvegarder le profil'}`);
+      setError('Impossible d’enregistrer.');
     } finally {
       setSaving(false);
     }
@@ -165,10 +165,7 @@ export function Profile() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center p-4">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500" />
-          <p className="mt-4 text-gray-600">Chargement du profil...</p>
-        </div>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
       </div>
     );
   }
@@ -176,8 +173,7 @@ export function Profile() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 overflow-x-hidden">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Paramètres</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Gérez les informations de votre compte</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">Paramètres</h1>
       </div>
 
       {error && (
@@ -194,37 +190,30 @@ export function Profile() {
       )}
 
       <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Photo de profil</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">Cliquez sur l&apos;avatar pour changer votre photo</p>
-        </div>
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
           <Label htmlFor="avatar-upload" className="group relative shrink-0 cursor-pointer">
-            <Avatar className="h-20 w-20 transition-opacity group-hover:opacity-80 sm:h-24 sm:w-24">
+            <Avatar className="h-20 w-20 ring-2 ring-[#dbe6f2] transition-opacity group-hover:opacity-90 sm:h-24 sm:w-24">
               <AvatarImage
                 src={profile?.avatar_url || ''}
-                alt="Photo de profil"
+                alt=""
                 onError={(e) => {
                   e.currentTarget.src = '';
                 }}
               />
-              <AvatarFallback className="text-2xl font-bold">
+              <AvatarFallback className="bg-[#0b3b78] text-2xl font-bold text-white">
                 {profile?.full_name?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
-              <Camera className="h-7 w-7 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+              <Camera className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
           </Label>
           <div className="min-w-0 w-full flex-1 text-center sm:text-left">
-            <p className="mb-3 text-sm text-muted-foreground">
-              {uploading ? 'Téléchargement en cours...' : 'JPG, PNG ou GIF (max 5MB)'}
-            </p>
             <Label htmlFor="avatar-upload" className="inline-block cursor-pointer">
-              <Button asChild variant="outline" disabled={uploading} className="w-full sm:w-auto">
+              <Button asChild variant="outline" disabled={uploading} className="w-full border-[#dbe6f2] sm:w-auto">
                 <span>
                   <Camera className="mr-2 h-4 w-4" />
-                  {uploading ? 'Upload...' : 'Changer la photo'}
+                  {uploading ? 'Envoi…' : 'Changer la photo'}
                 </span>
               </Button>
             </Label>
@@ -240,18 +229,12 @@ export function Profile() {
         </div>
       </section>
 
-      <div className="h-px bg-border" />
+      <div className="h-px bg-[#e4edf6]" />
 
       <section className="space-y-5">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Informations personnelles</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">Mettez à jour vos informations de compte</p>
-        </div>
-
         <div className="min-w-0 space-y-1.5">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" value={profile?.email || ''} disabled className="bg-muted/40" />
-          <p className="text-xs text-muted-foreground">Non modifiable</p>
+          <Input id="email" value={profile?.email || ''} disabled className="bg-[#f6f9fd]" />
         </div>
 
         <div className="min-w-0 space-y-1.5">
@@ -261,28 +244,27 @@ export function Profile() {
             name="full_name"
             value={formData.full_name}
             onChange={handleInputChange}
-            placeholder="Votre nom complet"
+            placeholder="Nom complet"
           />
         </div>
 
         <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="phone_number">Numéro de téléphone</Label>
+          <Label htmlFor="phone_number">Téléphone</Label>
           <Input
             id="phone_number"
             name="phone_number"
             type="tel"
             value={formData.phone_number}
             onChange={handleInputChange}
-            placeholder="+243 123 456 789"
+            placeholder="+243 …"
           />
-          <p className="text-xs text-muted-foreground">Avec code pays</p>
         </div>
 
         <div className="min-w-0 space-y-1.5">
           <Label htmlFor="country">Pays</Label>
           <Select value={formData.country} onValueChange={handleCountryChange}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Sélectionnez votre pays" />
+              <SelectValue placeholder="Pays" />
             </SelectTrigger>
             <SelectContent>
               {Object.entries(COUNTRIES_DATA).map(([code, country]) => (
@@ -295,17 +277,17 @@ export function Profile() {
         </div>
 
         <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="currency">Devise préférée</Label>
+          <Label htmlFor="currency">Devise</Label>
           <Select value={formData.currency} onValueChange={handleCurrencyChange}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Sélectionnez votre devise" />
+              <SelectValue placeholder="Devise" />
             </SelectTrigger>
             <SelectContent>
               {formData.country === 'CD' && (
-                <SelectItem value="CDF">CDF — Franc congolais (devise pays)</SelectItem>
+                <SelectItem value="CDF">CDF</SelectItem>
               )}
               {(formData.country === 'CG' || formData.country === 'CM' || formData.country === 'GA') && (
-                <SelectItem value="XAF">XAF — Franc CFA BEAC (devise pays)</SelectItem>
+                <SelectItem value="XAF">XAF</SelectItem>
               )}
               {(formData.country === 'CI' ||
                 formData.country === 'SN' ||
@@ -314,34 +296,33 @@ export function Profile() {
                 formData.country === 'TG' ||
                 formData.country === 'ML' ||
                 formData.country === 'NE') && (
-                <SelectItem value="XOF">XOF — Franc CFA WAEMU (devise pays)</SelectItem>
+                <SelectItem value="XOF">XOF</SelectItem>
               )}
               {!['CD', 'CG', 'CM', 'GA', 'CI', 'SN', 'BF', 'BJ', 'TG', 'ML', 'NE'].includes(formData.country) && (
                 <>
-                  <SelectItem value="CDF">CDF — Franc congolais</SelectItem>
-                  <SelectItem value="XAF">XAF — Franc CFA BEAC</SelectItem>
-                  <SelectItem value="XOF">XOF — Franc CFA WAEMU</SelectItem>
-                  <SelectItem value="FCFA">FCFA — Franc CFA</SelectItem>
+                  <SelectItem value="CDF">CDF</SelectItem>
+                  <SelectItem value="XAF">XAF</SelectItem>
+                  <SelectItem value="XOF">XOF</SelectItem>
+                  <SelectItem value="FCFA">FCFA</SelectItem>
                 </>
               )}
-              <SelectItem value="USD">USD — Dollar américain</SelectItem>
-              <SelectItem value="EUR">EUR — Euro</SelectItem>
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="EUR">EUR</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="bio">Bio / description</Label>
+          <Label htmlFor="bio">Bio</Label>
           <textarea
             id="bio"
             name="bio"
             value={formData.bio}
             onChange={handleInputChange}
-            placeholder="Décrivez votre entreprise..."
+            placeholder="Courte description"
             className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            rows={4}
+            rows={3}
           />
-          <p className="text-xs text-muted-foreground">Visible sur votre page de paiement</p>
         </div>
 
         <div className="min-w-0 space-y-1.5">
@@ -351,61 +332,60 @@ export function Profile() {
             name="skills"
             value={formData.skills}
             onChange={handleInputChange}
-            placeholder="Ex: Web Design, E-commerce, Consulting"
+            placeholder="Web Design, Consulting…"
           />
         </div>
 
-        <Button onClick={handleSave} disabled={saving} className="w-full" size="lg">
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full bg-[#0b3b78] hover:bg-[#0a3266]"
+          size="lg"
+        >
           <Save className="mr-2 h-4 w-4" />
-          {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </section>
 
       {profile && (
         <>
-          <div className="h-px bg-border" />
+          <div className="h-px bg-[#e4edf6]" />
           <section className="space-y-4">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">Statut KYC</h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">Vérification d&apos;identité pour les retraits</p>
-            </div>
+            <h2 className="text-base font-semibold text-[#0b2f63]">KYC</h2>
             <div className="flex flex-wrap items-center gap-2">
               {profile.kyc_status === 'verified' && (
                 <>
-                  <CheckCircle2 className="shrink-0 text-green-600" size={20} />
-                  <span className="font-semibold text-green-600">Vérifié</span>
+                  <CheckCircle2 className="shrink-0 text-green-600" size={18} />
+                  <span className="text-sm font-semibold text-green-600">Vérifié</span>
                 </>
               )}
               {profile.kyc_status === 'pending' && (
                 <>
-                  <Clock className="shrink-0 text-yellow-600" size={20} />
-                  <span className="font-semibold text-yellow-600">En attente</span>
+                  <Clock className="shrink-0 text-amber-600" size={18} />
+                  <span className="text-sm font-semibold text-amber-600">En cours</span>
                 </>
               )}
               {profile.kyc_status === 'rejected' && (
                 <>
-                  <AlertCircle className="shrink-0 text-red-600" size={20} />
-                  <span className="font-semibold text-red-600">Rejeté</span>
+                  <AlertCircle className="shrink-0 text-red-600" size={18} />
+                  <span className="text-sm font-semibold text-red-600">Rejeté</span>
                 </>
               )}
               {profile.kyc_status === 'not_submitted' && (
                 <>
-                  <AlertCircle className="shrink-0 text-muted-foreground" size={20} />
-                  <span className="font-semibold text-muted-foreground">Non soumis</span>
+                  <AlertCircle className="shrink-0 text-[#5c7188]" size={18} />
+                  <span className="text-sm font-semibold text-[#5c7188]">Non soumis</span>
                 </>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">
-              {profile.kyc_status === 'verified' && 'Vous pouvez effectuer des retraits sans limitation.'}
-              {profile.kyc_status === 'pending' &&
-                'Votre demande est en cours de vérification. Vous serez notifié dans 24-48h.'}
-              {profile.kyc_status === 'rejected' && 'Veuillez soumettre de nouveaux documents valides.'}
-              {profile.kyc_status === 'not_submitted' && 'Vérifiez votre identité pour effectuer des retraits.'}
-            </p>
             {(profile.kyc_status === 'rejected' || profile.kyc_status === 'not_submitted') && (
-              <Button onClick={() => navigate('/dashboard/kyc')} className="w-full" size="lg">
+              <Button
+                onClick={() => navigate('/dashboard/kyc')}
+                className="w-full bg-[#0b3b78] hover:bg-[#0a3266]"
+                size="lg"
+              >
                 <FileUp className="mr-2 h-4 w-4 shrink-0" />
-                <span className="truncate">Vérifier le profil (KYC)</span>
+                <span className="truncate">Vérifier mon identité</span>
                 <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
               </Button>
             )}

@@ -37,7 +37,7 @@ const navItems = [
   { href: "/dashboard/support", label: "Support", icon: MessageCircle },
   { href: "/dashboard/feedback", label: "Avis", icon: MessageSquareQuote },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
-  { href: "/dashboard/profile", label: "Profil", icon: User },
+  { href: "/dashboard/profile", label: "Paramètres", icon: User },
 ];
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
@@ -64,38 +64,63 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
     navigate("/auth/signin");
   };
 
+  const NavLink = ({
+    href,
+    label,
+    icon: Icon,
+    onClick,
+  }: {
+    href: string;
+    label: string;
+    icon: typeof LayoutDashboard;
+    onClick?: () => void;
+  }) => {
+    const isActive =
+      href === "/dashboard"
+        ? location.pathname === "/dashboard"
+        : location.pathname === href || location.pathname.startsWith(`${href}/`);
+
+    return (
+      <Link
+        to={href}
+        onClick={onClick}
+        className={cn(
+          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+          isActive
+            ? "bg-[#0b3b78] text-white shadow-[0_10px_22px_rgba(11,59,120,.22)]"
+            : "text-[#6a7f96] hover:bg-white/10 hover:text-white"
+        )}
+      >
+        <span
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+            isActive ? "bg-white/15 text-white" : "bg-white/5 text-[#9bb0c7] group-hover:bg-white/10 group-hover:text-white"
+          )}
+        >
+          <Icon className="h-4 w-4" strokeWidth={1.75} />
+        </span>
+        {label}
+      </Link>
+    );
+  };
+
   return (
-    <div className="min-h-[100dvh] overflow-x-hidden bg-[#f6f9fd]">
-      <aside className="fixed left-0 top-0 z-40 hidden h-[100dvh] w-[17rem] border-r border-[#dbe6f2] bg-white lg:block">
+    <div className="min-h-[100dvh] overflow-x-hidden bg-[#eef3f9]">
+      <aside className="fixed left-0 top-0 z-40 hidden h-[100dvh] w-[17rem] bg-[#0a2f5f] lg:block">
         <div className="flex h-full flex-col">
-          <div className="flex h-[4.75rem] items-center justify-between border-b border-[#e4edf6] px-5">
-            <Logo size="sm" to="/dashboard" />
-            <NotificationBell />
+          <div className="flex h-[4.75rem] items-center justify-between border-b border-white/10 px-5">
+            <Logo size="sm" to="/dashboard" variant="white" />
+            <NotificationBell className="border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white" />
           </div>
           <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-[#0b3b78] text-white shadow-[0_8px_18px_rgba(11,59,120,.15)]"
-                      : "text-[#5c7188] hover:bg-[#f1f6fc] hover:text-[#0b3b78]"
-                  )}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {navItems.map((item) => (
+              <NavLink key={item.href} {...item} />
+            ))}
           </nav>
-          <div className="border-t border-[#e4edf6] p-4">
+          <div className="border-t border-white/10 p-4">
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+              className="w-full justify-start gap-3 text-[#9bb0c7] hover:bg-white/10 hover:text-white"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
@@ -124,42 +149,36 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
         <div className="fixed inset-0 z-[60] lg:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-fidexa-ink/40"
+            className="absolute inset-0 bg-[#041628]/50"
             aria-label="Fermer le menu"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="absolute right-0 top-0 flex h-full w-[min(18rem,88vw)] flex-col border-l border-border bg-card shadow-xl">
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-border/80 px-4 sm:h-16">
-              <Logo size="sm" to="/dashboard" />
-              <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} aria-label="Fermer">
+          <aside className="absolute right-0 top-0 flex h-full w-[min(18rem,88vw)] flex-col bg-[#0a2f5f] shadow-2xl">
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4 sm:h-16">
+              <Logo size="sm" to="/dashboard" variant="white" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/10"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Fermer"
+              >
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  {...item}
+                  onClick={() => setMobileMenuOpen(false)}
+                />
+              ))}
             </nav>
-            <div className="shrink-0 border-t border-border/80 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+                className="w-full justify-start gap-3 text-[#9bb0c7] hover:bg-white/10 hover:text-white"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   handleLogout();
@@ -182,4 +201,3 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
 };
 
 export default DashboardLayout;
-
