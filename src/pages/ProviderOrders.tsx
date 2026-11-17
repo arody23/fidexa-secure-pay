@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { PlayCircle, CheckCircle, Package, Clock, AlertTriangle, Send, Scale, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -222,7 +221,7 @@ export default function ProviderOrders() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
       </div>
     );
   }
@@ -230,44 +229,40 @@ export default function ProviderOrders() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold md:text-3xl">Commandes à traiter</h1>
-        <p className="mt-1 text-muted-foreground">
-          {orders.length} commande(s) active(s)
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
+          Commandes à traiter
+        </h1>
+        <p className="mt-1 text-sm text-[#5c7188]">{orders.length} active(s)</p>
       </div>
 
       {orders.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Package className="mx-auto mb-4 h-16 w-16 text-muted-foreground/40" />
-            <p className="text-muted-foreground">Aucune commande active</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl bg-white py-12 text-center ring-1 ring-[#dbe6f2]">
+          <Package className="mx-auto mb-4 h-16 w-16 text-[#5c7188]/30" />
+          <p className="text-[#5c7188]">Aucune commande active</p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {orders.map((order) => (
-            <Card key={order.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">
-                    {order.client_name || 'Client'}
-                  </CardTitle>
-                  {getStatusBadge(order.order_status || 'paid')}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <section key={order.id} className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-[#0b2f63]">
+                  {order.client_name || 'Client'}
+                </h2>
+                {getStatusBadge(order.order_status || 'paid')}
+              </div>
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Description</p>
-                  <p className="font-medium">{order.description}</p>
+                  <p className="text-sm text-[#5c7188]">Description</p>
+                  <p className="font-medium text-[#0b2f63]">{order.description}</p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Montant</span>
+                  <span className="text-sm text-[#5c7188]">Montant</span>
                   <span className="text-lg font-semibold">
                     {formatAmount(order.amount, currency)}
                   </span>
                 </div>
                 {order.started_at && (
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-[#5c7188]">
                     <Clock className="mr-1 inline h-4 w-4" />
                     Démarré le{' '}
                     {new Date(order.started_at).toLocaleDateString('fr-FR')}
@@ -313,11 +308,8 @@ export default function ProviderOrders() {
                     </Button>
                   )}
                   {order.order_status === 'completed' && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-                      <p className="font-semibold">En attente de la validation du client</p>
-                      <p className="mt-1 text-amber-800/90">
-                        Vous avez finalisé la commande. Les fonds seront libérés dès que le client valide la livraison.
-                      </p>
+                    <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-950 ring-1 ring-amber-200">
+                      <p className="font-semibold">En attente de validation client</p>
                     </div>
                   )}
                   {order.order_status === 'disputed' && (
@@ -330,14 +322,9 @@ export default function ProviderOrders() {
                             : 'Litige en cours — votre réponse est requise'}
                         </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {refundRequestIds[order.id]
-                          ? "Le client demande l'annulation avant démarrage. Donnez votre version des faits ; FidexaPay appliquera la politique de remboursement."
-                          : "Le client a signalé un problème. Décrivez précisément ce qui s'est passé pour que FidexaPay tranche équitablement."}
-                      </p>
                       {existingResponses[order.id] ? (
-                        <div className="rounded-md border bg-background p-3 text-sm">
-                          <Label className="text-xs text-muted-foreground">Votre réponse soumise</Label>
+                        <div className="rounded-xl bg-white p-3 text-sm ring-1 ring-[#dbe6f2]">
+                          <Label className="text-xs text-[#5c7188]">Votre réponse soumise</Label>
                           <p className="mt-1 whitespace-pre-wrap">{existingResponses[order.id]}</p>
                         </div>
                       ) : (
@@ -373,8 +360,8 @@ export default function ProviderOrders() {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           ))}
         </div>
       )}

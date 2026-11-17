@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Wallet as WalletIcon } from 'lucide-react';
@@ -204,13 +203,10 @@ export function Withdrawal() {
 
   if (loading) {
     return (
-              <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Chargement...</p>
-          </div>
-        </div>
-          );
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
+      </div>
+    );
   }
 
   const currency = providerCurrency || normalizeCurrency(profile?.currency || (profile?.country ? getCurrencyByCountry(profile.country) : 'FCFA'));
@@ -222,57 +218,42 @@ export function Withdrawal() {
   );
 
   return (
-          <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-bold">Retraits</h1>
-          <p className="text-gray-600 mt-1">Retirez vos gains après validation client des commandes</p>
-        </div>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">Retraits</h1>
 
-        {wallet && (
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-                  <WalletIcon className="h-4 w-4" /> Solde disponible
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-primary">
-                  {formatCurrencyAmount(wallet.available_balance, wallet.currency)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Total gagné (validé)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xl font-semibold">{formatCurrencyAmount(wallet.total_earned, wallet.currency)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Déjà retiré</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xl font-semibold">{formatCurrencyAmount(wallet.total_withdrawn, wallet.currency)}</p>
-              </CardContent>
-            </Card>
+      {wallet && (
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
+            <p className="flex items-center gap-2 text-sm font-medium text-[#5c7188]">
+              <WalletIcon className="h-4 w-4" /> Solde disponible
+            </p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums text-[#0b3b78]">
+              {formatCurrencyAmount(wallet.available_balance, wallet.currency)}
+            </p>
           </div>
-        )}
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
+            <p className="text-sm font-medium text-[#5c7188]">Total gagné (validé)</p>
+            <p className="mt-2 text-xl font-semibold tabular-nums text-[#0b2f63]">
+              {formatCurrencyAmount(wallet.total_earned, wallet.currency)}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
+            <p className="text-sm font-medium text-[#5c7188]">Déjà retiré</p>
+            <p className="mt-2 text-xl font-semibold tabular-nums text-[#0b2f63]">
+              {formatCurrencyAmount(wallet.total_withdrawn, wallet.currency)}
+            </p>
+          </div>
+        </div>
+      )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Politique de retrait</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-              {policyLines.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+      <section className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
+        <h2 className="mb-3 text-base font-semibold text-[#0b2f63]">Politique de retrait</h2>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-[#5c7188]">
+          {policyLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </section>
 
         {error && (
           <Alert variant="destructive">
@@ -297,17 +278,17 @@ export function Withdrawal() {
           </Alert>
         )}
 
-        {/* Withdrawal Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Nouvelle Demande de Retrait</CardTitle>
-            <CardDescription>
-              {profile?.country
-                ? `Devise: ${currency} • ${COUNTRIES_DATA[profile.country as keyof typeof COUNTRIES_DATA]?.nameFR}`
-                : 'Complétez votre profil avec votre pays'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
+          <h2 className="mb-1 text-base font-semibold text-[#0b2f63]">Nouvelle demande de retrait</h2>
+          {profile?.country && (
+            <p className="mb-5 text-sm text-[#5c7188]">
+              {currency}
+              {COUNTRIES_DATA[profile.country as keyof typeof COUNTRIES_DATA]?.nameFR
+                ? ` · ${COUNTRIES_DATA[profile.country as keyof typeof COUNTRIES_DATA]?.nameFR}`
+                : ''}
+            </p>
+          )}
+          <div className="space-y-6">
             {isKycVerified ? (
               <>
                 {/* Amount */}
@@ -326,12 +307,12 @@ export function Withdrawal() {
                       step="0.01"
                       disabled={!isKycVerified || submitting}
                     />
-                    <div className="px-3 py-2 bg-gray-100 rounded-lg border flex items-center">
+                    <div className="flex items-center rounded-lg border border-[#dbe6f2] bg-[#f7fafd] px-3 py-2">
                       <span className="font-semibold">{currency}</span>
                     </div>
                   </div>
                   {formData.amount && (
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="mt-2 text-xs text-[#5c7188]">
                       {formatCurrencyAmount(parseFloat(formData.amount), currency)}
                     </p>
                   )}
@@ -449,32 +430,27 @@ export function Withdrawal() {
                 </Button>
               </>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">Votre profil doit être vérifié pour accéder aux retraits</p>
+              <div className="py-8 text-center">
                 <Button variant="outline">Complétez votre KYC</Button>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* Withdrawal History */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Historique des Retraits</CardTitle>
-            <CardDescription>
-              {withdrawals.length === 0 ? 'Aucun retrait effectué' : `${withdrawals.length} retrait(s)`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
+          <h2 className="mb-4 text-base font-semibold text-[#0b2f63]">Historique des retraits</h2>
             {withdrawals.length > 0 ? (
               <div className="space-y-3">
                 {withdrawals.map((withdrawal) => (
-                  <div key={withdrawal.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={withdrawal.id}
+                    className="flex items-center justify-between rounded-xl bg-[#f7fafd] p-3 ring-1 ring-[#dbe6f2]"
+                  >
                     <div>
                       <p className="font-medium">
                       {formatCurrencyAmount(withdrawal.amount, withdrawal.currency || currency)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-[#5c7188]">
                         {withdrawal.method === 'mobile_money'
                           ? `${withdrawal.mobile_money_provider} · ${withdrawal.phone_number}`
                           : 'Virement bancaire'}{' '}
@@ -509,14 +485,11 @@ export function Withdrawal() {
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 py-8">
-                Aucun retrait. Créez votre première demande ci-dessus!
-              </p>
+              <p className="py-8 text-center text-sm text-[#5c7188]">Aucun retrait</p>
             )}
-          </CardContent>
-        </Card>
-      </div>
-      );
+        </section>
+    </div>
+  );
 }
 
 export default Withdrawal;

@@ -7,15 +7,13 @@
  * Configuration de la caméra
  */
 export const CAMERA_CONFIG = {
-  // Contraintes vidéo
   video: {
-    facingMode: 'user',
+    /** Selfie: user · Documents: environment (arrière) */
+    facingMode: 'environment' as 'user' | 'environment',
     width: { ideal: 1280 },
     height: { ideal: 720 },
-    // Optional pour meilleure performance
     aspectRatio: { ideal: 16 / 9 },
   },
-  // Pas d'audio requis
   audio: false,
 };
 

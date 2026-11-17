@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Save, AlertCircle, Clock, CheckCircle2, FileUp, ArrowRight } from 'lucide-react';
+import { Camera, Save, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { UserProfile } from '@/types/index';
 import { loadUserProfile, updateUserProfile, uploadUserAvatar } from '@/lib/userService';
 import { useProvider } from '@/contexts/ProviderContext';
@@ -204,11 +204,25 @@ export function Profile() {
                 {profile?.full_name?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
+            {profile?.kyc_status === 'verified' && (
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-white">
+                <CheckCircle2 className="h-5 w-5 fill-[#1d9bf0] text-white" strokeWidth={0} />
+                <span className="sr-only">Vérifié</span>
+              </span>
+            )}
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
               <Camera className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
           </Label>
-          <div className="min-w-0 w-full flex-1 text-center sm:text-left">
+          <div className="min-w-0 w-full flex-1 space-y-1 text-center sm:text-left">
+            <div className="flex items-center justify-center gap-1.5 sm:justify-start">
+              <p className="truncate text-lg font-semibold text-[#0b2f63]">
+                {profile?.full_name || 'Compte'}
+              </p>
+              {profile?.kyc_status === 'verified' && (
+                <CheckCircle2 className="h-5 w-5 shrink-0 fill-[#1d9bf0] text-white" strokeWidth={0} aria-label="Vérifié" />
+              )}
+            </div>
             <Label htmlFor="avatar-upload" className="inline-block cursor-pointer">
               <Button asChild variant="outline" disabled={uploading} className="w-full border-[#dbe6f2] sm:w-auto">
                 <span>
@@ -347,49 +361,26 @@ export function Profile() {
         </Button>
       </section>
 
-      {profile && (
+      {profile && profile.kyc_status !== 'verified' && (
         <>
           <div className="h-px bg-[#e4edf6]" />
-          <section className="space-y-4">
-            <h2 className="text-base font-semibold text-[#0b2f63]">KYC</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              {profile.kyc_status === 'verified' && (
-                <>
-                  <CheckCircle2 className="shrink-0 text-green-600" size={18} />
-                  <span className="text-sm font-semibold text-green-600">Vérifié</span>
-                </>
-              )}
-              {profile.kyc_status === 'pending' && (
-                <>
-                  <Clock className="shrink-0 text-amber-600" size={18} />
-                  <span className="text-sm font-semibold text-amber-600">En cours</span>
-                </>
-              )}
-              {profile.kyc_status === 'rejected' && (
-                <>
-                  <AlertCircle className="shrink-0 text-red-600" size={18} />
-                  <span className="text-sm font-semibold text-red-600">Rejeté</span>
-                </>
-              )}
-              {profile.kyc_status === 'not_submitted' && (
-                <>
-                  <AlertCircle className="shrink-0 text-[#5c7188]" size={18} />
-                  <span className="text-sm font-semibold text-[#5c7188]">Non soumis</span>
-                </>
-              )}
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/kyc')}
+            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-4 text-left ring-1 ring-[#dbe6f2] transition-colors hover:bg-[#f7fafd]"
+          >
+            <div className="min-w-0">
+              <p className="font-semibold text-[#0b2f63]">Vérification d’identité</p>
+              <p className="mt-0.5 text-sm text-[#5c7188]">
+                {profile.kyc_status === 'pending'
+                  ? 'Demande en cours d’examen'
+                  : profile.kyc_status === 'rejected'
+                    ? 'Nouvelle soumission requise'
+                    : 'Requis pour les retraits'}
+              </p>
             </div>
-            {(profile.kyc_status === 'rejected' || profile.kyc_status === 'not_submitted') && (
-              <Button
-                onClick={() => navigate('/dashboard/kyc')}
-                className="w-full bg-[#0b3b78] hover:bg-[#0a3266]"
-                size="lg"
-              >
-                <FileUp className="mr-2 h-4 w-4 shrink-0" />
-                <span className="truncate">Vérifier mon identité</span>
-                <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
-              </Button>
-            )}
-          </section>
+            <ArrowRight className="h-5 w-5 shrink-0 text-[#0b3b78]" />
+          </button>
         </>
       )}
 

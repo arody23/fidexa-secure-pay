@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { MessageSquareQuote, Send, Star } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -89,22 +88,16 @@ export default function ProviderFeedback() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Laisser un avis</h1>
-        <p className="mt-1 text-muted-foreground">
-          Partagez votre expérience FidexaPay. Les avis sont modérés avant publication.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
+        Laisser un avis
+      </h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquareQuote className="h-5 w-5 text-primary" />
-            Nouveau témoignage
-          </CardTitle>
-          <CardDescription>Votre avis pourra apparaître sur la page d&apos;accueil.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-[#0b2f63]">
+          <MessageSquareQuote className="h-5 w-5 text-[#0b3b78]" />
+          Nouveau témoignage
+        </h2>
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label>Note</Label>
             <div className="flex gap-1">
@@ -133,23 +126,22 @@ export default function ProviderFeedback() {
               placeholder="Ex: FidexaPay m’a permis d’encaisser en Mobile Money sans stress…"
               maxLength={800}
             />
-            <p className="text-xs text-muted-foreground">{content.trim().length}/800</p>
+            <p className="text-xs text-[#5c7188]">{content.trim().length}/800</p>
           </div>
           <Button className="w-full gap-2" onClick={submit} disabled={loading}>
             <Send className="h-4 w-4" />
             {loading ? 'Envoi…' : 'Envoyer pour validation'}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Mes avis</h2>
+        <h2 className="text-base font-semibold text-[#0b2f63]">Mes avis</h2>
         {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucun avis envoyé pour le moment.</p>
+          <p className="text-sm text-[#5c7188]">Aucun avis</p>
         ) : (
           items.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="space-y-2 p-4">
+            <section key={item.id} className="space-y-2 rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2]">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
                     {Array.from({ length: item.rating }).map((_, i) => (
@@ -160,12 +152,11 @@ export default function ProviderFeedback() {
                     {statusLabel[item.status] || item.status}
                   </Badge>
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">{item.content}</p>
+                <p className="text-sm leading-relaxed text-[#5c7188]">{item.content}</p>
                 {item.admin_note && item.status === 'rejected' && (
                   <p className="text-xs text-destructive">Motif : {item.admin_note}</p>
                 )}
-              </CardContent>
-            </Card>
+            </section>
           ))
         )}
       </div>

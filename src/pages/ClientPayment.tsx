@@ -3,10 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield,
-  Clock,
   Check,
   AlertTriangle,
-  CreditCard,
   Star,
   Upload,
   Loader2,
@@ -17,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -29,7 +26,8 @@ import { createKPayPayment, getKPayAvailability, verifyKPayPayment } from "@/lib
 import { KPAY_ENABLED } from "@/config";
 import { SITE } from "@/config/site";
 import { formatAmount } from "@/lib/currency";
-import { getKPayCountry, KPAY_COUNTRIES } from "@/lib/kpayProviders";
+import { getKPayCountry, COVERAGE_COUNTRIES } from "@/lib/kpayProviders";
+import { ProviderNetworkIcon, WhatsAppBrandIcon } from "@/components/brand/ProviderNetworkIcon";
 import OrderTracker from "@/components/OrderTracker";
 
 interface PaymentLink {
@@ -564,326 +562,253 @@ const ClientPayment = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-border/80 bg-card/95 backdrop-blur-xl">
+    <div className="min-h-[100dvh] bg-[#eef3f9]">
+      <header className="sticky top-0 z-30 border-b border-[#dbe6f2] bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:h-16">
           <Logo size="sm" />
-          <Badge variant="outline" className="gap-1 text-xs">
-            <Shield className="h-3 w-3" />
-            Paiement sécurisé
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0b3b78]/8 px-3 py-1 text-xs font-semibold text-[#0b3b78]">
+            <Shield className="h-3.5 w-3.5" strokeWidth={2} />
+            Escrow
+          </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-6 pb-32 md:pb-8">
-        <div className="space-y-6">
-          {/* Provider Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  {/* Avatar du prestataire */}
-                  {provider?.avatar_url ? (
-                    <img 
-                      src={provider.avatar_url}
-                      alt={provider.full_name}
-                      className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/20"
-                    />
-                  ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground font-display text-xl font-bold ring-2 ring-primary/20">
-                      {provider?.full_name?.charAt(0).toUpperCase() || '?'}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <h2 className="font-display text-xl font-bold">
-                      {provider?.full_name || 'Prestataire'}
-                    </h2>
-                    <div className="flex items-center gap-2">
-                      <StarRating rating={provider?.rating || 0} showValue />
-                      {provider?.rating && (
-                        <span className="text-sm text-muted-foreground">
-                          ({provider.rating.toFixed(1)})
-                        </span>
-                      )}
-                    </div>
-                  </div>
+      <main className="mx-auto max-w-2xl space-y-4 px-4 py-6 pb-32 md:pb-8">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2]"
+        >
+          <div className="flex items-center gap-4">
+            {provider?.avatar_url ? (
+              <img
+                src={provider.avatar_url}
+                alt=""
+                className="h-14 w-14 rounded-2xl object-cover"
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0b3b78] text-lg font-bold text-white">
+                {provider?.full_name?.charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-lg font-semibold text-[#0b2f63]">
+                {provider?.full_name || "Prestataire"}
+              </h1>
+              <StarRating rating={provider?.rating || 0} showValue />
+            </div>
+          </div>
+          {provider?.bio?.trim() ? (
+            <p className="mt-4 border-t border-[#eef3f9] pt-4 text-sm leading-relaxed text-[#5c7188]">
+              {provider.bio.trim()}
+            </p>
+          ) : null}
+        </motion.section>
+
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="space-y-4 rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2]"
+        >
+          <div className="rounded-2xl bg-[#0b3b78] px-5 py-6 text-center text-white">
+            <p className="text-sm font-medium text-white/70">Montant</p>
+            <p className="mt-2 font-display text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
+              {formatAmount(paymentData.amount, linkCurrency)}
+            </p>
+          </div>
+
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-[#5c7188]">Prestation</span>
+              <span className="max-w-[60%] text-right font-medium text-[#0b2f63]">
+                {paymentData.description}
+              </span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-[#5c7188]">Délai</span>
+              <span className="font-medium text-[#0b2f63]">{paymentData.delivery_days} j</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[#5c7188]">Statut</span>
+              <StatusBadge
+                status={
+                  (paymentData.is_paid
+                    ? paymentData.status === "pending"
+                      ? "paid"
+                      : paymentData.status
+                    : paymentData.status) as OrderStatus
+                }
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl bg-[#f3f7fc] px-4 py-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0b3b78] text-white">
+              <Shield className="h-5 w-5" strokeWidth={1.75} />
+            </div>
+            <p className="text-sm font-medium text-[#0b2f63]">
+              Fonds protégés jusqu’à validation de la livraison
+            </p>
+          </div>
+
+          {!paymentData.is_paid ? (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="clientCountry" className="text-sm font-medium text-[#0b2f63]">
+                    Pays de paiement
+                  </Label>
+                  <Select value={clientCountry} onValueChange={setClientCountry}>
+                    <SelectTrigger id="clientCountry" className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COVERAGE_COUNTRIES.map((country) => (
+                        <SelectItem key={country.code} value={country.code}>
+                          <span className="inline-flex items-center gap-2">
+                            <img
+                              src={`/assets/flags/${country.code.toLowerCase()}.svg`}
+                              alt=""
+                              className="h-4 w-6 rounded-[2px] object-cover"
+                            />
+                            {country.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                {provider?.bio?.trim() ? (
-                  <p className="mt-4 border-t border-border pt-4 text-sm leading-relaxed text-muted-foreground">
-                    {provider.bio.trim()}
-                  </p>
-                ) : null}
-              </CardContent>
-            </Card>
-          </motion.div>
 
-          {/* Payment Details */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  Détails du paiement
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="rounded-2xl border border-border bg-muted/40 p-6 text-center">
-                  <p className="mb-2 text-sm text-muted-foreground">
-                    Montant à payer
-                  </p>
-                  <p className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-                    {formatAmount(paymentData.amount, linkCurrency)}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Le montant est converti au taux KPay en vigueur dans la devise de votre opérateur, si nécessaire.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Description</span>
-                    <span className="text-right max-w-[250px]">
-                      {paymentData.description}
-                    </span>
+                {visibleProviders.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-3 rounded-xl bg-[#f7fafd] px-3 py-3">
+                    {visibleProviders.map((providerOption) => (
+                      <ProviderNetworkIcon
+                        key={providerOption.code}
+                        label={providerOption.label}
+                        className="h-9 max-w-[6.5rem]"
+                      />
+                    ))}
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Délai de livraison
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {paymentData.delivery_days} jours
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Statut</span>
-                    <StatusBadge status={(paymentData.is_paid ? (paymentData.status === 'pending' ? 'paid' : paymentData.status) : paymentData.status) as OrderStatus} />
-                  </div>
-                </div>
-
-                {/* Escrow Info */}
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                  <div className="flex items-start gap-3">
-                    <Shield className="mt-0.5 h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">Paiement séquestré</p>
-                      <p className="text-sm text-muted-foreground">
-                        Votre paiement est sécurisé et ne sera libéré qu'après
-                        validation de la livraison.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {!paymentData.is_paid ? (
-                  <>
-                    <div className="space-y-4 rounded-lg border border-border p-3 sm:p-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="clientCountry" className="text-sm font-medium">
-                          Pays du client
-                        </Label>
-                        <Select value={clientCountry} onValueChange={setClientCountry}>
-                          <SelectTrigger id="clientCountry">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {KPAY_COUNTRIES.map((country) => (
-                              <SelectItem key={country.code} value={country.code}>
-                                {country.phonePrefix} {country.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Vérifiez ou corrigez le pays avant de saisir le numéro Mobile Money.
-                        </p>
-                      </div>
-
-                      <div className="rounded-md bg-muted/50 p-3">
-                        <p className="text-xs font-medium text-foreground">
-                          Moyens de paiement disponibles au {selectedKPayCountry.name}
-                        </p>
-                        {visibleProviders.length ? (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {visibleProviders.map((providerOption) => (
-                              <Badge key={providerOption.code} variant="secondary">
-                                {providerOption.label}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Aucun opérateur disponible pour ce pays actuellement.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="clientMomoPhone" className="text-sm font-medium">
-                          Numéro Mobile Money
-                        </Label>
-                        <Input
-                          id="clientMomoPhone"
-                          type="tel"
-                          inputMode="tel"
-                          placeholder={`${selectedKPayCountry.phonePrefix} 8XXXXXXX`}
-                          value={clientMomoPhone}
-                          onChange={(event) => setClientMomoPhone(event.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Ce numéro recevra uniquement la demande de paiement USSD.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="clientWhatsAppPhone" className="text-sm font-medium">
-                          Numéro WhatsApp pour le code de suivi
-                        </Label>
-                        <Input
-                          id="clientWhatsAppPhone"
-                          type="tel"
-                          inputMode="tel"
-                          placeholder={`${selectedKPayCountry.phonePrefix} 8XXXXXXX`}
-                          value={clientWhatsAppPhone}
-                          onChange={(event) => setClientWhatsAppPhone(event.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Ce numéro recevra le code WhatsApp après la confirmation du paiement.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-3 rounded-lg border border-border p-3 sm:p-4">
-                      <p className="text-sm font-medium text-foreground">
-                        Conditions applicables avant le paiement
-                      </p>
-                      <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                        En cliquant sur « Payer en sécurité », vous confirmez avoir lu et accepté les{' '}
-                        <Link
-                          to={SITE.legal.prePayment}
-                          className="text-primary underline"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          conditions applicables avant le paiement
-                        </Link>
-                        .
-                      </p>
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          id="terms"
-                          checked={acceptedTerms}
-                          onCheckedChange={(v) => setAcceptedTerms(v === true)}
-                          className="mt-0.5 shrink-0"
-                        />
-                        <label
-                          htmlFor="terms"
-                          className="min-w-0 cursor-pointer text-xs leading-relaxed text-muted-foreground sm:text-sm"
-                        >
-                          J&apos;ai lu et j&apos;accepte les{' '}
-                          <Link
-                            to={SITE.legal.terms}
-                            className="text-primary underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Conditions d&apos;utilisation
-                          </Link>
-                          , la{' '}
-                          <Link
-                            to={SITE.legal.privacy}
-                            className="text-primary underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Politique de confidentialité
-                          </Link>
-                          , la{' '}
-                          <Link
-                            to={SITE.legal.escrow}
-                            className="text-primary underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Politique de paiement sécurisé
-                          </Link>
-                          , la{' '}
-                          <Link
-                            to={SITE.legal.refund}
-                            className="text-primary underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Politique de remboursement
-                          </Link>{' '}
-                          et la{' '}
-                          <Link
-                            to={SITE.legal.disputes}
-                            className="text-primary underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Politique de gestion des litiges
-                          </Link>{' '}
-                          de FidexaPay.
-                        </label>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="hero"
-                      size="xl"
-                      className="hidden w-full md:flex"
-                      onClick={handlePay}
-                      disabled={paying || awaitingKPayConfirmation || !acceptedTerms}
-                    >
-                      {paying ? (
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      ) : (
-                        <CreditCard className="mr-2 h-5 w-5" />
-                      )}
-                      {paying ? 'Initialisation...' : awaitingKPayConfirmation ? 'Validation en attente...' : 'Payer en sécurité'}
-                    </Button>
-                  </>
-                ) : (
-                  <OrderTracker
-                    linkId={linkId || ''}
-                    orderStatus={paymentData.status || paymentData.order_status || 'paid'}
-                    canCancel={paymentData.can_cancel !== false}
-                    amount={paymentData.amount}
-                    onStatusUpdate={() => {
-                      // Recharger les données
-                      window.location.reload();
-                    }}
-                    onValidateDelivery={handleValidateDelivery}
-                  />
                 )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="clientMomoPhone" className="text-sm font-medium text-[#0b2f63]">
+                    Mobile Money
+                  </Label>
+                  <div className="flex min-w-0 gap-2">
+                    <span className="inline-flex h-11 shrink-0 items-center rounded-md border border-input bg-[#f6f9fd] px-3 text-sm font-medium tabular-nums text-[#0b3b78]">
+                      {selectedKPayCountry.phonePrefix}
+                    </span>
+                    <Input
+                      id="clientMomoPhone"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="Numéro"
+                      value={clientMomoPhone}
+                      onChange={(event) => setClientMomoPhone(event.target.value)}
+                      className="h-11 min-w-0 flex-1 text-base"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="clientWhatsAppPhone"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-[#0b2f63]"
+                  >
+                    <WhatsAppBrandIcon className="h-4 w-4 text-[#25D366]" />
+                    WhatsApp (suivi)
+                  </Label>
+                  <div className="flex min-w-0 gap-2">
+                    <span className="inline-flex h-11 shrink-0 items-center rounded-md border border-input bg-[#f6f9fd] px-3 text-sm font-medium tabular-nums text-[#0b3b78]">
+                      {selectedKPayCountry.phonePrefix}
+                    </span>
+                    <Input
+                      id="clientWhatsAppPhone"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="Numéro"
+                      value={clientWhatsAppPhone}
+                      onChange={(event) => setClientWhatsAppPhone(event.target.value)}
+                      className="h-11 min-w-0 flex-1 text-base"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 border-t border-[#eef3f9] pt-4">
+                <Checkbox
+                  id="terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                  className="mt-0.5 shrink-0"
+                />
+                <label
+                  htmlFor="terms"
+                  className="min-w-0 cursor-pointer text-xs leading-relaxed text-[#5c7188]"
+                >
+                  J’accepte les{" "}
+                  <Link to={SITE.legal.terms} className="font-medium text-[#0b3b78] underline" target="_blank" rel="noopener noreferrer">
+                    CGU
+                  </Link>
+                  , la{" "}
+                  <Link to={SITE.legal.privacy} className="font-medium text-[#0b3b78] underline" target="_blank" rel="noopener noreferrer">
+                    confidentialité
+                  </Link>{" "}
+                  et les{" "}
+                  <Link to={SITE.legal.prePayment} className="font-medium text-[#0b3b78] underline" target="_blank" rel="noopener noreferrer">
+                    conditions de paiement
+                  </Link>
+                  .
+                </label>
+              </div>
+
+              <Button
+                size="xl"
+                className="hidden w-full bg-[#0b3b78] hover:bg-[#0a3266] md:flex"
+                onClick={handlePay}
+                disabled={paying || awaitingKPayConfirmation || !acceptedTerms}
+              >
+                {paying ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <Shield className="mr-2 h-5 w-5" />
+                )}
+                {paying
+                  ? "Initialisation…"
+                  : awaitingKPayConfirmation
+                    ? "Validation en attente…"
+                    : "Payer"}
+              </Button>
+            </>
+          ) : (
+            <OrderTracker
+              linkId={linkId || ""}
+              orderStatus={paymentData.status || paymentData.order_status || "paid"}
+              canCancel={paymentData.can_cancel !== false}
+              amount={paymentData.amount}
+              onStatusUpdate={() => {
+                window.location.reload();
+              }}
+              onValidateDelivery={handleValidateDelivery}
+            />
+          )}
+        </motion.section>
       </main>
 
       {/* Barre de paiement fixe — mobile first */}
       {!paymentData.is_paid && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dbe6f2] bg-white/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:hidden">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-display text-xl font-bold">
+            <span className="text-sm text-[#5c7188]">Total</span>
+            <span className="font-display text-xl font-bold tabular-nums text-[#0b2f63]">
               {formatAmount(paymentData.amount, linkCurrency)}
             </span>
           </div>
           <Button
-            variant="hero"
             size="lg"
-            className="w-full"
+            className="w-full bg-[#0b3b78] hover:bg-[#0a3266]"
             onClick={handlePay}
             disabled={paying || awaitingKPayConfirmation || !acceptedTerms}
           >
@@ -892,7 +817,7 @@ const ClientPayment = () => {
             ) : (
               <Shield className="mr-2 h-5 w-5" />
             )}
-            {paying ? 'Initialisation…' : awaitingKPayConfirmation ? 'Validation en attente…' : 'Payer en sécurité'}
+            {paying ? "Initialisation…" : awaitingKPayConfirmation ? "Validation en attente…" : "Payer"}
           </Button>
         </div>
       )}

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, Clock, XCircle, ArrowRight, ArrowLeft, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, XCircle, ArrowRight, ArrowLeft, Trash2, SwitchCamera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useKYCUpload, useCamera } from '@/hooks/useKYC';
@@ -163,7 +163,16 @@ export default function KYC() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { uploadFile, deleteFile } = useKYCUpload();
-  const { videoRef, canvasRef, startCamera, stopCamera, capturePhoto, cameraError } = useCamera();
+  const {
+    videoRef,
+    canvasRef,
+    startCamera,
+    stopCamera,
+    switchCamera,
+    capturePhoto,
+    cameraError,
+    facingMode,
+  } = useCamera();
 
   useEffect(() => {
     loadKycStatus();
@@ -172,9 +181,10 @@ export default function KYC() {
   useEffect(() => {
     if (!showCamera) return;
     let cancelled = false;
+    const facing = currentStep === 'selfie' ? 'user' : 'environment';
     (async () => {
       try {
-        await startCamera();
+        await startCamera(facing);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Erreur caméra');
@@ -186,7 +196,7 @@ export default function KYC() {
       cancelled = true;
       stopCamera();
     };
-  }, [showCamera]);
+  }, [showCamera, currentStep]);
 
   const loadKycStatus = async () => {
     try {
@@ -242,11 +252,19 @@ export default function KYC() {
       if (isFromCamera) {
         blob = await capturePhoto();
       } else if (file) {
-        blob = new Blob([file], { type: file.type });
+        if (!file.type.startsWith('image/')) {
+          setError('Format non supporté.');
+          return;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          setError('Image trop volumineuse.');
+          return;
+        }
+        blob = file;
       }
 
       if (!blob) {
-        setError('Impossible de capturer l\'image');
+        setError("Impossible d'obtenir l'image");
         return;
       }
 
@@ -313,8 +331,9 @@ export default function KYC() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleCapture(false, file);
+      void handleCapture(false, file);
     }
+    e.target.value = '';
   };
 
   const handleDeleteFile = async (filePath: string) => {
@@ -537,32 +556,41 @@ export default function KYC() {
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleCapture(false, file);
-                        }}
+                        capture="user"
+                        onChange={handleFileSelect}
                         className="hidden"
                       />
                     </motion.div>
                   ) : (
                     <motion.div className="space-y-4">
-                      <div className="relative bg-black rounded-xl overflow-hidden shadow-lg" style={{ aspectRatio: '3/4' }}>
+                      <div className="relative overflow-hidden rounded-xl bg-black shadow-lg" style={{ aspectRatio: '3/4' }}>
                         <video
                           ref={videoRef}
                           autoPlay
                           playsInline
-                          className="w-full h-full object-cover"
+                          muted
+                          className="h-full w-full object-cover"
                         />
-                        <div className="absolute inset-0 border-4 border-blue-500 opacity-70 rounded-xl" />
+                        <div className="pointer-events-none absolute inset-0 rounded-xl border-4 border-blue-500/70" />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="secondary"
+                          className="absolute right-3 top-3 h-10 w-10 rounded-full bg-black/55 text-white hover:bg-black/70"
+                          onClick={() => void switchCamera().catch((err) => setError(err instanceof Error ? err.message : 'Caméra'))}
+                          aria-label={facingMode === 'user' ? 'Caméra arrière' : 'Caméra avant'}
+                        >
+                          <SwitchCamera className="h-5 w-5" />
+                        </Button>
                       </div>
                       <canvas ref={canvasRef} className="hidden" />
                       <div className="flex gap-3">
                         <Button
                           onClick={() => handleCapture(true)}
                           disabled={uploading}
-                          className="flex-1 bg-green-600 hover:bg-green-700 h-12 text-base font-semibold rounded-lg"
+                          className="h-12 flex-1 rounded-lg bg-[#0b3b78] text-base font-semibold hover:bg-[#0a3266]"
                         >
-                          {uploading ? 'Capture en cours...' : 'Capturer'}
+                          {uploading ? 'Envoi…' : 'Capturer'}
                         </Button>
                         <Button
                           onClick={() => {
@@ -570,7 +598,7 @@ export default function KYC() {
                             setShowCamera(false);
                           }}
                           variant="outline"
-                          className="flex-1 h-12 font-semibold rounded-lg border-slate-300"
+                          className="h-12 flex-1 rounded-lg font-semibold"
                         >
                           Annuler
                         </Button>
@@ -704,29 +732,41 @@ export default function KYC() {
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         onChange={handleFileSelect}
                         className="hidden"
                       />
                     </motion.div>
                   ) : (
                     <motion.div className="space-y-4">
-                      <div className="relative bg-black rounded-xl overflow-hidden shadow-lg" style={{ aspectRatio: '16/9' }}>
+                      <div className="relative overflow-hidden rounded-xl bg-black shadow-lg" style={{ aspectRatio: '16/9' }}>
                         <video
                           ref={videoRef}
                           autoPlay
                           playsInline
-                          className="w-full h-full object-cover"
+                          muted
+                          className="h-full w-full object-cover"
                         />
-                        <div className="absolute inset-0 border-4 border-amber-500 opacity-70 rounded-xl" />
+                        <div className="pointer-events-none absolute inset-0 rounded-xl border-4 border-amber-500/70" />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="secondary"
+                          className="absolute right-3 top-3 h-10 w-10 rounded-full bg-black/55 text-white hover:bg-black/70"
+                          onClick={() => void switchCamera().catch((err) => setError(err instanceof Error ? err.message : 'Caméra'))}
+                          aria-label={facingMode === 'user' ? 'Caméra arrière' : 'Caméra avant'}
+                        >
+                          <SwitchCamera className="h-5 w-5" />
+                        </Button>
                       </div>
                       <canvas ref={canvasRef} className="hidden" />
                       <div className="flex gap-3">
                         <Button
                           onClick={() => handleCapture(true)}
                           disabled={uploading}
-                          className="flex-1 bg-green-600 hover:bg-green-700 h-12 text-base font-semibold rounded-lg"
+                          className="h-12 flex-1 rounded-lg bg-[#0b3b78] text-base font-semibold hover:bg-[#0a3266]"
                         >
-                          {uploading ? 'Capture en cours...' : 'Capturer'}
+                          {uploading ? 'Envoi…' : 'Capturer'}
                         </Button>
                         <Button
                           onClick={() => {
@@ -734,7 +774,7 @@ export default function KYC() {
                             setShowCamera(false);
                           }}
                           variant="outline"
-                          className="flex-1 h-12 font-semibold rounded-lg border-slate-300"
+                          className="h-12 flex-1 rounded-lg font-semibold"
                         >
                           Annuler
                         </Button>

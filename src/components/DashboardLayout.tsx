@@ -5,18 +5,17 @@ import {
   Link2,
   Package,
   Receipt,
-  Bell,
   User,
   Menu,
   X,
   LogOut,
   Crown,
   Wallet,
-  Shield,
   MessageCircle,
   PlayCircle,
   MessageSquareQuote,
   Plus,
+  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
@@ -24,7 +23,7 @@ import NotificationBell from "@/components/NotificationBell";
 import PushNotificationPrompt from "@/components/layout/PushNotificationPrompt";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { clearProviderCache } from "@/contexts/ProviderContext";
+import { clearProviderCache, useProvider } from "@/contexts/ProviderContext";
 
 const navItems = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -32,12 +31,10 @@ const navItems = [
   { href: "/dashboard/orders", label: "Tous mes liens", icon: Package },
   { href: "/dashboard/active-orders", label: "Commandes actives", icon: PlayCircle },
   { href: "/dashboard/subscriptions", label: "Abonnements", icon: Crown },
-  { href: "/dashboard/kyc", label: "Vérification", icon: Shield },
   { href: "/dashboard/withdrawal", label: "Retraits", icon: Wallet },
   { href: "/dashboard/transactions", label: "Transactions", icon: Receipt },
   { href: "/dashboard/support", label: "Support", icon: MessageCircle },
   { href: "/dashboard/feedback", label: "Avis", icon: MessageSquareQuote },
-  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
   { href: "/dashboard/profile", label: "Paramètres", icon: User },
 ];
 
@@ -52,6 +49,8 @@ const bottomNavItems = [
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useProvider();
+  const kycVerified = profile?.kyc_status === "verified";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -255,6 +254,8 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
               );
             }
 
+            const showVerified = item.href === "/dashboard/profile" && kycVerified;
+
             return (
               <Link
                 key={item.href}
@@ -265,10 +266,19 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <Icon
-                  className={cn("h-5 w-5", isActive && "stroke-[2.25]")}
-                  strokeWidth={isActive ? 2.25 : 1.75}
-                />
+                <span className="relative">
+                  <Icon
+                    className={cn("h-5 w-5", isActive && "stroke-[2.25]")}
+                    strokeWidth={isActive ? 2.25 : 1.75}
+                  />
+                  {showVerified && (
+                    <BadgeCheck
+                      className="absolute -bottom-1 -right-1.5 h-3.5 w-3.5 fill-[#1d9bf0] text-white"
+                      strokeWidth={1.5}
+                      aria-label="Compte vérifié"
+                    />
+                  )}
+                </span>
                 <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
               </Link>
             );

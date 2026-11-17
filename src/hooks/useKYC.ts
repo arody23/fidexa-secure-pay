@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+export type CameraFacing = 'user' | 'environment';
+
 export interface KYCFile {
   type: 'selfie' | 'cni' | 'passport' | 'permis' | 'electoral_card';
   side: 'recto' | 'verso' | 'single';
@@ -24,17 +26,18 @@ export function useKYCUpload() {
       setError('');
       setUploadProgress(0);
 
-      // Créer le chemin : auth.uid() / type_document / side_timestamp.jpg
       const timestamp = Math.floor(Date.now() / 1000);
-      const fileName = `${side}_${timestamp}.jpg`;
+      const mime = (file.type || 'image/jpeg').toLowerCase();
+      const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+      const contentType = mime.startsWith('image/') ? mime : 'image/jpeg';
+      const fileName = `${side}_${timestamp}.${ext}`;
       const filePath = `${userId}/${documentType}/${fileName}`;
 
-      // Upload avec simulation de progression
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('kyc-documents')
         .upload(filePath, file, {
           upsert: false,
-          contentType: 'image/jpeg',
+          contentType,
         });
 
       if (uploadError) {
@@ -43,14 +46,13 @@ export function useKYCUpload() {
 
       setUploadProgress(100);
 
-      // Obtenir l'URL publique
-      const { data: { publicUrl } } = supabase.storage
-        .from('kyc-documents')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('kyc-documents').getPublicUrl(filePath);
 
       return { url: publicUrl, filePath };
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Erreur lors de l\'upload';
+      const errorMsg = err instanceof Error ? err.message : "Erreur lors de l'upload";
       setError(errorMsg);
       console.error('Upload error:', err);
       return null;
@@ -91,14 +93,28 @@ export function useCamera() {
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [facingMode, setFacingMode] = useState<CameraFacing>('user');
 
-  const startCamera = async () => {
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  };
+
+  const startCamera = async (facing: CameraFacing = facingMode) => {
     try {
       setCameraError('');
-      // Prefer environment camera for documents; user-facing for selfie handled by caller constraints
+      stopCamera();
+      setFacingMode(facing);
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: 'user' },
+          facingMode: { ideal: facing },
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
@@ -107,27 +123,25 @@ export function useCamera() {
 
       streamRef.current = stream;
 
-      // Wait a frame so the <video> is mounted after showCamera=true
       await new Promise((r) => requestAnimationFrame(() => r(undefined)));
 
-      if (videoRef.current) {
+      const attach = async () => {
+        if (!videoRef.current) return false;
         videoRef.current.srcObject = stream;
         videoRef.current.muted = true;
         videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('autoplay', 'true');
         await videoRef.current.play();
         setCameraActive(true);
-      } else {
-        // Retry once after mount
-        await new Promise((r) => setTimeout(r, 150));
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.muted = true;
-          await videoRef.current.play();
-          setCameraActive(true);
-        } else {
+        return true;
+      };
+
+      if (!(await attach())) {
+        await new Promise((r) => setTimeout(r, 180));
+        if (!(await attach())) {
           stream.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
-          throw new Error('Caméra indisponible. Importez une photo à la place.');
+          throw new Error('Caméra indisponible. Importez une photo.');
         }
       }
     } catch (err) {
@@ -135,11 +149,11 @@ export function useCamera() {
       let errorMsg =
         err instanceof Error
           ? err.message
-          : 'Impossible d\'accéder à la caméra. Vérifiez les permissions.';
+          : "Impossible d'accéder à la caméra. Vérifiez les permissions.";
       if (name === 'NotAllowedError') {
-        errorMsg = 'Permission caméra refusée. Autorisez-la dans le navigateur ou importez une photo.';
-      } else if (name === 'NotFoundError') {
-        errorMsg = 'Aucune caméra détectée. Importez une photo.';
+        errorMsg = 'Permission caméra refusée. Autorisez-la ou importez une photo.';
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        errorMsg = 'Caméra demandée introuvable. Essayez l’autre caméra ou importez une photo.';
       } else if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
         errorMsg = 'La caméra nécessite HTTPS. Importez une photo.';
       }
@@ -149,12 +163,9 @@ export function useCamera() {
     }
   };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-      setCameraActive(false);
-    }
+  const switchCamera = async () => {
+    const next: CameraFacing = facingMode === 'user' ? 'environment' : 'user';
+    await startCamera(next);
   };
 
   const capturePhoto = async (): Promise<Blob | null> => {
@@ -170,9 +181,13 @@ export function useCamera() {
     context.drawImage(videoRef.current, 0, 0);
 
     return new Promise<Blob | null>((resolve) => {
-      canvasRef.current!.toBlob((blob: Blob | null) => {
-        resolve(blob);
-      }, 'image/jpeg', 0.9);
+      canvasRef.current!.toBlob(
+        (blob: Blob | null) => {
+          resolve(blob);
+        },
+        'image/jpeg',
+        0.9
+      );
     });
   };
 
@@ -181,8 +196,10 @@ export function useCamera() {
     canvasRef,
     cameraActive,
     cameraError,
+    facingMode,
     startCamera,
     stopCamera,
+    switchCamera,
     capturePhoto,
   };
 }

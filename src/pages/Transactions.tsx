@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -85,111 +84,98 @@ export default function Transactions() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold md:text-3xl">Transactions</h1>
-        <p className="mt-1 text-muted-foreground">Historique de vos transactions</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
+        Transactions
+      </h1>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-[#5c7188]">Revenu total</p>
+            <DollarSign className="h-4 w-4 text-[#5c7188]" />
+          </div>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#0b2f63]">
+            {formatAmount(totalRevenue, currency)}
+          </p>
+          <p className="mt-1 text-xs text-[#5c7188]">{paidCount} transactions payées</p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-[#5c7188]">En attente</p>
+            <Clock className="h-4 w-4 text-[#5c7188]" />
+          </div>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#0b2f63]">{pendingCount}</p>
+          <p className="mt-1 text-xs text-[#5c7188]">Transactions non payées</p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-[#5c7188]">Total</p>
+            <TrendingUp className="h-4 w-4 text-[#5c7188]" />
+          </div>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#0b2f63]">
+            {transactions.length}
+          </p>
+          <p className="mt-1 text-xs text-[#5c7188]">Toutes les transactions</p>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenu total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">
-              {formatAmount(totalRevenue, currency)}
+      <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#dbe6f2]">
+        <div className="flex flex-col gap-4 border-b border-[#eef3f9] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <h2 className="text-base font-semibold text-[#0b2f63]">Liste des transactions</h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5c7188]" />
+              <Input
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 sm:w-64"
+              />
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {paidCount} transactions payées
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">En attente</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">{pendingCount}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Transactions non payées
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">{transactions.length}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Toutes les transactions
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Liste des transactions</CardTitle>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 sm:w-64"
-                />
-              </div>
-              <div className="flex gap-2">
-                {(['all', 'paid', 'pending'] as const).map((status) => (
-                  <Button
-                    key={status}
-                    variant={filterStatus === status ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilterStatus(status)}
-                  >
-                    {status === 'all' ? 'Toutes' : status === 'paid' ? 'Payées' : 'En attente'}
-                  </Button>
-                ))}
-              </div>
+            <div className="flex gap-2">
+              {(['all', 'paid', 'pending'] as const).map((status) => (
+                <Button
+                  key={status}
+                  variant={filterStatus === status ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterStatus(status)}
+                >
+                  {status === 'all' ? 'Toutes' : status === 'paid' ? 'Payées' : 'En attente'}
+                </Button>
+              ))}
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-4 sm:p-5">
           {filteredTransactions.length === 0 ? (
             <div className="py-12 text-center">
-              <AlertCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">Aucune transaction trouvée</p>
+              <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#5c7188]/50" />
+              <p className="text-[#5c7188]">Aucune transaction trouvée</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y divide-[#eef3f9]">
               {filteredTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between rounded-lg border p-4"
+                  className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-center gap-3">
-                      <h3 className="font-semibold">{transaction.client_name}</h3>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <h3 className="font-medium text-[#0b2f63]">{transaction.client_name}</h3>
                       <Badge variant={transaction.is_paid ? 'default' : 'secondary'}>
                         {transaction.is_paid ? 'Payé' : 'En attente'}
                       </Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-[#5c7188]">
                       <span>{transaction.client_email}</span>
                       <span>·</span>
                       <span>ID: {transaction.link_id.slice(0, 8)}</span>
@@ -199,7 +185,7 @@ export default function Transactions() {
                       </span>
                     </div>
                   </div>
-                  <div className="text-right font-semibold">
+                  <p className="shrink-0 text-right font-semibold tabular-nums text-[#0b2f63]">
                     {formatAmount(
                       convertAmount(
                         transaction.amount,
@@ -208,13 +194,13 @@ export default function Transactions() {
                       ),
                       currency
                     )}
-                  </div>
+                  </p>
                 </div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

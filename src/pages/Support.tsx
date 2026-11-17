@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -196,15 +195,14 @@ export default function Support() {
   };
 
   return (
-          <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <MessageCircle className="text-blue-600" />
-            <div>
-              <h1 className="text-2xl font-bold">Support client</h1>
-              <p className="text-sm text-muted-foreground">Contactez l'équipe FidexaPay pour obtenir de l'aide.</p>
-            </div>
-          </div>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <MessageCircle className="h-6 w-6 text-[#0b3b78]" />
+          <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
+            Support client
+          </h1>
+        </div>
           {conversation && (
             <Button
               variant="outline"
@@ -232,45 +230,39 @@ export default function Support() {
         ) : (
           <>
             {(!conversation || conversation.status === 'closed') && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Ouvrir une conversation</CardTitle>
-                  <CardDescription>
-                    {conversation?.status === 'closed' 
-                      ? 'Votre dernière conversation a été clôturée. Vous pouvez en créer une nouvelle si vous avez besoin d\'aide.' 
-                      : 'Expliquez votre problème, nous reviendrons vers vous rapidement.'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
+              <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
+                <h2 className="mb-4 text-base font-semibold text-[#0b2f63]">Ouvrir une conversation</h2>
+                <div className="space-y-3">
                   <Input
                     placeholder="Sujet"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                   />
                   <Button onClick={createConversation} disabled={creating}>
-                    {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Créer une nouvelle conversation
+                    {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Créer une conversation
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </section>
             )}
 
             {conversation && (
-              <Card className="shadow-sm">
-                <CardHeader className="flex flex-col gap-1">
-                  <CardTitle className="flex items-center gap-2">
+              <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
+                <div className="mb-4 flex flex-col gap-1">
+                  <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold text-[#0b2f63]">
                     {conversation.subject}
                     <Badge variant={conversation.status === 'closed' ? 'destructive' : 'default'}>
                       {conversation.status === 'closed' ? 'Fermée' : 'Ouverte'}
                     </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Ouverte le {new Date(conversation.created_at).toLocaleString('fr-FR')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="h-80 overflow-y-auto rounded border border-border p-3 bg-muted/40 space-y-3">
+                  </h2>
+                  <p className="text-sm text-[#5c7188]">
+                    {new Date(conversation.created_at).toLocaleString('fr-FR')}
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="h-80 space-y-3 overflow-y-auto rounded-xl bg-[#f7fafd] p-3 ring-1 ring-[#dbe6f2]">
                     {messages.length === 0 && (
-                      <p className="text-sm text-muted-foreground">Aucun message pour le moment.</p>
+                      <p className="text-sm text-[#5c7188]">Aucun message</p>
                     )}
                     {messages.map((msg) => (
                       <div
@@ -313,16 +305,14 @@ export default function Support() {
                     </div>
                   ) : (
                     <Alert>
-                      <AlertDescription>
-                        Cette conversation a été clôturée par l'équipe support. Vous pouvez consulter l'historique ci-dessus. Pour un nouveau problème, créez une nouvelle conversation.
-                      </AlertDescription>
+                      <AlertDescription>Conversation clôturée.</AlertDescription>
                     </Alert>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </section>
             )}
           </>
         )}
-      </div>
-      );
+    </div>
+  );
 }

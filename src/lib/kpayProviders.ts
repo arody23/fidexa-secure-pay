@@ -5,6 +5,11 @@ export type KPayCountry = {
   providers: Array<{ code: string; label: string }>;
 };
 
+/** Pays affichés côté client / couverture FidexaPay */
+export const FIDEXA_COVERAGE_CODES = ['BJ', 'BF', 'CI', 'CD', 'CG', 'ML', 'TG'] as const;
+
+export type FidexaCoverageCode = (typeof FIDEXA_COVERAGE_CODES)[number];
+
 export const KPAY_COUNTRIES: KPayCountry[] = [
   {
     code: 'BJ',
@@ -13,6 +18,15 @@ export const KPAY_COUNTRIES: KPayCountry[] = [
     providers: [
       { code: 'MTN_MOMO_BEN', label: 'MTN MoMo' },
       { code: 'MOOV_BEN', label: 'Moov Money' },
+    ],
+  },
+  {
+    code: 'BF',
+    name: 'Burkina Faso',
+    phonePrefix: '+226',
+    providers: [
+      { code: 'ORANGE_BFA', label: 'Orange Money' },
+      { code: 'MOOV_BFA', label: 'Moov Money' },
     ],
   },
   {
@@ -31,6 +45,8 @@ export const KPAY_COUNTRIES: KPayCountry[] = [
     providers: [
       { code: 'MTN_MOMO_CIV', label: 'MTN MoMo' },
       { code: 'ORANGE_CIV', label: 'Orange Money' },
+      { code: 'MOOV_CIV', label: 'Moov Money' },
+      { code: 'WAVE_CIV', label: 'Wave' },
     ],
   },
   {
@@ -45,11 +61,29 @@ export const KPAY_COUNTRIES: KPayCountry[] = [
   },
   {
     code: 'CG',
-    name: 'Congo Brazzaville',
+    name: 'Congo',
     phonePrefix: '+242',
     providers: [
       { code: 'AIRTEL_COG', label: 'Airtel Money' },
       { code: 'MTN_MOMO_COG', label: 'MTN MoMo' },
+    ],
+  },
+  {
+    code: 'ML',
+    name: 'Mali',
+    phonePrefix: '+223',
+    providers: [
+      { code: 'ORANGE_MLI', label: 'Orange Money' },
+      { code: 'AIRTEL_MLI', label: 'Airtel Money' },
+    ],
+  },
+  {
+    code: 'TG',
+    name: 'Togo',
+    phonePrefix: '+228',
+    providers: [
+      { code: 'MTN_MOMO_TGO', label: 'MTN MoMo' },
+      { code: 'MOOV_TGO', label: 'Moov Money' },
     ],
   },
   { code: 'GA', name: 'Gabon', phonePrefix: '+241', providers: [{ code: 'AIRTEL_GAB', label: 'Airtel Money' }] },
@@ -94,6 +128,19 @@ export const KPAY_COUNTRIES: KPayCountry[] = [
   },
 ];
 
+/** Liste pays = couverture Fidexa (UI client / paiement) */
+export const COVERAGE_COUNTRIES: KPayCountry[] = FIDEXA_COVERAGE_CODES.map(
+  (code) => KPAY_COUNTRIES.find((c) => c.code === code)!
+).filter(Boolean);
+
 export function getKPayCountry(code?: string | null): KPayCountry {
-  return KPAY_COUNTRIES.find((country) => country.code === code) ?? KPAY_COUNTRIES[3];
+  return (
+    KPAY_COUNTRIES.find((country) => country.code === code) ??
+    KPAY_COUNTRIES.find((country) => country.code === 'CD') ??
+    KPAY_COUNTRIES[0]
+  );
+}
+
+export function isCoverageCountry(code?: string | null): boolean {
+  return !!code && (FIDEXA_COVERAGE_CODES as readonly string[]).includes(code);
 }

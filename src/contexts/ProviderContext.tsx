@@ -19,6 +19,7 @@ export interface ProviderProfile {
   is_admin: boolean;
   avatar_url?: string | null;
   country?: string | null;
+  kyc_status?: string | null;
 }
 
 interface ProviderContextType {
@@ -53,7 +54,7 @@ export const ProviderProvider = ({ children }: { children: ReactNode }) => {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, full_name, currency, is_admin, avatar_url, country, subscription_type, subscription_status')
+      .select('id, email, full_name, currency, is_admin, avatar_url, country, kyc_status, subscription_type, subscription_status')
       .eq('id', user.id)
       .single();
 
@@ -84,6 +85,7 @@ export const ProviderProvider = ({ children }: { children: ReactNode }) => {
       is_admin: data.is_admin ?? false,
       avatar_url: data.avatar_url,
       country: data.country,
+      kyc_status: (data as { kyc_status?: string | null }).kyc_status ?? null,
     };
 
     cachedProfile = providerProfile;
@@ -135,6 +137,7 @@ export const ProviderProvider = ({ children }: { children: ReactNode }) => {
             is_admin: (updated.is_admin as boolean) ?? false,
             avatar_url: (updated.avatar_url as string | null) ?? null,
             country: (updated.country as string | null) ?? null,
+            kyc_status: (updated.kyc_status as string | null) ?? profile?.kyc_status ?? null,
           };
           cachedProfile = next;
           setProfile(next);

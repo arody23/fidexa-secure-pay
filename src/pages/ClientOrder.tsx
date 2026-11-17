@@ -537,52 +537,43 @@ export default function ClientOrder() {
 
   return (
     <OrderAccessGate linkId={paymentData.link_id}>
-    <div className="min-h-[100dvh] overflow-x-hidden bg-background pb-24">
-      {/* Header sticky mobile */}
-      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+    <div className="min-h-[100dvh] overflow-x-hidden bg-[#eef3f9] pb-24">
+      <header className="sticky top-0 z-30 border-b border-[#dbe6f2] bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:h-16">
           <Logo size="sm" />
-          <Badge variant="outline" className="gap-1 text-xs sm:text-sm">
-            <Shield className="h-3 w-3" />
-            <span className="hidden xs:inline">Escrow</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0b3b78]/8 px-3 py-1 text-xs font-semibold text-[#0b3b78]">
+            <Shield className="h-3.5 w-3.5" />
             #{paymentData.link_id.slice(0, 8).toUpperCase()}
-          </Badge>
+          </span>
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="mx-auto max-w-6xl px-4 py-6">
-        {/* Status Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="mb-4 rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2]"
         >
-          <Card className="stat-card">
-            <CardContent className="pt-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <StatusIcon className={`h-10 w-10 shrink-0 sm:h-12 sm:w-12 ${statusInfo.color}`} />
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold sm:text-2xl">{statusInfo.title}</h2>
-                  <p className="text-sm text-muted-foreground sm:text-base">{statusInfo.description}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3b78]/10">
+              <StatusIcon className={`h-6 w-6 ${statusInfo.color}`} strokeWidth={1.75} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-[#0b2f63] sm:text-2xl">{statusInfo.title}</h2>
+              <p className="mt-0.5 text-sm text-[#5c7188]">{statusInfo.description}</p>
+            </div>
+          </div>
         </motion.div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content Area — mobile first */}
           <div className="order-2 space-y-6 lg:order-1 lg:col-span-2">
                   {/* Order Details */}
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle>Détails de la commande</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                  <div className="space-y-4 rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2]">
+                      <h3 className="text-base font-semibold text-[#0b2f63]">Commande</h3>
                       <div>
-                        <Label className="text-sm text-muted-foreground">Description</Label>
-                        <p className="font-medium mt-1">{paymentData.description}</p>
+                        <Label className="text-sm text-[#5c7188]">Prestation</Label>
+                        <p className="mt-1 font-medium text-[#0b2f63]">{paymentData.description}</p>
                       </div>
                       {paymentData.provider_notes && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -605,15 +596,11 @@ export default function ClientOrder() {
                       </div>
                       {paymentData.client_name && (
                         <div>
-                          <Label className="text-sm text-muted-foreground">Client</Label>
-                          <p className="font-medium mt-1">{paymentData.client_name}</p>
-                          {paymentData.client_phone && (
-                            <p className="text-sm text-muted-foreground">{paymentData.client_phone}</p>
-                          )}
+                          <Label className="text-sm text-[#5c7188]">Client</Label>
+                          <p className="mt-1 font-medium text-[#0b2f63]">{paymentData.client_name}</p>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                  </div>
 
                   {showActions && (
                     <OrderTracker

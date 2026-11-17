@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -99,31 +98,26 @@ export default function Subscriptions() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Abonnements</h1>
-        <p className="text-muted-foreground">
-          Choisissez le plan qui convient à votre entreprise
-        </p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <h1 className="text-center text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
+        Abonnements
+      </h1>
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="overflow-hidden border-primary/30">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl">{MVP_SUBSCRIPTION.name}</CardTitle>
-              {isBasic && <Badge>Actif</Badge>}
-            </div>
-            <CardDescription>{MVP_SUBSCRIPTION.description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 className="text-2xl font-semibold text-[#0b2f63]">{MVP_SUBSCRIPTION.name}</h2>
+            {isBasic && <Badge>Actif</Badge>}
+          </div>
+          <p className="mb-6 text-sm text-[#5c7188]">{MVP_SUBSCRIPTION.description}</p>
+          <div className="space-y-6">
             <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold">Gratuit</span>
-              <span className="text-muted-foreground">· pour toujours</span>
+              <span className="text-5xl font-bold text-[#0b2f63]">Gratuit</span>
+              <span className="text-[#5c7188]">· pour toujours</span>
             </div>
-            <div className="rounded-xl bg-primary/10 p-4 text-center">
-              <p className="text-sm text-muted-foreground">Commission par transaction validée</p>
-              <p className="text-4xl font-bold text-primary">{MVP_SUBSCRIPTION.commission} %</p>
+            <div className="rounded-xl bg-[#0b3b78]/8 p-4 text-center ring-1 ring-[#dbe6f2]">
+              <p className="text-sm text-[#5c7188]">Commission par transaction validée</p>
+              <p className="text-4xl font-bold text-[#0b3b78]">{MVP_SUBSCRIPTION.commission} %</p>
             </div>
             <ul className="space-y-3">
               {MVP_SUBSCRIPTION.features.map((f) => (
@@ -142,18 +136,16 @@ export default function Subscriptions() {
                 Plan actuel
               </Button>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </motion.div>
 
-      <Card className="bg-blue-50/50 border-blue-200 dark:bg-blue-950/20">
-        <CardContent className="flex gap-4 pt-6">
-          <Shield className="h-8 w-8 shrink-0 text-primary" />
-          <p className="text-sm text-muted-foreground">
-            Tous les plans incluent l&apos;escrow FidexaPay : fonds protégés jusqu&apos;à validation client, puis libérés sur votre solde retirable.
-          </p>
-        </CardContent>
-      </Card>
+      <section className="flex gap-4 rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2]">
+        <Shield className="h-8 w-8 shrink-0 text-[#0b3b78]" />
+        <p className="text-sm text-[#5c7188]">
+          Escrow FidexaPay : fonds protégés jusqu&apos;à validation client.
+        </p>
+      </section>
     </div>
   );
 }
