@@ -1,5 +1,5 @@
-// Mapping des 5 pays africains + leurs devises, providers mobile money
-// Utilisé pour: afficher devise du client, suggestions mobile money, conversion automatique
+// Mapping des pays africains + devises / mobile money
+import { validateWithdrawalAmount } from '@/lib/withdrawalConfig';
 
 export const COUNTRIES_DATA = {
   'CD': {
@@ -100,11 +100,12 @@ export const CURRENCIES = {
 } as const;
 
 // Limites par devise
+/** Filet de sécurité — limites réelles : 5–500 USD (voir withdrawalConfig). */
 export const WITHDRAWAL_LIMITS = {
-  CDF: { min: 10000, max: 1000000000, currency: 'CDF' }, // En CDF
-  XAF: { min: 500, max: 3280000, currency: 'XAF' }, // ~5M FCFA
-  XOF: { min: 500, max: 3280000, currency: 'XOF' }, // ~5M FCFA
-  USD: { min: 10, max: 8000, currency: 'USD' }, // ~5M FCFA en USD
+  CDF: { min: 5, max: 500, currency: 'CDF' },
+  XAF: { min: 5, max: 500, currency: 'XAF' },
+  XOF: { min: 5, max: 500, currency: 'XOF' },
+  USD: { min: 5, max: 500, currency: 'USD' },
 } as const;
 
 // Conversion entre devises
@@ -152,15 +153,8 @@ export function formatAmount(
 // Vérifier si montant est dans les limites
 export function isWithinLimits(
   amount: number,
-  currency: keyof typeof CURRENCIES
+  currency: keyof typeof CURRENCIES | string
 ): { valid: boolean; reason?: string } {
-  const limit = WITHDRAWAL_LIMITS[currency];
-  if (!limit) return { valid: false, reason: 'Currency not supported' };
-  if (amount < limit.min) {
-    return { valid: false, reason: `Minimum: ${formatAmount(limit.min, currency)}` };
-  }
-  if (amount > limit.max) {
-    return { valid: false, reason: `Maximum: ${formatAmount(limit.max, currency)}` };
-  }
-  return { valid: true };
+  const result = validateWithdrawalAmount(amount, currency);
+  return { valid: result.valid, reason: result.reason };
 }

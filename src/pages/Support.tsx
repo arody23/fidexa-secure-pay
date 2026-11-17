@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { MessageCircle, Send, Loader2, RefreshCw } from 'lucide-react';
+import { Send, Loader2, RefreshCw } from 'lucide-react';
 
 interface Conversation {
   id: string;
@@ -195,124 +195,128 @@ export default function Support() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <MessageCircle className="h-6 w-6 text-[#0b3b78]" />
-          <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
-            Support client
-          </h1>
+    <div className="mx-auto w-full max-w-2xl space-y-8 overflow-x-hidden">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
+          Support client
+        </h1>
+        {conversation && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadData}
+            disabled={loading}
+            className="gap-2 shrink-0"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
+        )}
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-[#5c7188]">
+          <Loader2 className="h-4 w-4 animate-spin" /> Chargement du support...
         </div>
-          {conversation && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadData}
-              disabled={loading}
-              className="gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Actualiser
-            </Button>
+      ) : (
+        <>
+          {(!conversation || conversation.status === 'closed') && (
+            <div className="space-y-4">
+              <div className="min-w-0 space-y-1.5">
+                <Input
+                  placeholder="Sujet"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={createConversation}
+                disabled={creating}
+                className="bg-[#0b3b78] hover:bg-[#0a3266]"
+              >
+                {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Créer une conversation
+              </Button>
+            </div>
           )}
-        </div>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {loading ? (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Chargement du support...
-          </div>
-        ) : (
-          <>
-            {(!conversation || conversation.status === 'closed') && (
-              <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
-                <h2 className="mb-4 text-base font-semibold text-[#0b2f63]">Ouvrir une conversation</h2>
-                <div className="space-y-3">
-                  <Input
-                    placeholder="Sujet"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                  />
-                  <Button onClick={createConversation} disabled={creating}>
-                    {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Créer une conversation
-                  </Button>
+          {conversation && (
+            <div className="space-y-6">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold text-[#0b2f63]">{conversation.subject}</h2>
+                  <Badge variant={conversation.status === 'closed' ? 'destructive' : 'default'}>
+                    {conversation.status === 'closed' ? 'Fermée' : 'Ouverte'}
+                  </Badge>
                 </div>
-              </section>
-            )}
+                <p className="mt-1 text-sm text-[#5c7188]">
+                  {new Date(conversation.created_at).toLocaleString('fr-FR')}
+                </p>
+              </div>
 
-            {conversation && (
-              <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
-                <div className="mb-4 flex flex-col gap-1">
-                  <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold text-[#0b2f63]">
-                    {conversation.subject}
-                    <Badge variant={conversation.status === 'closed' ? 'destructive' : 'default'}>
-                      {conversation.status === 'closed' ? 'Fermée' : 'Ouverte'}
-                    </Badge>
-                  </h2>
-                  <p className="text-sm text-[#5c7188]">
-                    {new Date(conversation.created_at).toLocaleString('fr-FR')}
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  <div className="h-80 space-y-3 overflow-y-auto rounded-xl bg-[#f7fafd] p-3 ring-1 ring-[#dbe6f2]">
-                    {messages.length === 0 && (
-                      <p className="text-sm text-[#5c7188]">Aucun message</p>
-                    )}
-                    {messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[75%] rounded-lg px-3 py-2 text-sm shadow-sm ${
-                            msg.sender_type === 'user'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white border border-border'
-                          }`}
-                        >
-                          <div className="text-xs opacity-80 mb-1">
-                            {msg.sender_type === 'user' ? 'Vous' : 'Support FidexaPay'}
-                          </div>
-                          <div>{msg.message}</div>
-                          <div className="mt-1 text-[11px] opacity-70">
-                            {new Date(msg.created_at).toLocaleString('fr-FR')}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {conversation.status === 'open' ? (
-                    <div className="space-y-2">
-                      <Textarea
-                        placeholder="Votre message..."
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        rows={3}
-                      />
-                      <div className="flex justify-end">
-                        <Button onClick={sendMessage} disabled={sending || draft.trim().length === 0} className="gap-2">
-                          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                          Envoyer
-                        </Button>
-                      </div>
+              <div className="h-80 space-y-3 overflow-y-auto">
+                {messages.length === 0 && (
+                  <p className="text-sm text-[#5c7188]">Aucun message</p>
+                )}
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[85%] text-sm ${
+                        msg.sender_type === 'user'
+                          ? 'text-[#0b2f63]'
+                          : 'text-[#5c7188]'
+                      }`}
+                    >
+                      <p className="text-xs text-[#5c7188]">
+                        {msg.sender_type === 'user' ? 'Vous' : 'Support FidexaPay'}
+                        {' · '}
+                        {new Date(msg.created_at).toLocaleString('fr-FR')}
+                      </p>
+                      <p className="mt-0.5 whitespace-pre-wrap">{msg.message}</p>
                     </div>
-                  ) : (
-                    <Alert>
-                      <AlertDescription>Conversation clôturée.</AlertDescription>
-                    </Alert>
-                  )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="h-px bg-[#e4edf6]" />
+
+              {conversation.status === 'open' ? (
+                <div className="space-y-3">
+                  <Textarea
+                    placeholder="Votre message..."
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    rows={3}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={sendMessage}
+                      disabled={sending || draft.trim().length === 0}
+                      className="gap-2 bg-[#0b3b78] hover:bg-[#0a3266]"
+                    >
+                      {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      Envoyer
+                    </Button>
+                  </div>
                 </div>
-              </section>
-            )}
-          </>
-        )}
+              ) : (
+                <Alert>
+                  <AlertDescription>Conversation clôturée.</AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

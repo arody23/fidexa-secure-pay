@@ -3,19 +3,15 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Link2,
-  Package,
   Receipt,
   User,
   Menu,
   X,
   LogOut,
-  Crown,
   Wallet,
   MessageCircle,
   PlayCircle,
-  MessageSquareQuote,
   Plus,
-  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
@@ -23,34 +19,30 @@ import NotificationBell from "@/components/NotificationBell";
 import PushNotificationPrompt from "@/components/layout/PushNotificationPrompt";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { clearProviderCache, useProvider } from "@/contexts/ProviderContext";
+import { clearProviderCache } from "@/contexts/ProviderContext";
 
 const navItems = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/dashboard/create-link", label: "Créer un lien", icon: Link2 },
-  { href: "/dashboard/orders", label: "Tous mes liens", icon: Package },
+  { href: "/dashboard/create-link", label: "Créer un lien", icon: Plus },
+  { href: "/dashboard/orders", label: "Tous mes liens", icon: Link2 },
   { href: "/dashboard/active-orders", label: "Commandes actives", icon: PlayCircle },
-  { href: "/dashboard/subscriptions", label: "Abonnements", icon: Crown },
   { href: "/dashboard/withdrawal", label: "Retraits", icon: Wallet },
   { href: "/dashboard/transactions", label: "Transactions", icon: Receipt },
   { href: "/dashboard/support", label: "Support", icon: MessageCircle },
-  { href: "/dashboard/feedback", label: "Avis", icon: MessageSquareQuote },
-  { href: "/dashboard/profile", label: "Paramètres", icon: User },
+  { href: "/dashboard/profile", label: "Profil", icon: User },
 ];
 
 const bottomNavItems = [
   { href: "/dashboard", label: "Accueil", icon: LayoutDashboard, match: "exact" as const },
-  { href: "/dashboard/orders", label: "Liens", icon: Package, match: "prefix" as const },
+  { href: "/dashboard/orders", label: "Liens", icon: Link2, match: "prefix" as const },
   { href: "/dashboard/create-link", label: "Créer", icon: Plus, match: "exact" as const, primary: true },
   { href: "/dashboard/withdrawal", label: "Retraits", icon: Wallet, match: "prefix" as const },
-  { href: "/dashboard/profile", label: "Compte", icon: User, match: "prefix" as const },
+  { href: "/dashboard/profile", label: "Profil", icon: User, match: "prefix" as const },
 ];
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile } = useProvider();
-  const kycVerified = profile?.kyc_status === "verified";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -178,11 +170,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
             </div>
             <nav className="flex-1 space-y-1 overflow-y-auto p-3">
               {navItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  {...item}
-                  onClick={() => setMobileMenuOpen(false)}
-                />
+                <NavLink key={item.href} {...item} onClick={() => setMobileMenuOpen(false)} />
               ))}
             </nav>
             <div className="shrink-0 border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
@@ -209,7 +197,6 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
         </div>
       </main>
 
-      {/* Bottom navigation — PWA / mobile */}
       <nav
         className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dbe6f2] bg-white/95 backdrop-blur-xl lg:hidden"
         style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
@@ -254,8 +241,6 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
               );
             }
 
-            const showVerified = item.href === "/dashboard/profile" && kycVerified;
-
             return (
               <Link
                 key={item.href}
@@ -266,19 +251,10 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <span className="relative">
-                  <Icon
-                    className={cn("h-5 w-5", isActive && "stroke-[2.25]")}
-                    strokeWidth={isActive ? 2.25 : 1.75}
-                  />
-                  {showVerified && (
-                    <BadgeCheck
-                      className="absolute -bottom-1 -right-1.5 h-3.5 w-3.5 fill-[#1d9bf0] text-white"
-                      strokeWidth={1.5}
-                      aria-label="Compte vérifié"
-                    />
-                  )}
-                </span>
+                <Icon
+                  className={cn("h-5 w-5", isActive && "stroke-[2.25]")}
+                  strokeWidth={isActive ? 2.25 : 1.75}
+                />
                 <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
               </Link>
             );

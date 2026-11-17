@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Package, Search, MoreVertical, Copy, CheckCircle } from "lucide-react";
+import { Search, MoreVertical, Copy, CheckCircle, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,11 +32,11 @@ interface Order {
 }
 
 const statusFilters: { value: string; label: string }[] = [
-  { value: "all", label: "Toutes" },
+  { value: "all", label: "Tous" },
   { value: "pending", label: "En cours" },
-  { value: "delivered", label: "Livrées" },
-  { value: "cancelled", label: "Annulées" },
-  { value: "disputed", label: "En litige" },
+  { value: "delivered", label: "Livrés" },
+  { value: "cancelled", label: "Annulés" },
+  { value: "disputed", label: "Litiges" },
 ];
 
 const Orders = () => {
@@ -85,8 +85,7 @@ const Orders = () => {
           order.order_status === "started";
       } else if (statusFilter === "delivered") {
         matchesStatus =
-          order.order_status === "validated" ||
-          order.order_status === "completed";
+          order.order_status === "validated" || order.order_status === "completed";
       } else if (statusFilter === "cancelled") {
         matchesStatus = order.order_status === "cancelled";
       } else if (statusFilter === "disputed") {
@@ -99,184 +98,130 @@ const Orders = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusCount = (status: string) => {
-    const paidOrders = orders.filter((o) => o.is_paid);
-    if (status === "all") return orders.length;
-    if (status === "pending") {
-      return paidOrders.filter(
-        (o) =>
-          !o.order_status ||
-          o.order_status === "paid" ||
-          o.order_status === "started"
-      ).length;
-    }
-    if (status === "delivered") {
-      return paidOrders.filter(
-        (o) => o.order_status === "validated" || o.order_status === "completed"
-      ).length;
-    }
-    if (status === "cancelled") {
-      return paidOrders.filter((o) => o.order_status === "cancelled").length;
-    }
-    if (status === "disputed") {
-      return paidOrders.filter((o) => o.order_status === "disputed").length;
-    }
-    return 0;
-  };
-
   const copyOrderLink = async (linkId: string) => {
     const url = `${window.location.origin}/pay/${linkId}`;
     const ok = await copyToClipboard(url);
     setCopiedId(ok ? linkId : null);
     setTimeout(() => setCopiedId(null), 2000);
     toast({
-      title: ok ? 'Lien copié' : 'Copie manuelle',
-      description: ok ? 'Lien de paiement copié.' : url,
+      title: ok ? "Lien copié" : "Copie manuelle",
+      description: ok ? "Copié." : url,
     });
   };
 
   return (
     <div className="space-y-6 overflow-x-hidden">
-      <div>
-        <h1 className="text-2xl font-semibold md:text-3xl">Commandes</h1>
-        <p className="text-muted-foreground">
-          Gérez et suivez toutes vos commandes
-        </p>
+      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">Liens</h1>
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5c7188]" />
+        <Input
+          placeholder="Rechercher"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-11 border-0 bg-transparent pl-10 shadow-none ring-0 focus-visible:ring-0"
+        />
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher une commande..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {statusFilters.map((filter) => (
-            <Button
-              key={filter.value}
-              variant={statusFilter === filter.value ? "default" : "outline"}
-              size="sm"
-              className="shrink-0"
-              onClick={() => setStatusFilter(filter.value)}
-            >
-              {filter.label}
-              <span className="ml-1.5 rounded-full bg-background/20 px-1.5 py-0.5 text-xs">
-                {getStatusCount(filter.value)}
-              </span>
-            </Button>
-          ))}
-        </div>
+      <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+        {statusFilters.map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            onClick={() => setStatusFilter(filter.value)}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              statusFilter === filter.value
+                ? "bg-[#0b3b78] text-white"
+                : "text-[#5c7188] hover:bg-white/80"
+            }`}
+          >
+            {filter.label}
+          </button>
+        ))}
       </div>
 
-      <div className="space-y-1">
-        <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Package className="h-4 w-4 shrink-0 text-primary" />
-            {filteredOrders.length} commande
-            {filteredOrders.length > 1 ? "s" : ""}
-        </p>
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="py-12 text-center">
-              <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">Aucune commande trouvée</p>
-            </div>
-          ) : (
-          <div className="divide-y divide-border/70">
-              {filteredOrders.map((order) => (
-              <div key={order.id} className="py-4">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted sm:h-11 sm:w-11">
-                      <Package className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-semibold">{order.client_name}</p>
-                          <StatusBadge
-                            status={
-                              (order.is_paid
-                                ? order.status === "pending"
-                                  ? "paid"
-                                  : order.status
-                                : order.status) as OrderStatus
-                            }
-                          />
-                        </div>
-                        <p className="truncate text-xs text-muted-foreground sm:text-sm">
-                          {order.link_id}
-                        </p>
-                        <p className="line-clamp-2 text-sm text-muted-foreground">
-                          {order.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(order.created_at).toLocaleDateString("fr-FR")} · {order.delivery_days}j
-                        </p>
-                      </div>
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
+        </div>
+      ) : filteredOrders.length === 0 ? (
+        <p className="py-12 text-center text-sm text-[#5c7188]">Aucun lien</p>
+      ) : (
+        <div className="divide-y divide-[#e4edf6]">
+          {filteredOrders.map((order) => (
+            <div key={order.id} className="py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-1 gap-3">
+                  <Link2 className="mt-1 h-4 w-4 shrink-0 text-[#0b3b78]" strokeWidth={1.8} />
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-semibold text-[#0b2f63]">{order.client_name}</p>
+                      <StatusBadge
+                        status={
+                          (order.is_paid
+                            ? order.status === "pending"
+                              ? "paid"
+                              : order.status
+                            : order.status) as OrderStatus
+                        }
+                      />
                     </div>
-                  <div className="flex items-center justify-between gap-2 pl-[3.25rem]">
-                      <p className="text-base font-semibold sm:text-lg">
-                        {formatAmount(
-                          convertAmount(order.amount, order.currency || currency, currency),
-                          currency
-                        )}
-                      </p>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="gap-1">
-                            <MoreVertical className="h-4 w-4" />
-                            Actions
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => copyOrderLink(order.link_id)}>
-                            {copiedId === order.link_id ? (
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                            ) : (
-                              <Copy className="mr-2 h-4 w-4" />
-                            )}
-                            Copier le lien
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
-                            <Package className="mr-2 h-4 w-4" />
-                            Voir les détails
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                    <p className="line-clamp-1 text-sm text-[#5c7188]">{order.description}</p>
+                    <p className="text-xs text-[#5c7188]">
+                      {new Date(order.created_at).toLocaleDateString("fr-FR")}
+                    </p>
                   </div>
                 </div>
-              ))}
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <p className="font-semibold tabular-nums text-[#0b2f63]">
+                    {formatAmount(
+                      convertAmount(order.amount, order.currency || currency, currency),
+                      currency
+                    )}
+                  </p>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#5c7188]">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem onClick={() => copyOrderLink(order.link_id)}>
+                        {copiedId === order.link_id ? (
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                        ) : (
+                          <Copy className="mr-2 h-4 w-4" />
+                        )}
+                        Copier
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
+                        Détails
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
             </div>
-          )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center">
-          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-background p-5 shadow-xl">
-            <h2 className="text-lg font-semibold">Détail de la commande</h2>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#041628]/45 p-4 sm:items-center">
+          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5">
+            <h2 className="text-lg font-semibold text-[#0b2f63]">Détail</h2>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Client</span>
-                <span className="text-right font-medium">{selectedOrder.client_name}</span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Lien</span>
-                <span className="max-w-[60%] truncate font-mono text-xs">{selectedOrder.link_id}</span>
+                <span className="text-[#5c7188]">Client</span>
+                <span className="text-right font-medium text-[#0b2f63]">{selectedOrder.client_name}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Description</span>
-                <p className="mt-1 font-medium">{selectedOrder.description}</p>
+                <span className="text-[#5c7188]">Prestation</span>
+                <p className="mt-1 font-medium text-[#0b2f63]">{selectedOrder.description}</p>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Montant</span>
-                <span className="font-semibold">
+                <span className="text-[#5c7188]">Montant</span>
+                <span className="font-semibold tabular-nums text-[#0b2f63]">
                   {formatAmount(
                     convertAmount(
                       selectedOrder.amount,
@@ -288,7 +233,7 @@ const Orders = () => {
                 </span>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Statut</span>
+                <span className="text-[#5c7188]">Statut</span>
                 <StatusBadge
                   status={
                     (selectedOrder.is_paid
@@ -299,24 +244,18 @@ const Orders = () => {
                   }
                 />
               </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Créé le</span>
-                <span>{new Date(selectedOrder.created_at).toLocaleString("fr-FR")}</span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Délai</span>
-                <span>{selectedOrder.delivery_days} jours</span>
-              </div>
-              {selectedOrder.order_status === "completed" && (
-                <div className="rounded-lg bg-amber-50 p-3 text-amber-900">
-                  En attente de la validation du client
-                </div>
-              )}
-              <div className="flex gap-2 pt-2">
-                <Button className="flex-1" variant="outline" onClick={() => copyOrderLink(selectedOrder.link_id)}>
+              <div className="flex gap-2 pt-3">
+                <Button
+                  className="flex-1"
+                  variant="outline"
+                  onClick={() => copyOrderLink(selectedOrder.link_id)}
+                >
                   Copier le lien
                 </Button>
-                <Button className="flex-1" onClick={() => setSelectedOrder(null)}>
+                <Button
+                  className="flex-1 bg-[#0b3b78] hover:bg-[#0a3266]"
+                  onClick={() => setSelectedOrder(null)}
+                >
                   Fermer
                 </Button>
               </div>

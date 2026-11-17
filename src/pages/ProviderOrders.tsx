@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { PlayCircle, CheckCircle, Package, Clock, AlertTriangle, Send, Scale, Copy, Check } from 'lucide-react';
+import { PlayCircle, CheckCircle, Package, Clock, Send, Scale, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -227,141 +227,140 @@ export default function ProviderOrders() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-2xl space-y-8 overflow-x-hidden">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
           Commandes à traiter
         </h1>
         <p className="mt-1 text-sm text-[#5c7188]">{orders.length} active(s)</p>
       </div>
 
       {orders.length === 0 ? (
-        <div className="rounded-2xl bg-white py-12 text-center ring-1 ring-[#dbe6f2]">
-          <Package className="mx-auto mb-4 h-16 w-16 text-[#5c7188]/30" />
+        <div className="py-12 text-center">
+          <Package className="mx-auto mb-4 h-12 w-12 text-[#5c7188]/40" />
           <p className="text-[#5c7188]">Aucune commande active</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="divide-y divide-[#e4edf6]">
           {orders.map((order) => (
-            <section key={order.id} className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
-              <div className="mb-4 flex items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold text-[#0b2f63]">
-                  {order.client_name || 'Client'}
-                </h2>
+            <article key={order.id} className="space-y-4 py-6 first:pt-0 last:pb-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-[#0b2f63]">
+                    {order.client_name || 'Client'}
+                  </h2>
+                  <p className="mt-1 text-sm text-[#5c7188]">{order.description}</p>
+                </div>
                 {getStatusBadge(order.order_status || 'paid')}
               </div>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-[#5c7188]">Description</p>
-                  <p className="font-medium text-[#0b2f63]">{order.description}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#5c7188]">Montant</span>
-                  <span className="text-lg font-semibold">
-                    {formatAmount(order.amount, currency)}
-                  </span>
-                </div>
-                {order.started_at && (
-                  <div className="text-sm text-[#5c7188]">
-                    <Clock className="mr-1 inline h-4 w-4" />
-                    Démarré le{' '}
-                    {new Date(order.started_at).toLocaleDateString('fr-FR')}
-                  </div>
-                )}
-                <div className="space-y-2 pt-2">
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#5c7188]">Montant</span>
+                <span className="font-semibold tabular-nums text-[#0b2f63]">
+                  {formatAmount(order.amount, currency)}
+                </span>
+              </div>
+
+              {order.started_at && (
+                <p className="text-sm text-[#5c7188]">
+                  <Clock className="mr-1 inline h-4 w-4" />
+                  Démarré le {new Date(order.started_at).toLocaleDateString('fr-FR')}
+                </p>
+              )}
+
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={() => copyPaymentLink(order.link_id)}
+                >
+                  {copiedLinkId === order.link_id ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  Copier le lien client
+                </Button>
+                {order.order_status === 'paid' && (
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={() => copyPaymentLink(order.link_id)}
+                    onClick={() => handleStartOrder(order.link_id)}
+                    disabled={actionLoading === order.link_id}
+                    className="w-full bg-[#0b3b78] hover:bg-[#0a3266]"
                   >
-                    {copiedLinkId === order.link_id ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                    Copier le lien client
+                    <PlayCircle className="mr-2 h-5 w-5" />
+                    {actionLoading === order.link_id
+                      ? 'Chargement...'
+                      : 'Commencer le travail'}
                   </Button>
-                  {order.order_status === 'paid' && (
-                    <Button
-                      onClick={() => handleStartOrder(order.link_id)}
-                      disabled={actionLoading === order.link_id}
-                      className="w-full"
-                    >
-                      <PlayCircle className="mr-2 h-5 w-5" />
-                      {actionLoading === order.link_id
-                        ? 'Chargement...'
-                        : 'Commencer le travail'}
-                    </Button>
-                  )}
-                  {order.order_status === 'started' && (
-                    <Button
-                      onClick={() => handleCompleteOrder(order.link_id)}
-                      disabled={actionLoading === order.link_id}
-                      className="w-full"
-                      variant="default"
-                    >
-                      <CheckCircle className="mr-2 h-5 w-5" />
-                      {actionLoading === order.link_id
-                        ? 'Chargement...'
-                        : 'Finaliser la commande'}
-                    </Button>
-                  )}
-                  {order.order_status === 'completed' && (
-                    <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-950 ring-1 ring-amber-200">
-                      <p className="font-semibold">En attente de validation client</p>
+                )}
+                {order.order_status === 'started' && (
+                  <Button
+                    onClick={() => handleCompleteOrder(order.link_id)}
+                    disabled={actionLoading === order.link_id}
+                    className="w-full bg-[#0b3b78] hover:bg-[#0a3266]"
+                  >
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    {actionLoading === order.link_id
+                      ? 'Chargement...'
+                      : 'Finaliser la commande'}
+                  </Button>
+                )}
+                {order.order_status === 'completed' && (
+                  <p className="text-sm font-medium text-amber-900">
+                    En attente de validation client
+                  </p>
+                )}
+                {order.order_status === 'disputed' && (
+                  <div className="space-y-3 border-t border-[#e4edf6] pt-4">
+                    <div className="flex items-center gap-2 text-destructive">
+                      <Scale className="h-5 w-5 shrink-0" />
+                      <p className="text-sm font-semibold">
+                        {refundRequestIds[order.id]
+                          ? "Demande d'annulation / remboursement"
+                          : 'Litige en cours — votre réponse est requise'}
+                      </p>
                     </div>
-                  )}
-                  {order.order_status === 'disputed' && (
-                    <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-                      <div className="flex items-center gap-2 text-destructive">
-                        <Scale className="h-5 w-5" />
-                        <p className="font-semibold">
-                          {refundRequestIds[order.id]
-                            ? "Demande d'annulation / remboursement"
-                            : 'Litige en cours — votre réponse est requise'}
+                    {existingResponses[order.id] ? (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-[#5c7188]">Votre réponse soumise</Label>
+                        <p className="whitespace-pre-wrap text-sm text-[#0b2f63]">
+                          {existingResponses[order.id]}
                         </p>
                       </div>
-                      {existingResponses[order.id] ? (
-                        <div className="rounded-xl bg-white p-3 text-sm ring-1 ring-[#dbe6f2]">
-                          <Label className="text-xs text-[#5c7188]">Votre réponse soumise</Label>
-                          <p className="mt-1 whitespace-pre-wrap">{existingResponses[order.id]}</p>
+                    ) : (
+                      <>
+                        <div className="min-w-0 space-y-1.5">
+                          <Label htmlFor={`dispute-${order.id}`}>Votre version des faits</Label>
+                          <Textarea
+                            id={`dispute-${order.id}`}
+                            placeholder="Ex: J'ai livré le travail le 15/03, voici les détails..."
+                            value={disputeResponses[order.id] || ''}
+                            onChange={(e) =>
+                              setDisputeResponses((prev) => ({
+                                ...prev,
+                                [order.id]: e.target.value,
+                              }))
+                            }
+                            rows={4}
+                          />
                         </div>
-                      ) : (
-                        <>
-                          <div>
-                            <Label htmlFor={`dispute-${order.id}`}>Votre version des faits</Label>
-                            <Textarea
-                              id={`dispute-${order.id}`}
-                              placeholder="Ex: J'ai livré le travail le 15/03, voici les détails..."
-                              value={disputeResponses[order.id] || ''}
-                              onChange={(e) =>
-                                setDisputeResponses((prev) => ({
-                                  ...prev,
-                                  [order.id]: e.target.value,
-                                }))
-                              }
-                              rows={4}
-                              className="mt-1"
-                            />
-                          </div>
-                          <Button
-                            onClick={() => handleSubmitDisputeResponse(order.link_id, order.id)}
-                            disabled={actionLoading === order.link_id}
-                            className="w-full gap-2"
-                          >
-                            <Send className="h-4 w-4" />
-                            {actionLoading === order.link_id
-                              ? 'Envoi...'
-                              : 'Soumettre ma réponse à FidexaPay'}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
+                        <Button
+                          onClick={() => handleSubmitDisputeResponse(order.link_id, order.id)}
+                          disabled={actionLoading === order.link_id}
+                          className="w-full gap-2 bg-[#0b3b78] hover:bg-[#0a3266]"
+                        >
+                          <Send className="h-4 w-4" />
+                          {actionLoading === order.link_id
+                            ? 'Envoi...'
+                            : 'Soumettre ma réponse à FidexaPay'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            </section>
+            </article>
           ))}
         </div>
       )}

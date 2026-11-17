@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Check, Shield } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { MVP_SUBSCRIPTION, SITE } from '@/config/site';
@@ -26,7 +25,9 @@ export default function Subscriptions() {
 
   const ensureBasicPlan = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase
         .from('users')
@@ -47,7 +48,9 @@ export default function Subscriptions() {
 
   const loadData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase
           .from('users')
@@ -72,8 +75,8 @@ export default function Subscriptions() {
       const result = typeof data === 'string' ? JSON.parse(data) : data;
       if (!result.success) throw new Error(result.error);
       toast({
-        title: 'Plan Basique activé',
-        description: `Commission ${result.commission_rate ?? SITE.commissionBasic} % sur vos ventes validées.`,
+        title: 'Plan activé',
+        description: `Commission ${result.commission_rate ?? SITE.commissionBasic} %`,
       });
       loadData();
     } catch (err) {
@@ -92,60 +95,83 @@ export default function Subscriptions() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-center text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
-        Abonnements
-      </h1>
+    <div className="mx-auto max-w-md space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63]">Abonnement</h1>
+        <Button variant="ghost" size="sm" asChild className="text-[#0b3b78]">
+          <Link to="/dashboard/profile">Retour</Link>
+        </Button>
+      </div>
 
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <section className="rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <h2 className="text-2xl font-semibold text-[#0b2f63]">{MVP_SUBSCRIPTION.name}</h2>
-            {isBasic && <Badge>Actif</Badge>}
-          </div>
-          <p className="mb-6 text-sm text-[#5c7188]">{MVP_SUBSCRIPTION.description}</p>
-          <div className="space-y-6">
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold text-[#0b2f63]">Gratuit</span>
-              <span className="text-[#5c7188]">· pour toujours</span>
+      {/* Même design que la page d’accueil (pricing) */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#071a35] p-8 text-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] sm:p-10">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 70% 55% at 50% -10%, rgba(43,182,115,0.22), transparent 55%), linear-gradient(160deg, #071a35 0%, #0b3b78 48%, #082848 100%)',
+          }}
+        />
+        <div className="relative">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#6ce0a0]">
+                Plan {MVP_SUBSCRIPTION.name}
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold">Pour prestataires</h2>
             </div>
-            <div className="rounded-xl bg-[#0b3b78]/8 p-4 text-center ring-1 ring-[#dbe6f2]">
-              <p className="text-sm text-[#5c7188]">Commission par transaction validée</p>
-              <p className="text-4xl font-bold text-[#0b3b78]">{MVP_SUBSCRIPTION.commission} %</p>
-            </div>
-            <ul className="space-y-3">
-              {MVP_SUBSCRIPTION.features.map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm">
-                  <Check className="h-5 w-5 shrink-0 text-green-500" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            {!isBasic ? (
-              <Button className="w-full" onClick={activateBasic} disabled={activating}>
-                {activating ? 'Activation…' : 'Activer le plan Basique'}
-              </Button>
+            {isBasic ? (
+              <span className="rounded-full bg-[#2bb673]/20 px-3 py-1 text-xs font-semibold text-[#6ce0a0]">
+                Actif
+              </span>
             ) : (
-              <Button className="w-full" variant="outline" disabled>
-                Plan actuel
-              </Button>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+                Recommandé
+              </span>
             )}
           </div>
-        </section>
-      </motion.div>
 
-      <section className="flex gap-4 rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2]">
-        <Shield className="h-8 w-8 shrink-0 text-[#0b3b78]" />
-        <p className="text-sm text-[#5c7188]">
-          Escrow FidexaPay : fonds protégés jusqu&apos;à validation client.
-        </p>
-      </section>
+          <div className="mt-8 flex items-end gap-2">
+            <span className="text-5xl font-semibold tracking-tight sm:text-6xl">$0</span>
+            <span className="mb-2 text-sm text-white/55">USD / mois</span>
+          </div>
+          <p className="mt-2 text-sm text-white/65">
+            Puis {MVP_SUBSCRIPTION.commission}&nbsp;% de commission sur chaque transaction validée.
+          </p>
+
+          <ul className="mt-8 space-y-3.5">
+            {MVP_SUBSCRIPTION.features.map((f) => (
+              <li key={f} className="flex items-start gap-3 text-sm text-white/85">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2bb673]">
+                  <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                </span>
+                {f}
+              </li>
+            ))}
+          </ul>
+
+          {!isBasic ? (
+            <Button
+              className="mt-9 h-12 w-full rounded-xl bg-[#2bb673] text-base font-semibold text-white hover:bg-[#24a367]"
+              size="lg"
+              onClick={activateBasic}
+              disabled={activating}
+            >
+              {activating ? 'Activation…' : 'Activer le plan'}
+            </Button>
+          ) : (
+            <div className="mt-9 h-12 w-full rounded-xl border border-white/20 bg-white/5 text-center text-sm font-medium leading-[3rem] text-white/80">
+              Plan actuel
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

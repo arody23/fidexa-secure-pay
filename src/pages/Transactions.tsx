@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, TrendingUp, DollarSign, Clock, AlertCircle } from 'lucide-react';
+import { Search, AlertCircle } from 'lucide-react';
 import { useProvider } from '@/contexts/ProviderContext';
 import { useProviderPaymentLinks } from '@/hooks/useProviderPaymentLinks';
 import { formatAmount, convertAmount } from '@/lib/currency';
@@ -90,117 +90,103 @@ export default function Transactions() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
+    <div className="mx-auto w-full max-w-2xl space-y-8 overflow-x-hidden">
+      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
         Transactions
       </h1>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-[#5c7188]">Revenu total</p>
-            <DollarSign className="h-4 w-4 text-[#5c7188]" />
-          </div>
-          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#0b2f63]">
+      <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+        <div>
+          <p className="text-[#5c7188]">Revenu total</p>
+          <p className="text-lg font-semibold tabular-nums text-[#0b2f63]">
             {formatAmount(totalRevenue, currency)}
           </p>
-          <p className="mt-1 text-xs text-[#5c7188]">{paidCount} transactions payées</p>
         </div>
-
-        <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-[#5c7188]">En attente</p>
-            <Clock className="h-4 w-4 text-[#5c7188]" />
-          </div>
-          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#0b2f63]">{pendingCount}</p>
-          <p className="mt-1 text-xs text-[#5c7188]">Transactions non payées</p>
+        <div>
+          <p className="text-[#5c7188]">En attente</p>
+          <p className="text-lg font-semibold tabular-nums text-[#0b2f63]">{pendingCount}</p>
         </div>
-
-        <div className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-[#5c7188]">Total</p>
-            <TrendingUp className="h-4 w-4 text-[#5c7188]" />
-          </div>
-          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#0b2f63]">
+        <div>
+          <p className="text-[#5c7188]">Total</p>
+          <p className="text-lg font-semibold tabular-nums text-[#0b2f63]">
             {transactions.length}
+            <span className="ml-1 text-xs font-normal text-[#5c7188]">({paidCount} payées)</span>
           </p>
-          <p className="mt-1 text-xs text-[#5c7188]">Toutes les transactions</p>
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#dbe6f2]">
-        <div className="flex flex-col gap-4 border-b border-[#eef3f9] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <h2 className="text-base font-semibold text-[#0b2f63]">Liste des transactions</h2>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5c7188]" />
-              <Input
-                placeholder="Rechercher..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 sm:w-64"
-              />
-            </div>
-            <div className="flex gap-2">
-              {(['all', 'paid', 'pending'] as const).map((status) => (
-                <Button
-                  key={status}
-                  variant={filterStatus === status ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilterStatus(status)}
-                >
-                  {status === 'all' ? 'Toutes' : status === 'paid' ? 'Payées' : 'En attente'}
-                </Button>
-              ))}
-            </div>
+      <div className="h-px bg-[#e4edf6]" />
+
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5c7188]" />
+            <Input
+              placeholder="Rechercher..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9"
+            />
+          </div>
+          <div className="flex gap-2">
+            {(['all', 'paid', 'pending'] as const).map((status) => (
+              <Button
+                key={status}
+                variant={filterStatus === status ? 'default' : 'outline'}
+                size="sm"
+                className={filterStatus === status ? 'bg-[#0b3b78] hover:bg-[#0a3266]' : ''}
+                onClick={() => setFilterStatus(status)}
+              >
+                {status === 'all' ? 'Toutes' : status === 'paid' ? 'Payées' : 'En attente'}
+              </Button>
+            ))}
           </div>
         </div>
-        <div className="p-4 sm:p-5">
-          {filteredTransactions.length === 0 ? (
-            <div className="py-12 text-center">
-              <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#5c7188]/50" />
-              <p className="text-[#5c7188]">Aucune transaction trouvée</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-[#eef3f9]">
-              {filteredTransactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <h3 className="font-medium text-[#0b2f63]">{transaction.client_name}</h3>
-                      <Badge variant={transaction.is_paid ? 'default' : 'secondary'}>
-                        {transaction.is_paid ? 'Payé' : 'En attente'}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-[#5c7188]">
-                      <span>{transaction.client_email}</span>
-                      <span>·</span>
-                      <span>ID: {transaction.link_id.slice(0, 8)}</span>
-                      <span>·</span>
-                      <span>
-                        {new Date(transaction.created_at).toLocaleDateString('fr-FR')}
-                      </span>
-                    </div>
+
+        {filteredTransactions.length === 0 ? (
+          <div className="py-12 text-center">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#5c7188]/50" />
+            <p className="text-[#5c7188]">Aucune transaction trouvée</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#e4edf6]">
+            {filteredTransactions.map((transaction) => (
+              <div
+                key={transaction.id}
+                className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <h3 className="font-medium text-[#0b2f63]">{transaction.client_name}</h3>
+                    <Badge variant={transaction.is_paid ? 'default' : 'secondary'}>
+                      {transaction.is_paid ? 'Payé' : 'En attente'}
+                    </Badge>
                   </div>
-                  <p className="shrink-0 text-right font-semibold tabular-nums text-[#0b2f63]">
-                    {formatAmount(
-                      convertAmount(
-                        transaction.amount,
-                        transaction.currency || currency,
-                        currency
-                      ),
-                      currency
-                    )}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-[#5c7188]">
+                    <span>{transaction.client_email}</span>
+                    <span>·</span>
+                    <span>ID: {transaction.link_id.slice(0, 8)}</span>
+                    <span>·</span>
+                    <span>
+                      {new Date(transaction.created_at).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+                <p className="shrink-0 text-right font-semibold tabular-nums text-[#0b2f63]">
+                  {formatAmount(
+                    convertAmount(
+                      transaction.amount,
+                      transaction.currency || currency,
+                      currency
+                    ),
+                    currency
+                  )}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

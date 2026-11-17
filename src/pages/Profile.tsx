@@ -173,7 +173,7 @@ export function Profile() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 overflow-x-hidden">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">Paramètres</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">Profil</h1>
       </div>
 
       {error && (
@@ -215,14 +215,9 @@ export function Profile() {
             </div>
           </Label>
           <div className="min-w-0 w-full flex-1 space-y-1 text-center sm:text-left">
-            <div className="flex items-center justify-center gap-1.5 sm:justify-start">
-              <p className="truncate text-lg font-semibold text-[#0b2f63]">
-                {profile?.full_name || 'Compte'}
-              </p>
-              {profile?.kyc_status === 'verified' && (
-                <CheckCircle2 className="h-5 w-5 shrink-0 fill-[#1d9bf0] text-white" strokeWidth={0} aria-label="Vérifié" />
-              )}
-            </div>
+            <p className="truncate text-lg font-semibold text-[#0b2f63]">
+              {profile?.full_name || 'Profil'}
+            </p>
             <Label htmlFor="avatar-upload" className="inline-block cursor-pointer">
               <Button asChild variant="outline" disabled={uploading} className="w-full border-[#dbe6f2] sm:w-auto">
                 <span>
@@ -361,28 +356,41 @@ export function Profile() {
         </Button>
       </section>
 
-      {profile && profile.kyc_status !== 'verified' && (
-        <>
-          <div className="h-px bg-[#e4edf6]" />
+      <div className="h-px bg-[#e4edf6]" />
+
+      <div className="space-y-1">
+        <button
+          type="button"
+          onClick={() => navigate('/dashboard/subscriptions')}
+          className="flex w-full items-center justify-between gap-3 py-3.5 text-left"
+        >
+          <div>
+            <p className="font-semibold text-[#0b2f63]">Abonnement</p>
+            <p className="text-sm text-[#5c7188]">Plan et commission</p>
+          </div>
+          <ArrowRight className="h-5 w-5 shrink-0 text-[#0b3b78]" />
+        </button>
+
+        {profile && profile.kyc_status !== 'verified' && (
           <button
             type="button"
             onClick={() => navigate('/dashboard/kyc')}
-            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-4 text-left ring-1 ring-[#dbe6f2] transition-colors hover:bg-[#f7fafd]"
+            className="flex w-full items-center justify-between gap-3 border-t border-[#e4edf6] py-3.5 text-left"
           >
-            <div className="min-w-0">
+            <div>
               <p className="font-semibold text-[#0b2f63]">Vérification d’identité</p>
-              <p className="mt-0.5 text-sm text-[#5c7188]">
+              <p className="text-sm text-[#5c7188]">
                 {profile.kyc_status === 'pending'
-                  ? 'Demande en cours d’examen'
+                  ? 'En cours d’examen'
                   : profile.kyc_status === 'rejected'
-                    ? 'Nouvelle soumission requise'
+                    ? 'Nouvelle soumission'
                     : 'Requis pour les retraits'}
               </p>
             </div>
             <ArrowRight className="h-5 w-5 shrink-0 text-[#0b3b78]" />
           </button>
-        </>
-      )}
+        )}
+      </div>
 
       {imageToCrop && (
         <ImageCropper

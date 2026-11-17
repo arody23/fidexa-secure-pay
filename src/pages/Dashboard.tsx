@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Package,
   CheckCircle,
   Clock,
   XCircle,
@@ -9,6 +8,9 @@ import {
   ArrowUpRight,
   Wallet,
   CircleDollarSign,
+  Link2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
@@ -38,6 +40,89 @@ interface Stats {
   cancelled: number;
   dispute: number;
   monthlyVolume: number;
+}
+
+function RecentLinksSection({
+  paymentLinks,
+  currency,
+}: {
+  paymentLinks: PaymentLink[];
+  currency: string;
+}) {
+  const [showArchive, setShowArchive] = useState(false);
+  const recent = paymentLinks.slice(0, 4);
+  const archived = paymentLinks.slice(4);
+  const visible = showArchive ? paymentLinks : recent;
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-base font-semibold text-[#0b2f63]">Liens récents</h2>
+        <Button variant="ghost" size="sm" asChild className="shrink-0 text-[#0b3b78]">
+          <Link to="/dashboard/orders">Tous</Link>
+        </Button>
+      </div>
+      {paymentLinks.length === 0 ? (
+        <p className="py-8 text-center text-sm text-[#5c7188]">Aucun lien</p>
+      ) : (
+        <>
+          <div className="divide-y divide-[#e4edf6]">
+            {visible.map((link) => (
+              <div
+                key={link.id}
+                className="flex flex-col gap-2 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <Link2 className="h-4 w-4 shrink-0 text-[#0b3b78]" strokeWidth={1.8} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-[#0b2f63]">{link.client_name}</p>
+                    <p className="truncate text-xs text-[#5c7188]">
+                      {new Date(link.created_at).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center justify-between gap-3 pl-7 sm:justify-end sm:pl-0">
+                  <p className="font-semibold tabular-nums text-[#0b2f63]">
+                    {formatAmount(
+                      convertAmount(link.amount, link.currency || currency, currency),
+                      currency
+                    )}
+                  </p>
+                  <StatusBadge
+                    status={
+                      (link.is_paid
+                        ? link.status === "pending"
+                          ? "paid"
+                          : link.status
+                        : link.status) as OrderStatus
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          {archived.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full text-[#0b3b78]"
+              onClick={() => setShowArchive((v) => !v)}
+            >
+              {showArchive ? (
+                <>
+                  Réduire <ChevronUp className="ml-1 h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  Archives ({archived.length}) <ChevronDown className="ml-1 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          )}
+        </>
+      )}
+    </section>
+  );
 }
 
 const Dashboard = () => {
@@ -192,59 +277,7 @@ const Dashboard = () => {
         ))}
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-[#0b2f63]">Liens récents</h2>
-          <Button variant="ghost" size="sm" asChild className="shrink-0 text-[#0b3b78]">
-            <Link to="/dashboard/orders">Voir tout</Link>
-          </Button>
-        </div>
-        {paymentLinks.length === 0 ? (
-          <div className="rounded-2xl bg-white py-10 text-center text-sm text-[#5c7188] ring-1 ring-[#dbe6f2]">
-            Aucun lien
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#dbe6f2]">
-            <div className="divide-y divide-[#eef3f9]">
-              {paymentLinks.slice(0, 5).map((link) => (
-                <div
-                  key={link.id}
-                  className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0b3b78]/8 text-[#0b3b78]">
-                      <Package className="h-4 w-4" strokeWidth={1.8} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-[#0b2f63]">{link.client_name}</p>
-                      <p className="truncate text-xs text-[#5c7188]">
-                        {link.link_id} · {new Date(link.created_at).toLocaleDateString("fr-FR")}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-                    <p className="font-semibold tabular-nums text-[#0b2f63]">
-                      {formatAmount(
-                        convertAmount(link.amount, link.currency || currency, currency),
-                        currency
-                      )}
-                    </p>
-                    <StatusBadge
-                      status={
-                        (link.is_paid
-                          ? link.status === "pending"
-                            ? "paid"
-                            : link.status
-                          : link.status) as OrderStatus
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </section>
+      <RecentLinksSection paymentLinks={paymentLinks} currency={currency} />
     </div>
   );
 };

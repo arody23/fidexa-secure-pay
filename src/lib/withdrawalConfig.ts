@@ -1,33 +1,70 @@
-/** Politique de retrait FidexaPay — affichage UI + doc opérationnelle */
+/** Politique de retrait FidexaPay */
 
-import { WITHDRAWAL_LIMITS, formatAmount } from '@/lib/countriesData';
+import { convertAmount, formatAmount, normalizeCurrency } from '@/lib/currency';
+
+/** Limites en USD, converties selon les taux en vigueur */
+export const MIN_WITHDRAWAL_USD = 5;
+export const MAX_WITHDRAWAL_USD = 500;
 
 export const WITHDRAWAL_POLICY = {
-  /** Délai annoncé au prestataire */
   processingHoursMin: 24,
   processingHoursMax: 48,
-  /** Une seule demande en attente à la fois */
   maxPendingRequests: 1,
-  /** KYC obligatoire */
   kycRequired: true,
-  /** Méthodes autorisées */
-  methods: ['mobile_money', 'bank_transfer'] as const,
-  /** Frais plateforme sur retrait (0 % en sandbox / lancement) */
+  methods: ['mobile_money'] as const,
   feePercent: 0,
+  minUsd: MIN_WITHDRAWAL_USD,
+  maxUsd: MAX_WITHDRAWAL_USD,
 } as const;
 
-export function getWithdrawalLimits(currency: keyof typeof WITHDRAWAL_LIMITS) {
-  return WITHDRAWAL_LIMITS[currency] ?? WITHDRAWAL_LIMITS.CDF;
+export function getMinWithdrawalAmount(currency?: string | null): number {
+  const code = normalizeCurrency(currency || 'USD');
+  return Math.ceil(convertAmount(MIN_WITHDRAWAL_USD, 'USD', code));
 }
 
-export function formatWithdrawalPolicySummary(currency: keyof typeof WITHDRAWAL_LIMITS): string[] {
-  const limits = getWithdrawalLimits(currency);
+export function getMaxWithdrawalAmount(currency?: string | null): number {
+  const code = normalizeCurrency(currency || 'USD');
+  // Arrondi inférieur pour ne jamais dépasser 500 USD
+  return Math.floor(convertAmount(MAX_WITHDRAWAL_USD, 'USD', code));
+}
+
+export function validateWithdrawalAmount(
+  amount: number,
+  currency?: string | null
+): { valid: boolean; reason?: string; min: number; max: number } {
+  const code = normalizeCurrency(currency || 'USD');
+  const min = getMinWithdrawalAmount(code);
+  const max = getMaxWithdrawalAmount(code);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { valid: false, reason: 'Montant invalide', min, max };
+  }
+  if (amount < min) {
+    return {
+      valid: false,
+      reason: `Minimum ${formatAmount(min, code)} (5 USD)`,
+      min,
+      max,
+    };
+  }
+  if (amount > max) {
+    return {
+      valid: false,
+      reason: `Maximum ${formatAmount(max, code)} (500 USD)`,
+      min,
+      max,
+    };
+  }
+  return { valid: true, min, max };
+}
+
+export function formatWithdrawalPolicySummary(currency?: string | null): string[] {
+  const code = normalizeCurrency(currency || 'USD');
+  const min = getMinWithdrawalAmount(code);
+  const max = getMaxWithdrawalAmount(code);
   return [
-    `Solde minimum retirable : ${formatAmount(limits.min, currency)}`,
-    `Maximum par demande : ${formatAmount(limits.max, currency)}`,
-    `Délai de traitement : ${WITHDRAWAL_POLICY.processingHoursMin} à ${WITHDRAWAL_POLICY.processingHoursMax} h ouvrées`,
-    'KYC vérifié obligatoire',
-    'Une demande en attente à la fois',
-    'Seuls les fonds libérés (commandes validées) sont retirables',
+    `Min. ${formatAmount(min, code)} (5 USD)`,
+    `Max. ${formatAmount(max, code)} (500 USD)`,
+    `${WITHDRAWAL_POLICY.processingHoursMin}–${WITHDRAWAL_POLICY.processingHoursMax} h`,
+    'Mobile Money uniquement',
   ];
 }
