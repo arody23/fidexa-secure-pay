@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Save, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Camera, Save, AlertCircle, ArrowRight } from 'lucide-react';
+import { VerifiedBadge } from '@/components/brand/VerifiedBadge';
 import { UserProfile } from '@/types/index';
 import { loadUserProfile, updateUserProfile, uploadUserAvatar } from '@/lib/userService';
 import { useProvider } from '@/contexts/ProviderContext';
@@ -171,10 +172,8 @@ export function Profile() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-8 overflow-x-hidden">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">Profil</h1>
-      </div>
+    <div className="mx-auto w-full max-w-xl space-y-4 overflow-x-hidden">
+      <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">Profil</h1>
 
       {error && (
         <Alert variant="destructive" className="min-w-0 break-words">
@@ -189,10 +188,10 @@ export function Profile() {
         </Alert>
       )}
 
-      <section className="space-y-4">
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <section className="rounded-2xl border border-[#e2eaf3] bg-white p-4 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">
           <Label htmlFor="avatar-upload" className="group relative shrink-0 cursor-pointer">
-            <Avatar className="h-20 w-20 ring-2 ring-[#dbe6f2] transition-opacity group-hover:opacity-90 sm:h-24 sm:w-24">
+            <Avatar className="h-16 w-16 ring-2 ring-[#dbe6f2] transition-opacity group-hover:opacity-90 sm:h-20 sm:w-20">
               <AvatarImage
                 src={profile?.avatar_url || ''}
                 alt=""
@@ -200,29 +199,38 @@ export function Profile() {
                   e.currentTarget.src = '';
                 }}
               />
-              <AvatarFallback className="bg-[#0b3b78] text-2xl font-bold text-white">
+              <AvatarFallback className="bg-[#0b3b78] text-xl font-bold text-white">
                 {profile?.full_name?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
             {profile?.kyc_status === 'verified' && (
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-white">
-                <CheckCircle2 className="h-5 w-5 fill-[#1d9bf0] text-white" strokeWidth={0} />
-                <span className="sr-only">Vérifié</span>
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-white">
+                <VerifiedBadge size="sm" />
               </span>
             )}
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
-              <Camera className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+              <Camera className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
           </Label>
-          <div className="min-w-0 w-full flex-1 space-y-1 text-center sm:text-left">
-            <p className="truncate text-lg font-semibold text-[#0b2f63]">
-              {profile?.full_name || 'Profil'}
-            </p>
+          <div className="min-w-0 w-full flex-1 space-y-1.5 text-center sm:text-left">
+            <div className="flex items-center justify-center gap-1 sm:justify-start">
+              <p className="truncate text-base font-semibold leading-none text-[#0b2f63]">
+                {profile?.full_name || 'Profil'}
+              </p>
+              {profile?.kyc_status === 'verified' && <VerifiedBadge size="sm" />}
+            </div>
+            <p className="truncate text-xs leading-none text-[#8a9bb0]">{profile?.email}</p>
             <Label htmlFor="avatar-upload" className="inline-block cursor-pointer">
-              <Button asChild variant="outline" disabled={uploading} className="w-full border-[#dbe6f2] sm:w-auto">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                className="h-8 border-[#dbe6f2] text-xs"
+              >
                 <span>
-                  <Camera className="mr-2 h-4 w-4" />
-                  {uploading ? 'Envoi…' : 'Changer la photo'}
+                  <Camera className="mr-1.5 h-3.5 w-3.5" />
+                  {uploading ? 'Envoi…' : 'Photo'}
                 </span>
               </Button>
             </Label>
@@ -238,16 +246,18 @@ export function Profile() {
         </div>
       </section>
 
-      <div className="h-px bg-[#e4edf6]" />
-
-      <section className="space-y-5">
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" value={profile?.email || ''} disabled className="bg-[#f6f9fd]" />
+      <section className="space-y-3.5 rounded-2xl border border-[#e2eaf3] bg-white p-4 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+        <div className="min-w-0 space-y-1">
+          <Label htmlFor="email" className="text-xs text-[#5c7188]">
+            Email
+          </Label>
+          <Input id="email" value={profile?.email || ''} disabled className="h-11 bg-[#f6f9fd]" />
         </div>
 
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="full_name">Nom complet</Label>
+        <div className="min-w-0 space-y-1">
+          <Label htmlFor="full_name" className="text-xs text-[#5c7188]">
+            Nom complet
+          </Label>
           <Input
             id="full_name"
             name="full_name"
@@ -257,8 +267,10 @@ export function Profile() {
           />
         </div>
 
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="phone_number">Téléphone</Label>
+        <div className="min-w-0 space-y-1">
+          <Label htmlFor="phone_number" className="text-xs text-[#5c7188]">
+            Téléphone
+          </Label>
           <Input
             id="phone_number"
             name="phone_number"
@@ -269,8 +281,10 @@ export function Profile() {
           />
         </div>
 
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="country">Pays</Label>
+        <div className="min-w-0 space-y-1">
+          <Label htmlFor="country" className="text-xs text-[#5c7188]">
+            Pays
+          </Label>
           <Select value={formData.country} onValueChange={handleCountryChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Pays" />
@@ -285,8 +299,10 @@ export function Profile() {
           </Select>
         </div>
 
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="currency">Devise</Label>
+        <div className="min-w-0 space-y-1">
+          <Label htmlFor="currency" className="text-xs text-[#5c7188]">
+            Devise
+          </Label>
           <Select value={formData.currency} onValueChange={handleCurrencyChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Devise" />
@@ -321,8 +337,10 @@ export function Profile() {
           </Select>
         </div>
 
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="bio">Bio</Label>
+        <div className="min-w-0 space-y-1">
+          <Label htmlFor="bio" className="text-xs text-[#5c7188]">
+            Bio
+          </Label>
           <textarea
             id="bio"
             name="bio"
@@ -330,12 +348,14 @@ export function Profile() {
             onChange={handleInputChange}
             placeholder="Courte description"
             className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            rows={3}
+            rows={2}
           />
         </div>
 
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="skills">Compétences</Label>
+        <div className="min-w-0 space-y-1">
+          <Label htmlFor="skills" className="text-xs text-[#5c7188]">
+            Compétences
+          </Label>
           <Input
             id="skills"
             name="skills"
@@ -348,38 +368,35 @@ export function Profile() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-[#0b3b78] hover:bg-[#0a3266]"
-          size="lg"
+          className="h-11 w-full bg-[#0b3b78] hover:bg-[#0a3266]"
         >
           <Save className="mr-2 h-4 w-4" />
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </section>
 
-      <div className="h-px bg-[#e4edf6]" />
-
-      <div className="space-y-1">
+      <div className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
         <button
           type="button"
           onClick={() => navigate('/dashboard/subscriptions')}
-          className="flex w-full items-center justify-between gap-3 py-3.5 text-left"
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[#f7fafd]"
         >
-          <div>
-            <p className="font-semibold text-[#0b2f63]">Abonnement</p>
-            <p className="text-sm text-[#5c7188]">Plan et commission</p>
+          <div className="leading-none">
+            <p className="text-sm font-semibold text-[#0b2f63]">Abonnement</p>
+            <p className="mt-1 text-[11px] text-[#8a9bb0]">Plan et commission</p>
           </div>
-          <ArrowRight className="h-5 w-5 shrink-0 text-[#0b3b78]" />
+          <ArrowRight className="h-4 w-4 shrink-0 text-[#0b3b78]" />
         </button>
 
         {profile && profile.kyc_status !== 'verified' && (
           <button
             type="button"
             onClick={() => navigate('/dashboard/kyc')}
-            className="flex w-full items-center justify-between gap-3 border-t border-[#e4edf6] py-3.5 text-left"
+            className="flex w-full items-center justify-between gap-3 border-t border-[#eef3f9] px-4 py-3 text-left transition-colors hover:bg-[#f7fafd]"
           >
-            <div>
-              <p className="font-semibold text-[#0b2f63]">Vérification d’identité</p>
-              <p className="text-sm text-[#5c7188]">
+            <div className="leading-none">
+              <p className="text-sm font-semibold text-[#0b2f63]">Vérification d’identité</p>
+              <p className="mt-1 text-[11px] text-[#8a9bb0]">
                 {profile.kyc_status === 'pending'
                   ? 'En cours d’examen'
                   : profile.kyc_status === 'rejected'
@@ -387,7 +404,7 @@ export function Profile() {
                     : 'Requis pour les retraits'}
               </p>
             </div>
-            <ArrowRight className="h-5 w-5 shrink-0 text-[#0b3b78]" />
+            <ArrowRight className="h-4 w-4 shrink-0 text-[#0b3b78]" />
           </button>
         )}
       </div>

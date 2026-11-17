@@ -11,6 +11,13 @@ import {
   Link2,
   ChevronDown,
   ChevronUp,
+  Plus,
+  Shield,
+  TrendingUp,
+  PlayCircle,
+  BadgeCheck,
+  Sparkles,
+  Headphones,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
@@ -40,6 +47,12 @@ interface Stats {
   cancelled: number;
   dispute: number;
   monthlyVolume: number;
+  escrowHeld: number;
+  paidCount: number;
+  unpaidCount: number;
+  successRate: number;
+  avgTicket: number;
+  totalLinks: number;
 }
 
 function RecentLinksSection({
@@ -55,34 +68,36 @@ function RecentLinksSection({
   const visible = showArchive ? paymentLinks : recent;
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-[#0b2f63]">Liens récents</h2>
-        <Button variant="ghost" size="sm" asChild className="shrink-0 text-[#0b3b78]">
-          <Link to="/dashboard/orders">Tous</Link>
-        </Button>
+    <section className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+      <div className="flex items-center justify-between border-b border-[#eef3f9] px-4 py-2.5">
+        <h2 className="text-sm font-semibold leading-none text-[#0b2f63]">Liens récents</h2>
+        <Link to="/dashboard/orders" className="text-xs font-medium text-[#0b3b78] hover:underline">
+          Tous
+        </Link>
       </div>
       {paymentLinks.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[#5c7188]">Aucun lien</p>
+        <p className="px-4 py-6 text-center text-sm text-[#5c7188]">Aucun lien</p>
       ) : (
         <>
-          <div className="divide-y divide-[#e4edf6]">
+          <div className="divide-y divide-[#eef3f9]">
             {visible.map((link) => (
               <div
                 key={link.id}
-                className="flex flex-col gap-2 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+                className="flex items-center justify-between gap-3 px-4 py-2"
               >
-                <div className="flex min-w-0 items-center gap-3">
-                  <Link2 className="h-4 w-4 shrink-0 text-[#0b3b78]" strokeWidth={1.8} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-[#0b2f63]">{link.client_name}</p>
-                    <p className="truncate text-xs text-[#5c7188]">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#0b3b78]/8 text-[#0b3b78]">
+                    <Link2 className="h-3.5 w-3.5" strokeWidth={2} />
+                  </span>
+                  <div className="min-w-0 leading-none">
+                    <p className="truncate text-sm font-medium text-[#0b2f63]">{link.client_name}</p>
+                    <p className="mt-1 truncate text-[11px] leading-none text-[#8a9bb0]">
                       {new Date(link.created_at).toLocaleDateString("fr-FR")}
                     </p>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center justify-between gap-3 pl-7 sm:justify-end sm:pl-0">
-                  <p className="font-semibold tabular-nums text-[#0b2f63]">
+                <div className="flex shrink-0 items-center gap-2">
+                  <p className="text-sm font-semibold tabular-nums text-[#0b2f63]">
                     {formatAmount(
                       convertAmount(link.amount, link.currency || currency, currency),
                       currency
@@ -102,22 +117,21 @@ function RecentLinksSection({
             ))}
           </div>
           {archived.length > 0 && (
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              className="w-full text-[#0b3b78]"
+              className="flex w-full items-center justify-center gap-1 border-t border-[#eef3f9] py-2.5 text-xs font-medium text-[#0b3b78]"
               onClick={() => setShowArchive((v) => !v)}
             >
               {showArchive ? (
                 <>
-                  Réduire <ChevronUp className="ml-1 h-4 w-4" />
+                  Réduire <ChevronUp className="h-3.5 w-3.5" />
                 </>
               ) : (
                 <>
-                  Archives ({archived.length}) <ChevronDown className="ml-1 h-4 w-4" />
+                  Archives ({archived.length}) <ChevronDown className="h-3.5 w-3.5" />
                 </>
               )}
-            </Button>
+            </button>
           )}
         </>
       )}
@@ -126,7 +140,7 @@ function RecentLinksSection({
 }
 
 const Dashboard = () => {
-  const { currency } = useProvider();
+  const { currency, profile } = useProvider();
   const { data: rawLinks, loading } = useProviderPaymentLinks();
   const [disputedLinkIds, setDisputedLinkIds] = useState<Set<string>>(new Set());
 
@@ -179,13 +193,29 @@ const Dashboard = () => {
 
   const stats = useMemo<Stats>(() => {
     const paidLinks = paymentLinks.filter((l) => l.is_paid);
+    const unpaidLinks = paymentLinks.filter((l) => !l.is_paid && l.status !== "cancelled");
     const releasedLinks = paidLinks.filter((l) => l.escrow_released === true);
+    const heldLinks = paidLinks.filter((l) => !l.escrow_released);
     const monthlyVolume = releasedLinks.reduce(
       (sum, l) =>
         sum +
         convertAmount(l.net_amount || l.amount, l.currency || currency, currency),
       0
     );
+    const escrowHeld = heldLinks.reduce(
+      (sum, l) => sum + convertAmount(l.amount, l.currency || currency, currency),
+      0
+    );
+    const closed = paidLinks.filter(
+      (l) =>
+        l.order_status === "validated" ||
+        l.order_status === "completed" ||
+        l.order_status === "cancelled" ||
+        l.order_status === "disputed"
+    ).length;
+    const success = paidLinks.filter(
+      (l) => l.order_status === "validated" || l.order_status === "completed"
+    ).length;
 
     return {
       pending: paidLinks.filter(
@@ -204,6 +234,19 @@ const Dashboard = () => {
         paidLinks.filter((l) => disputedLinkIds.has(l.id)).length
       ),
       monthlyVolume,
+      escrowHeld,
+      paidCount: paidLinks.length,
+      unpaidCount: unpaidLinks.length,
+      successRate: closed > 0 ? Math.round((success / closed) * 100) : 0,
+      avgTicket:
+        paidLinks.length > 0
+          ? paidLinks.reduce(
+              (sum, l) =>
+                sum + convertAmount(l.amount, l.currency || currency, currency),
+              0
+            ) / paidLinks.length
+          : 0,
+      totalLinks: paymentLinks.length,
     };
   }, [paymentLinks, disputedLinkIds, currency]);
 
@@ -216,65 +259,205 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">
-        Tableau de bord
-      </h1>
-
-      <section className="grid gap-3 lg:grid-cols-[1.45fr_.55fr]">
-        <div className="relative flex min-h-40 flex-col justify-between overflow-hidden rounded-2xl bg-[#0b3b78] p-5 text-white sm:min-h-48 sm:p-7">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" aria-hidden />
-          <div className="relative flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-white/65">Fonds libérés</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
-                {formatAmount(stats.monthlyVolume, currency)}
-              </p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-[#6ce0a0]">
-              <CircleDollarSign className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="relative flex items-center justify-between gap-4 border-t border-white/15 pt-4 text-sm text-white/70">
-            <span>Ce mois · net</span>
-            <Link to="/dashboard/transactions" className="inline-flex items-center gap-1 font-medium text-white">
-              Voir <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-[#8a9bb0]">
+            {profile?.full_name ? `Bonjour` : "FidexaPay"}
+          </p>
+          <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">
+            {profile?.full_name?.split(" ")[0] || "Tableau de bord"}
+          </h1>
         </div>
+        <Button asChild size="sm" className="h-9 bg-[#0b3b78] hover:bg-[#0a3266]">
+          <Link to="/dashboard/create-link">
+            <Plus className="mr-1 h-4 w-4" />
+            Lien
+          </Link>
+        </Button>
+      </div>
+
+      {/* Hero finances */}
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="relative overflow-hidden rounded-2xl bg-[#0b3b78] p-4 text-white sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:flex lg:min-h-[11.5rem] lg:flex-col lg:justify-between lg:p-5">
+          <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/5" />
+          <div>
+            <p className="text-xs font-medium text-white/60">Fonds libérés</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
+              {formatAmount(stats.monthlyVolume, currency)}
+            </p>
+          </div>
+          <Link
+            to="/dashboard/transactions"
+            className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-white/80 hover:text-white lg:mt-0"
+          >
+            Transactions <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-[#e2eaf3] bg-white p-4 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-[#8a9bb0]">Escrow en cours</p>
+            <Shield className="h-4 w-4 text-[#0b3b78]" strokeWidth={1.75} />
+          </div>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums text-[#0b2f63]">
+            {formatAmount(stats.escrowHeld, currency)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-[#8a9bb0]">{stats.paidCount} paiements reçus</p>
+        </div>
+
         <Link
           to="/dashboard/withdrawal"
-          className="flex min-h-40 flex-col justify-between rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] transition-colors hover:bg-[#f7fafd] sm:min-h-48 sm:p-7"
+          className="rounded-2xl border border-[#e2eaf3] bg-white p-4 shadow-[0_1px_2px_rgba(11,59,120,0.04)] transition-colors hover:border-[#c5d4e8]"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0b3b78] text-white">
-            <Wallet className="h-5 w-5" />
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-[#8a9bb0]">Retraits</p>
+            <Wallet className="h-4 w-4 text-[#178c52]" strokeWidth={1.75} />
           </div>
-          <div>
-            <p className="text-sm text-[#5c7188]">Retraits</p>
-            <p className="mt-0.5 text-lg font-semibold text-[#0b3b78]">Solde disponible</p>
-          </div>
+          <p className="mt-1.5 text-xl font-semibold text-[#0b3b78]">Solde</p>
+          <p className="mt-0.5 inline-flex items-center gap-0.5 text-[11px] font-medium text-[#178c52]">
+            Demander <ArrowUpRight className="h-3 w-3" />
+          </p>
         </Link>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      {/* KPI row */}
+      <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {[
-          { to: "/dashboard/active-orders", label: "À livrer", value: stats.pending, icon: Clock },
-          { to: "/dashboard/orders?filter=delivered", label: "Validées", value: stats.delivered, icon: CheckCircle },
-          { to: "/dashboard/orders?filter=cancelled", label: "Annulées", value: stats.cancelled, icon: XCircle },
-          { to: "/dashboard/orders?filter=disputed", label: "Litiges", value: stats.dispute, icon: AlertTriangle },
-        ].map((metric) => (
+          { to: "/dashboard/active-orders", label: "À livrer", value: stats.pending, icon: Clock, tone: "text-[#b8860b] bg-[#fff8e8]" },
+          { to: "/dashboard/orders?filter=delivered", label: "Validées", value: stats.delivered, icon: CheckCircle, tone: "text-[#178c52] bg-[#edf9f2]" },
+          { to: "/dashboard/orders?filter=cancelled", label: "Annulées", value: stats.cancelled, icon: XCircle, tone: "text-[#64748b] bg-[#f1f5f9]" },
+          { to: "/dashboard/orders?filter=disputed", label: "Litiges", value: stats.dispute, icon: AlertTriangle, tone: "text-[#0b3b78] bg-[#eef4ff]" },
+        ].map((m) => (
           <Link
-            key={metric.label}
-            to={metric.to}
-            className="rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] transition-colors hover:bg-[#f7fafd] sm:p-5"
+            key={m.label}
+            to={m.to}
+            className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)] transition-colors hover:border-[#c5d4e8]"
           >
-            <metric.icon className="h-5 w-5 text-[#0b3b78]" strokeWidth={1.75} />
-            <p className="mt-4 text-2xl font-semibold tracking-tight tabular-nums text-[#0b2f63] sm:text-3xl">
-              {metric.value}
-            </p>
-            <p className="mt-1 text-xs font-medium text-[#5b738c] sm:text-sm">{metric.label}</p>
+            <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg ${m.tone}`}>
+              <m.icon className="h-3.5 w-3.5" strokeWidth={2} />
+            </span>
+            <p className="mt-2 text-xl font-semibold tabular-nums leading-none text-[#0b2f63]">{m.value}</p>
+            <p className="mt-1 text-[11px] font-medium text-[#8a9bb0]">{m.label}</p>
           </Link>
         ))}
+      </section>
+
+      {/* Insights */}
+      <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <div className="flex items-center gap-1.5">
+            <TrendingUp className="h-3.5 w-3.5 text-[#0b3b78]" strokeWidth={1.75} />
+            <p className="text-[11px] font-medium text-[#8a9bb0]">Succès</p>
+          </div>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums leading-none text-[#0b2f63]">
+            {stats.successRate}%
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <div className="flex items-center gap-1.5">
+            <CircleDollarSign className="h-3.5 w-3.5 text-[#0b3b78]" strokeWidth={1.75} />
+            <p className="text-[11px] font-medium text-[#8a9bb0]">Ticket moyen</p>
+          </div>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums leading-none text-[#0b2f63]">
+            {formatAmount(stats.avgTicket, currency)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <div className="flex items-center gap-1.5">
+            <Link2 className="h-3.5 w-3.5 text-[#0b3b78]" strokeWidth={1.75} />
+            <p className="text-[11px] font-medium text-[#8a9bb0]">Liens ouverts</p>
+          </div>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums leading-none text-[#0b2f63]">
+            {stats.unpaidCount}
+          </p>
+        </div>
+        <Link
+          to="/dashboard/active-orders"
+          className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)] transition-colors hover:border-[#c5d4e8]"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <PlayCircle className="h-3.5 w-3.5 text-[#0b3b78]" strokeWidth={1.75} />
+              <p className="text-[11px] font-medium text-[#8a9bb0]">Actives</p>
+            </div>
+            <ArrowUpRight className="h-3.5 w-3.5 text-[#0b3b78]" />
+          </div>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums leading-none text-[#0b2f63]">
+            {stats.pending}
+          </p>
+        </Link>
+      </section>
+
+      {/* Accès rapides */}
+      <section className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+        <div className="border-b border-[#eef3f9] px-4 py-2.5">
+          <h2 className="text-sm font-semibold leading-none text-[#0b2f63]">Accès rapides</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-px bg-[#eef3f9] sm:grid-cols-4">
+          {[
+            { to: "/dashboard/create-link", label: "Créer un lien", icon: Plus },
+            { to: "/dashboard/withdrawal", label: "Retirer", icon: Wallet },
+            { to: "/dashboard/subscriptions", label: "Abonnement", icon: Sparkles },
+            { to: "/dashboard/support", label: "Support", icon: Headphones },
+          ].map((a) => (
+            <Link
+              key={a.to}
+              to={a.to}
+              className="flex items-center gap-2.5 bg-white px-4 py-3 transition-colors hover:bg-[#f7fafd]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0b3b78]/8 text-[#0b3b78]">
+                <a.icon className="h-4 w-4" strokeWidth={1.75} />
+              </span>
+              <span className="text-xs font-semibold leading-tight text-[#0b2f63]">{a.label}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Santé du compte */}
+      <section className="grid gap-2.5 sm:grid-cols-2">
+        <Link
+          to={profile?.kyc_status === "verified" ? "/dashboard/profile" : "/dashboard/kyc"}
+          className="flex items-center justify-between gap-3 rounded-2xl border border-[#e2eaf3] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)] transition-colors hover:border-[#c5d4e8]"
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                profile?.kyc_status === "verified"
+                  ? "bg-[#edf9f2] text-[#178c52]"
+                  : "bg-[#fff8e8] text-[#b8860b]"
+              }`}
+            >
+              <BadgeCheck className="h-4 w-4" strokeWidth={1.75} />
+            </span>
+            <div className="min-w-0 leading-none">
+              <p className="text-sm font-semibold text-[#0b2f63]">Identité</p>
+              <p className="mt-1 text-[11px] text-[#8a9bb0]">
+                {profile?.kyc_status === "verified"
+                  ? "Profil vérifié"
+                  : profile?.kyc_status === "pending"
+                    ? "Vérification en cours"
+                    : "À vérifier pour les retraits"}
+              </p>
+            </div>
+          </div>
+          <ArrowUpRight className="h-4 w-4 shrink-0 text-[#0b3b78]" />
+        </Link>
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e2eaf3] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#eef4ff] text-[#0b3b78]">
+              <Shield className="h-4 w-4" strokeWidth={1.75} />
+            </span>
+            <div className="min-w-0 leading-none">
+              <p className="text-sm font-semibold text-[#0b2f63]">Activité</p>
+              <p className="mt-1 text-[11px] text-[#8a9bb0]">
+                {stats.totalLinks} lien{stats.totalLinks > 1 ? "s" : ""} · {stats.paidCount} payé
+                {stats.paidCount > 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <RecentLinksSection paymentLinks={paymentLinks} currency={currency} />

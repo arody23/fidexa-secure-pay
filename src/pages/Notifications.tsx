@@ -192,118 +192,132 @@ export default function Notifications() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500" />
-          <p className="mt-4 text-gray-600">Chargement des notifications...</p>
-        </div>
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-full space-y-6 overflow-x-hidden">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Notifications</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:text-base">
-            Restez informé de toutes vos activités
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <div className="mx-auto max-w-xl space-y-4 overflow-x-hidden">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">
+          Notifications
+        </h1>
+        <div className="flex flex-wrap justify-end gap-2">
           {isPushSupported() && (
             <Button
               variant={pushActive ? 'outline' : 'secondary'}
-              className="shrink-0"
+              size="sm"
+              className="h-8 shrink-0 text-xs"
               onClick={enablePush}
               disabled={pushLoading || pushActive}
             >
               {pushActive ? (
                 <>
-                  <Check className="mr-2 h-4 w-4" />
-                  Push activées
+                  <Check className="mr-1 h-3.5 w-3.5" />
+                  Push
                 </>
               ) : pushLoading ? (
-                'Activation…'
+                '…'
               ) : (
-                'Activer les push'
+                'Activer push'
               )}
             </Button>
           )}
           {unreadCount > 0 && (
-            <Button variant="outline" className="shrink-0" onClick={markAllAsRead}>
-              Tout marquer comme lu
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 text-xs"
+              onClick={markAllAsRead}
+            >
+              Tout lu
             </Button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-6 text-sm">
-        <div>
-          <p className="text-muted-foreground">Non lues</p>
-          <p className="text-2xl font-semibold">{unreadCount}</p>
+      <section className="grid grid-cols-2 gap-2.5">
+        <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <p className="text-[11px] text-[#8a9bb0]">Non lues</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums leading-none text-[#0b2f63]">
+            {unreadCount}
+          </p>
         </div>
-        <div>
-          <p className="text-muted-foreground">Total</p>
-          <p className="text-2xl font-semibold">{notifications.length}</p>
+        <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <p className="text-[11px] text-[#8a9bb0]">Total</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums leading-none text-[#0b2f63]">
+            {notifications.length}
+          </p>
         </div>
-      </div>
+      </section>
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant={filter === 'all' ? 'default' : 'outline'} onClick={() => setFilter('all')}>
-          Toutes ({notifications.length})
-        </Button>
-        <Button
-          variant={filter === 'unread' ? 'default' : 'outline'}
-          onClick={() => setFilter('unread')}
+      <div className="flex gap-1 rounded-full bg-[#e8eef6] p-1">
+        <button
+          type="button"
+          onClick={() => setFilter('all')}
+          className={`flex-1 rounded-full py-1.5 text-xs font-semibold transition-colors ${
+            filter === 'all' ? 'bg-white text-[#0b3b78] shadow-sm' : 'text-[#5c7188]'
+          }`}
         >
-          Non lues ({unreadCount})
-        </Button>
+          Toutes
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('unread')}
+          className={`flex-1 rounded-full py-1.5 text-xs font-semibold transition-colors ${
+            filter === 'unread' ? 'bg-white text-[#0b3b78] shadow-sm' : 'text-[#5c7188]'
+          }`}
+        >
+          Non lues
+        </button>
       </div>
 
       {filteredNotifications.length === 0 ? (
-        <div className="py-12 text-center">
-          <Bell className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-          <p className="mb-2 text-gray-600">Aucune notification</p>
-          <p className="text-sm text-gray-500">
-            {filter === 'unread'
-              ? 'Toutes vos notifications ont été lues'
-              : "Vous n'avez aucune notification pour le moment"}
+        <div className="rounded-2xl border border-[#e2eaf3] bg-white py-10 text-center shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <Bell className="mx-auto mb-2 h-8 w-8 text-[#c5d0de]" />
+          <p className="text-sm text-[#8a9bb0]">
+            {filter === 'unread' ? 'Tout est lu' : 'Aucune notification'}
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-border/70">
-          {filteredNotifications.map((notification) => (
-            <button
-              key={notification.id}
-              type="button"
-              className={`flex w-full items-start gap-4 py-4 text-left transition-colors hover:bg-muted/40 ${
-                !notification.read ? 'bg-primary/5' : ''
-              }`}
-              onClick={() => {
-                void markAsRead(notification.id);
-                if (notification.link) navigate(notification.link);
-              }}
-            >
-              <div className="mt-1 shrink-0">{getIcon(notification.type)}</div>
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <h3 className="truncate font-semibold">{notification.title}</h3>
-                    {!notification.read && (
-                      <Badge variant="default" className="text-xs">
-                        Nouveau
-                      </Badge>
-                    )}
+        <div className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <div className="divide-y divide-[#eef3f9]">
+            {filteredNotifications.map((notification) => (
+              <button
+                key={notification.id}
+                type="button"
+                className={`flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[#f7fafd] ${
+                  !notification.read ? 'bg-[#f5f8fc]' : ''
+                }`}
+                onClick={() => {
+                  void markAsRead(notification.id);
+                  if (notification.link) navigate(notification.link);
+                }}
+              >
+                <div className="mt-0.5 shrink-0">{getIcon(notification.type)}</div>
+                <div className="min-w-0 flex-1 leading-none">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <h3 className="truncate text-sm font-semibold text-[#0b2f63]">
+                        {notification.title}
+                      </h3>
+                      {!notification.read && (
+                        <Badge className="h-4 px-1.5 text-[9px]">Nouveau</Badge>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-[11px] text-[#8a9bb0]">
+                      {new Date(notification.created_at).toLocaleDateString('fr-FR')}
+                    </span>
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {new Date(notification.created_at).toLocaleDateString('fr-FR')}
-                  </span>
+                  <p className="mt-1 break-words text-xs leading-snug text-[#5c7188]">
+                    {notification.message}
+                  </p>
                 </div>
-                <p className="mt-1 break-words text-sm text-muted-foreground">{notification.message}</p>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

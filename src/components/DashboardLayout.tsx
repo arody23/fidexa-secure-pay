@@ -192,7 +192,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
 
       <main className="min-h-[100dvh] overflow-x-hidden pt-14 sm:pt-16 lg:ml-[17rem] lg:pt-0">
         <PushNotificationPrompt />
-        <div className="mx-auto w-full max-w-6xl p-3 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:p-5 lg:p-8 lg:pb-8">
+        <div className="mx-auto w-full max-w-6xl p-3 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:p-4 lg:p-6 lg:pb-6">
           {children}
         </div>
       </main>

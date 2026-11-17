@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, MoreVertical, Copy, CheckCircle, Link2 } from "lucide-react";
+import { MoreVertical, Copy, CheckCircle, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,12 +14,12 @@ import { useProviderPaymentLinks } from "@/hooks/useProviderPaymentLinks";
 import { formatAmount, convertAmount } from "@/lib/currency";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Order {
   id: string;
   link_id: string;
   client_name: string;
-  client_email: string;
   amount: number;
   currency?: string;
   status: OrderStatus;
@@ -45,7 +44,6 @@ const Orders = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const filterParam = searchParams.get("filter");
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(filterParam || "all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
@@ -57,7 +55,6 @@ const Orders = () => {
         id: link.id as string,
         link_id: link.link_id as string,
         client_name: (link.client_name as string) || "Client",
-        client_email: (link.client_email as string) || "N/A",
         amount: link.amount as number,
         currency: (link.currency as string) || undefined,
         status: (link.status || "pending") as OrderStatus,
@@ -71,11 +68,6 @@ const Orders = () => {
   );
 
   const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.link_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.description.toLowerCase().includes(searchQuery.toLowerCase());
-
     let matchesStatus = true;
     if (statusFilter !== "all" && order.is_paid) {
       if (statusFilter === "pending") {
@@ -94,8 +86,7 @@ const Orders = () => {
     } else if (statusFilter !== "all" && !order.is_paid) {
       matchesStatus = statusFilter === "pending";
     }
-
-    return matchesSearch && matchesStatus;
+    return matchesStatus;
   });
 
   const copyOrderLink = async (linkId: string) => {
@@ -103,37 +94,25 @@ const Orders = () => {
     const ok = await copyToClipboard(url);
     setCopiedId(ok ? linkId : null);
     setTimeout(() => setCopiedId(null), 2000);
-    toast({
-      title: ok ? "Lien copié" : "Copie manuelle",
-      description: ok ? "Copié." : url,
-    });
+    toast({ title: ok ? "Lien copié" : "Copie manuelle", description: ok ? "Copié." : url });
   };
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
-      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">Liens</h1>
+    <div className="space-y-4 overflow-x-hidden">
+      <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">Liens</h1>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5c7188]" />
-        <Input
-          placeholder="Rechercher"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="h-11 border-0 bg-transparent pl-10 shadow-none ring-0 focus-visible:ring-0"
-        />
-      </div>
-
-      <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      <div className="flex gap-1 overflow-x-auto rounded-full bg-[#e8eef6] p-1">
         {statusFilters.map((filter) => (
           <button
             key={filter.value}
             type="button"
             onClick={() => setStatusFilter(filter.value)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            className={cn(
+              "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
               statusFilter === filter.value
-                ? "bg-[#0b3b78] text-white"
-                : "text-[#5c7188] hover:bg-white/80"
-            }`}
+                ? "bg-white text-[#0b3b78] shadow-sm"
+                : "text-[#5c7188]"
+            )}
           >
             {filter.label}
           </button>
@@ -145,17 +124,21 @@ const Orders = () => {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
         </div>
       ) : filteredOrders.length === 0 ? (
-        <p className="py-12 text-center text-sm text-[#5c7188]">Aucun lien</p>
+        <div className="rounded-2xl border border-[#e2eaf3] bg-white py-12 text-center text-sm text-[#8a9bb0]">
+          Aucun lien
+        </div>
       ) : (
-        <div className="divide-y divide-[#e4edf6]">
-          {filteredOrders.map((order) => (
-            <div key={order.id} className="py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-1 gap-3">
-                  <Link2 className="mt-1 h-4 w-4 shrink-0 text-[#0b3b78]" strokeWidth={1.8} />
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate font-semibold text-[#0b2f63]">{order.client_name}</p>
+        <div className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <div className="divide-y divide-[#eef3f9]">
+            {filteredOrders.map((order) => (
+              <div key={order.id} className="flex items-center justify-between gap-3 px-4 py-2">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#0b3b78]/8 text-[#0b3b78]">
+                    <Link2 className="h-3.5 w-3.5" strokeWidth={2} />
+                  </span>
+                  <div className="min-w-0 leading-none">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-[#0b2f63]">{order.client_name}</p>
                       <StatusBadge
                         status={
                           (order.is_paid
@@ -166,14 +149,13 @@ const Orders = () => {
                         }
                       />
                     </div>
-                    <p className="line-clamp-1 text-sm text-[#5c7188]">{order.description}</p>
-                    <p className="text-xs text-[#5c7188]">
-                      {new Date(order.created_at).toLocaleDateString("fr-FR")}
+                    <p className="mt-0.5 truncate text-[11px] text-[#8a9bb0]">
+                      {order.description} · {new Date(order.created_at).toLocaleDateString("fr-FR")}
                     </p>
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <p className="font-semibold tabular-nums text-[#0b2f63]">
+                <div className="flex shrink-0 items-center gap-1">
+                  <p className="text-sm font-semibold tabular-nums text-[#0b2f63]">
                     {formatAmount(
                       convertAmount(order.amount, order.currency || currency, currency),
                       currency
@@ -181,11 +163,11 @@ const Orders = () => {
                   </p>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#5c7188]">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#8a9bb0]">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuContent align="end" className="w-40">
                       <DropdownMenuItem onClick={() => copyOrderLink(order.link_id)}>
                         {copiedId === order.link_id ? (
                           <CheckCircle className="mr-2 h-4 w-4" />
@@ -201,61 +183,38 @@ const Orders = () => {
                   </DropdownMenu>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#041628]/45 p-4 sm:items-center">
-          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5">
-            <h2 className="text-lg font-semibold text-[#0b2f63]">Détail</h2>
-            <div className="mt-4 space-y-3 text-sm">
+          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-[#e2eaf3] bg-white p-5 shadow-xl">
+            <h2 className="text-base font-semibold text-[#0b2f63]">Détail</h2>
+            <div className="mt-3 space-y-2.5 text-sm leading-snug">
               <div className="flex justify-between gap-2">
-                <span className="text-[#5c7188]">Client</span>
-                <span className="text-right font-medium text-[#0b2f63]">{selectedOrder.client_name}</span>
+                <span className="text-[#8a9bb0]">Client</span>
+                <span className="font-medium text-[#0b2f63]">{selectedOrder.client_name}</span>
               </div>
               <div>
-                <span className="text-[#5c7188]">Prestation</span>
-                <p className="mt-1 font-medium text-[#0b2f63]">{selectedOrder.description}</p>
+                <span className="text-[#8a9bb0]">Prestation</span>
+                <p className="mt-0.5 font-medium text-[#0b2f63]">{selectedOrder.description}</p>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-[#5c7188]">Montant</span>
+                <span className="text-[#8a9bb0]">Montant</span>
                 <span className="font-semibold tabular-nums text-[#0b2f63]">
                   {formatAmount(
-                    convertAmount(
-                      selectedOrder.amount,
-                      selectedOrder.currency || currency,
-                      currency
-                    ),
+                    convertAmount(selectedOrder.amount, selectedOrder.currency || currency, currency),
                     currency
                   )}
                 </span>
               </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-[#5c7188]">Statut</span>
-                <StatusBadge
-                  status={
-                    (selectedOrder.is_paid
-                      ? selectedOrder.status === "pending"
-                        ? "paid"
-                        : selectedOrder.status
-                      : selectedOrder.status) as OrderStatus
-                  }
-                />
-              </div>
-              <div className="flex gap-2 pt-3">
-                <Button
-                  className="flex-1"
-                  variant="outline"
-                  onClick={() => copyOrderLink(selectedOrder.link_id)}
-                >
-                  Copier le lien
+              <div className="flex gap-2 pt-2">
+                <Button className="flex-1" variant="outline" onClick={() => copyOrderLink(selectedOrder.link_id)}>
+                  Copier
                 </Button>
-                <Button
-                  className="flex-1 bg-[#0b3b78] hover:bg-[#0a3266]"
-                  onClick={() => setSelectedOrder(null)}
-                >
+                <Button className="flex-1 bg-[#0b3b78] hover:bg-[#0a3266]" onClick={() => setSelectedOrder(null)}>
                   Fermer
                 </Button>
               </div>

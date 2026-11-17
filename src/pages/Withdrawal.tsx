@@ -166,18 +166,18 @@ export function Withdrawal() {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] md:text-3xl">Retraits</h1>
+    <div className="mx-auto max-w-xl space-y-4">
+      <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">Retraits</h1>
 
       {wallet && (
-        <div>
-          <p className="text-sm text-[#5c7188]">Disponible</p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums text-[#0b3b78]">
+        <div className="rounded-2xl border border-[#e2eaf3] bg-white p-4 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <p className="text-xs font-medium text-[#8a9bb0]">Disponible</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums leading-none text-[#0b3b78]">
             {formatCurrencyAmount(wallet.available_balance, wallet.currency || currency)}
           </p>
-          <p className="mt-2 text-xs text-[#5c7188]">
-            Min. {formatCurrencyAmount(minAmount, currency)} (5 USD) · Max.{' '}
-            {formatCurrencyAmount(maxAmount, currency)} (500 USD)
+          <p className="mt-2 text-[11px] leading-snug text-[#8a9bb0]">
+            Min. {formatCurrencyAmount(minAmount, currency)} · Max.{' '}
+            {formatCurrencyAmount(maxAmount, currency)}
           </p>
         </div>
       )}
@@ -197,13 +197,16 @@ export function Withdrawal() {
       {!isKycVerified ? (
         <Link
           to="/dashboard/kyc"
-          className="flex items-center justify-between gap-3 py-3 text-[#0b3b78]"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-[#e2eaf3] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)] transition-colors hover:border-[#c5d4e8]"
         >
-          <span className="font-medium">Vérifier mon identité pour retirer</span>
-          <ArrowRight className="h-5 w-5" />
+          <div className="leading-none">
+            <p className="text-sm font-semibold text-[#0b2f63]">Vérifier mon identité</p>
+            <p className="mt-1 text-[11px] text-[#8a9bb0]">Requis pour retirer vos fonds</p>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-[#0b3b78]" />
         </Link>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-4 rounded-2xl border border-[#e2eaf3] bg-white p-4 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
           <div className="space-y-1.5">
             <Label htmlFor="amount">Montant</Label>
             <div className="flex gap-2">
@@ -280,14 +283,14 @@ export function Withdrawal() {
         </div>
       )}
 
-      <div className="space-y-1 border-t border-[#e4edf6] pt-6">
-        <h2 className="mb-3 text-base font-semibold text-[#0b2f63]">Historique</h2>
+      <div className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+        <h2 className="border-b border-[#eef3f9] px-4 py-3 text-sm font-semibold text-[#0b2f63]">Historique</h2>
         {withdrawals.length === 0 ? (
-          <p className="py-6 text-sm text-[#5c7188]">Aucun retrait</p>
+          <p className="px-4 py-8 text-center text-sm text-[#8a9bb0]">Aucun retrait</p>
         ) : (
-          <div className="divide-y divide-[#e4edf6]">
+          <div className="divide-y divide-[#eef3f9]">
             {withdrawals.map((w) => (
-              <div key={w.id} className="flex items-center justify-between gap-3 py-3.5">
+              <div key={w.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                 <div className="min-w-0">
                   <p className="font-semibold tabular-nums text-[#0b2f63]">
                     {formatCurrencyAmount(w.amount, w.currency || currency)}

@@ -227,43 +227,48 @@ export default function ProviderOrders() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-8 overflow-x-hidden">
+    <div className="mx-auto w-full max-w-xl space-y-4 overflow-x-hidden">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
-          Commandes à traiter
+        <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">
+          Commandes actives
         </h1>
-        <p className="mt-1 text-sm text-[#5c7188]">{orders.length} active(s)</p>
+        <p className="mt-0.5 text-xs text-[#8a9bb0]">{orders.length} en cours</p>
       </div>
 
       {orders.length === 0 ? (
-        <div className="py-12 text-center">
-          <Package className="mx-auto mb-4 h-12 w-12 text-[#5c7188]/40" />
-          <p className="text-[#5c7188]">Aucune commande active</p>
+        <div className="rounded-2xl border border-[#e2eaf3] bg-white py-10 text-center shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <Package className="mx-auto mb-2 h-8 w-8 text-[#c5d0de]" />
+          <p className="text-sm text-[#8a9bb0]">Aucune commande active</p>
         </div>
       ) : (
-        <div className="divide-y divide-[#e4edf6]">
+        <div className="space-y-3">
           {orders.map((order) => (
-            <article key={order.id} className="space-y-4 py-6 first:pt-0 last:pb-0">
+            <article
+              key={order.id}
+              className="space-y-3 rounded-2xl border border-[#e2eaf3] bg-white p-4 shadow-[0_1px_2px_rgba(11,59,120,0.04)]"
+            >
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h2 className="font-semibold text-[#0b2f63]">
+                <div className="min-w-0 leading-none">
+                  <h2 className="truncate text-sm font-semibold text-[#0b2f63]">
                     {order.client_name || 'Client'}
                   </h2>
-                  <p className="mt-1 text-sm text-[#5c7188]">{order.description}</p>
+                  <p className="mt-1.5 line-clamp-2 text-xs leading-snug text-[#5c7188]">
+                    {order.description}
+                  </p>
                 </div>
                 {getStatusBadge(order.order_status || 'paid')}
               </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-[#5c7188]">Montant</span>
+              <div className="flex items-center justify-between rounded-xl bg-[#f7fafd] px-3 py-2 text-sm">
+                <span className="text-xs text-[#8a9bb0]">Montant</span>
                 <span className="font-semibold tabular-nums text-[#0b2f63]">
                   {formatAmount(order.amount, currency)}
                 </span>
               </div>
 
               {order.started_at && (
-                <p className="text-sm text-[#5c7188]">
-                  <Clock className="mr-1 inline h-4 w-4" />
+                <p className="text-xs text-[#8a9bb0]">
+                  <Clock className="mr-1 inline h-3.5 w-3.5" />
                   Démarré le {new Date(order.started_at).toLocaleDateString('fr-FR')}
                 </p>
               )}
@@ -272,15 +277,15 @@ export default function ProviderOrders() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full gap-2"
+                  className="h-9 w-full gap-2 text-xs"
                   onClick={() => copyPaymentLink(order.link_id)}
                 >
                   {copiedLinkId === order.link_id ? (
-                    <Check className="h-4 w-4" />
+                    <Check className="h-3.5 w-3.5" />
                   ) : (
-                    <Copy className="h-4 w-4" />
+                    <Copy className="h-3.5 w-3.5" />
                   )}
-                  Copier le lien client
+                  Copier le lien
                 </Button>
                 {order.order_status === 'paid' && (
                   <Button
