@@ -16,6 +16,7 @@ import {
   MessageCircle,
   PlayCircle,
   MessageSquareQuote,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
@@ -38,6 +39,14 @@ const navItems = [
   { href: "/dashboard/feedback", label: "Avis", icon: MessageSquareQuote },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
   { href: "/dashboard/profile", label: "Paramètres", icon: User },
+];
+
+const bottomNavItems = [
+  { href: "/dashboard", label: "Accueil", icon: LayoutDashboard, match: "exact" as const },
+  { href: "/dashboard/orders", label: "Liens", icon: Package, match: "prefix" as const },
+  { href: "/dashboard/create-link", label: "Créer", icon: Plus, match: "exact" as const, primary: true },
+  { href: "/dashboard/withdrawal", label: "Retraits", icon: Wallet, match: "prefix" as const },
+  { href: "/dashboard/profile", label: "Compte", icon: User, match: "prefix" as const },
 ];
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
@@ -94,7 +103,9 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
         <span
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-            isActive ? "bg-white/15 text-white" : "bg-white/5 text-[#9bb0c7] group-hover:bg-white/10 group-hover:text-white"
+            isActive
+              ? "bg-white/15 text-white"
+              : "bg-white/5 text-[#9bb0c7] group-hover:bg-white/10 group-hover:text-white"
           )}
         >
           <Icon className="h-4 w-4" strokeWidth={1.75} />
@@ -194,8 +205,76 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
 
       <main className="min-h-[100dvh] overflow-x-hidden pt-14 sm:pt-16 lg:ml-[17rem] lg:pt-0">
         <PushNotificationPrompt />
-        <div className="mx-auto w-full max-w-6xl p-3 sm:p-5 lg:p-8">{children}</div>
+        <div className="mx-auto w-full max-w-6xl p-3 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:p-5 lg:p-8 lg:pb-8">
+          {children}
+        </div>
       </main>
+
+      {/* Bottom navigation — PWA / mobile */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dbe6f2] bg-white/95 backdrop-blur-xl lg:hidden"
+        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
+        aria-label="Navigation principale"
+      >
+        <div className="mx-auto grid h-[4.25rem] max-w-lg grid-cols-5 items-end px-1">
+          {bottomNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              item.match === "exact"
+                ? location.pathname === item.href
+                : location.pathname === item.href ||
+                  location.pathname.startsWith(`${item.href}/`) ||
+                  (item.href === "/dashboard/orders" &&
+                    location.pathname.startsWith("/dashboard/active-orders"));
+
+            if (item.primary) {
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className="relative -top-3 flex flex-col items-center justify-end gap-1"
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <span
+                    className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-2xl shadow-[0_10px_24px_rgba(11,59,120,.28)] transition-transform active:scale-95",
+                      isActive ? "bg-[#0a3266]" : "bg-[#0b3b78]"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 text-white" strokeWidth={2.25} />
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[10px] font-semibold tracking-wide",
+                      isActive ? "text-[#0b3b78]" : "text-[#6a7f96]"
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex h-full flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors",
+                  isActive ? "text-[#0b3b78]" : "text-[#7a8fa6] active:text-[#0b3b78]"
+                )}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <Icon
+                  className={cn("h-5 w-5", isActive && "stroke-[2.25]")}
+                  strokeWidth={isActive ? 2.25 : 1.75}
+                />
+                <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 };

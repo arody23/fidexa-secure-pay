@@ -31,13 +31,20 @@ secrets appartiennent exclusivement aux Edge Functions Supabase.
 | `kpay-create-payout` | Admin : approuve + withdraw Mobile Money |
 | `kpay-webhook` | `payment.*` + `payout.*` |
 
-Webhook URL (sandbox et live — l’env est choisi par le préfixe des clés) :
+Webhook URL :
 
-```text
-https://dkmbtwczuheyyxvuypml.supabase.co/functions/v1/kpay-webhook
-```
+| Environnement | URL à configurer dans KPay |
+| --- | --- |
+| **Live** (domaine app obligatoire) | Chemin : `/api/kpay-webhook` → `https://fidexa-secure-pay.vercel.app/api/kpay-webhook` |
+| Direct Supabase (sandbox / tests manuels) | `https://dkmbtwczuheyyxvuypml.supabase.co/functions/v1/kpay-webhook` |
 
-Dans le dashboard KPay, configurer les URLs dépôts / retraits (ou l’URL générique) vers cette endpoint.
+En Live, KPay refuse toute URL hors domaine de l’application. Le chemin
+`/api/kpay-webhook` est un proxy Vercel (Edge) qui relaie le corps brut +
+`X-KPAY-Signature` vers la Edge Function `kpay-webhook`.
+
+Dans le dashboard KPay → Applications → callback générique :
+ne coller **que** `/api/kpay-webhook` (le préfixe site est déjà affiché).
+Même chemin pour dépôts, retraits et remboursements.
 
 ## Sandbox — déploiement
 

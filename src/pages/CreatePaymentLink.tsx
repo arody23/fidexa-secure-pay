@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link2, Copy, Check, Send, MessageCircle, Mail, Phone } from "lucide-react";
+import { Link2, Copy, Check, Send, MessageCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -208,18 +208,24 @@ const CreatePaymentLink = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="clientPhone">Téléphone du client</Label>
-                    <div className="flex gap-2">
+                    <div className="flex min-w-0 gap-2">
                       <Select
                         value={formData.countryCode}
                         onValueChange={(value) => setFormData({ ...formData, countryCode: value })}
                       >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
+                        <SelectTrigger
+                          className="h-11 w-[4.75rem] shrink-0 px-2 [&>span]:line-clamp-none"
+                          aria-label="Indicatif pays"
+                        >
+                          <span className="text-sm font-medium tabular-nums">
+                            {getKPayCountry(formData.countryCode)?.phonePrefix ?? "+"}
+                          </span>
                         </SelectTrigger>
                         <SelectContent>
                           {KPAY_COUNTRIES.map((country) => (
                             <SelectItem key={country.code} value={country.code}>
-                              {country.phonePrefix} {country.name}
+                              <span className="font-medium tabular-nums">{country.phonePrefix}</span>
+                              <span className="ml-2 text-muted-foreground">{country.name}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -227,7 +233,8 @@ const CreatePaymentLink = () => {
                       <Input
                         id="clientPhone"
                         type="tel"
-                        placeholder="90123456"
+                        inputMode="numeric"
+                        placeholder="Numéro"
                         value={formData.clientPhone}
                         onChange={(e) =>
                           setFormData({
@@ -235,13 +242,9 @@ const CreatePaymentLink = () => {
                             clientPhone: e.target.value.replace(/[^0-9]/g, ""),
                           })
                         }
-                        className="flex-1"
+                        className="h-11 min-w-0 flex-1 text-base tracking-wide"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      <Phone className="mr-1 inline h-3 w-3" />
-                      Pour les notifications automatiques
-                    </p>
                   </div>
                 </div>
               </div>
