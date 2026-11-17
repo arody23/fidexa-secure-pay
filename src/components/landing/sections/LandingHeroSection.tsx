@@ -79,8 +79,8 @@ export function LandingHeroSection({ user, onOpenMenu }: Props) {
             Payez et livrez en toute sérénité.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 sm:mt-6 sm:text-lg">
-            FidexaPay conserve les fonds jusqu&apos;à la validation de la livraison, pour protéger
-            chaque client et chaque prestataire.
+            FidexaPay sécurise la collaboration entre prestataires et clients : le paiement Mobile Money
+            est placé en escrow jusqu&apos;à validation de la livraison.
           </p>
           <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-9 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
             <Button size="lg" className="h-12 w-full bg-[#2bb673] px-7 text-white hover:bg-[#24a367] sm:w-auto" asChild>
