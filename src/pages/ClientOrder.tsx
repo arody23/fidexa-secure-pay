@@ -329,6 +329,10 @@ export default function ClientOrder() {
         title: 'Commande validée',
         description: `Paiement libéré (commission ${result.commission_rate}% : ${result.commission_amount})`,
       });
+      // Invitation avis WhatsApp (client + prestataire) — non bloquant
+      void supabase.functions
+        .invoke('send-feedback-invite', { body: { paymentLinkId: paymentData.id } })
+        .catch((err) => console.warn('feedback invite', err));
       loadOrderData();
       return true;
     } catch (err) {

@@ -88,11 +88,17 @@ export default function ProviderFeedback() {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 overflow-x-hidden">
-      <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
-        Laisser un avis
-      </h1>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#178c52]">Avis FidexaPay</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
+          Partagez votre expérience
+        </h1>
+        <p className="mt-2 text-sm text-[#5c7188]">
+          Connecté à votre compte — votre avis sera publié après validation admin.
+        </p>
+      </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2] sm:p-6">
         <div className="min-w-0 space-y-2">
           <Label>Note</Label>
           <div className="flex gap-1">

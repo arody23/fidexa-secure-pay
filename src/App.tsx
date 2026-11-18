@@ -40,6 +40,7 @@ import AdminExchangeRates from "./pages/Admin/ExchangeRates";
 import { ExchangeRatesProvider } from "./contexts/ExchangeRatesContext";
 import ProviderOrders from "./pages/ProviderOrders";
 import ProviderFeedback from "./pages/ProviderFeedback";
+import PublicFeedback from "./pages/PublicFeedback";
 import SignIn from "./pages/Auth/SignIn";
 import SignUp from "./pages/Auth/SignUp";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
@@ -100,6 +101,8 @@ const App = () => (
           <Route path="/pay/:linkId" element={<ClientPayment />} />
           {/* Suivi commande (après paiement) */}
           <Route path="/order/:linkId" element={<ClientOrder />} />
+          <Route path="/avis/:audience" element={<PublicFeedback />} />
+          <Route path="/avis" element={<PublicFeedback />} />
           <Route path="/admin" element={<ProtectedAdminRoute />}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />

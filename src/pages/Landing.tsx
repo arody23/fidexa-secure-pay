@@ -15,6 +15,7 @@ import {
   type TestimonialItem,
 } from '@/components/landing/sections/LandingTestimonialsSection';
 import { LandingUseCasesSection } from '@/components/landing/sections/LandingUseCasesSection';
+import { LandingWhySection } from '@/components/landing/sections/LandingWhySection';
 import { MVP_SUBSCRIPTION } from '@/config/site';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -158,7 +159,9 @@ const Landing = () => {
           reviews.map((t) => ({
             key: t.id,
             name: t.full_name || 'Prestataire',
-            subtitle: t.country || 'FidexaPay',
+            subtitle:
+              [t.profession, t.country].filter(Boolean).join(' · ') ||
+              (t.author_type === 'client' ? 'Client FidexaPay' : 'Prestataire FidexaPay'),
             text: t.content,
             rating: t.rating,
             avatar: t.avatar_url,
@@ -227,6 +230,7 @@ const Landing = () => {
 
       <LandingProductJourneySection />
       <LandingMobileMoneySection />
+      <LandingWhySection />
       <LandingEscrowSection />
       <LandingCoverageSection activeCountry={activeCountry} onSelectCountry={setActiveCountry} />
       <LandingUseCasesSection />
