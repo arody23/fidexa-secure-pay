@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { supabase } from '@/integrations/supabase/client';import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { useProvider } from '@/contexts/ProviderContext';
 import { useProviderPaymentLinks } from '@/hooks/useProviderPaymentLinks';
 import { formatAmount } from '@/lib/currency';
@@ -41,7 +42,7 @@ export default function ProviderOrders() {
     setCopiedLinkId(ok ? linkId : null);
     setTimeout(() => setCopiedLinkId(null), 2000);
     toast({
-      title: ok ? 'Lien copiÃ©' : 'Copie manuelle',
+      title: ok ? 'Lien copié' : 'Copie manuelle',
       description: ok ? 'Envoyez ce lien au client si besoin.' : url,
       variant: ok ? 'default' : 'destructive',
     });
@@ -118,7 +119,7 @@ export default function ProviderOrders() {
       if (error) throw error;
       const result = typeof data === 'string' ? JSON.parse(data) : data;
       if (result.success) {
-        toast({ title: 'Commande dÃ©marrÃ©e', description: result.message });
+        toast({ title: 'Commande démarrée', description: result.message });
         refetch();
       } else {
         throw new Error(result.error);
@@ -126,7 +127,7 @@ export default function ProviderOrders() {
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Impossible de dÃ©marrer',
+        description: error instanceof Error ? error.message : 'Impossible de démarrer',
         variant: 'destructive',
       });
     } finally {
@@ -143,7 +144,7 @@ export default function ProviderOrders() {
       if (error) throw error;
       const result = typeof data === 'string' ? JSON.parse(data) : data;
       if (result.success) {
-        toast({ title: 'Commande finalisÃ©e', description: result.message });
+        toast({ title: 'Commande finalisée', description: result.message });
         refetch();
       } else {
         throw new Error(result.error);
@@ -174,11 +175,11 @@ export default function ProviderOrders() {
         ...prev,
         [orderId]: [...(prev[orderId] || []), ...urls].slice(0, 8),
       }));
-      toast({ title: 'Preuves ajoutÃ©es', description: `${urls.length} fichier(s) prÃªt(s)` });
+      toast({ title: 'Preuves ajoutées', description: `${urls.length} fichier(s) prêt(s)` });
     } catch (err) {
       toast({
         title: 'Upload impossible',
-        description: err instanceof Error ? err.message : 'RÃ©essayez',
+        description: err instanceof Error ? err.message : 'Réessayez',
         variant: 'destructive',
       });
     } finally {
@@ -190,8 +191,8 @@ export default function ProviderOrders() {
     const response = disputeResponses[orderId]?.trim();
     if (!response || response.length < 10) {
       toast({
-        title: 'RÃ©ponse requise',
-        description: 'DÃ©crivez votre version des faits (min. 10 caractÃ¨res)',
+        title: 'Réponse requise',
+        description: 'Décrivez votre version des faits (min. 10 caractères)',
         variant: 'destructive',
       });
       return;
@@ -229,18 +230,18 @@ export default function ProviderOrders() {
       }
 
       toast({
-        title: 'RÃ©ponse envoyÃ©e',
+        title: 'Réponse envoyée',
         description:
           evidence.length > 0
-            ? 'Votre version et vos preuves ont Ã©tÃ© transmises Ã  FidexaPay'
-            : 'Votre version a Ã©tÃ© transmise Ã  FidexaPay pour arbitrage',
+            ? 'Votre version et vos preuves ont été transmises à FidexaPay'
+            : 'Votre version a été transmise à FidexaPay pour arbitrage',
       });
       setExistingResponses((prev) => ({ ...prev, [orderId]: response }));
       refetch();
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: error instanceof Error ? error.message : "Impossible d'envoyer la rÃ©ponse",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer la réponse",
         variant: 'destructive',
       });
     } finally {
@@ -254,7 +255,7 @@ export default function ProviderOrders() {
       started: { color: 'bg-yellow-100 text-yellow-800', label: 'En cours' },
       completed: { color: 'bg-amber-100 text-amber-900', label: 'En attente de validation' },
       disputed: { color: 'bg-red-100 text-red-800', label: 'Litige' },
-      validated: { color: 'bg-green-100 text-green-800', label: 'ValidÃ©e' },
+      validated: { color: 'bg-green-100 text-green-800', label: 'Validée' },
     };
     const style = styles[status] || styles.paid;
     return <Badge className={style.color}>{style.label}</Badge>;
@@ -311,7 +312,7 @@ export default function ProviderOrders() {
               {order.started_at && (
                 <p className="text-xs text-[#8a9bb0]">
                   <Clock className="mr-1 inline h-3.5 w-3.5" />
-                  DÃ©marrÃ© le {new Date(order.started_at).toLocaleDateString('fr-FR')}
+                  Démarré le {new Date(order.started_at).toLocaleDateString('fr-FR')}
                 </p>
               )}
 
@@ -365,12 +366,12 @@ export default function ProviderOrders() {
                       <p className="text-sm font-semibold">
                         {refundRequestIds[order.id]
                           ? "Demande d'annulation / remboursement"
-                          : 'Litige en cours â€” votre rÃ©ponse est requise'}
+                          : 'Litige en cours — votre réponse est requise'}
                       </p>
                     </div>
                     {existingResponses[order.id] ? (
                       <div className="space-y-1">
-                        <Label className="text-xs text-[#5c7188]">Votre rÃ©ponse soumise</Label>
+                        <Label className="text-xs text-[#5c7188]">Votre réponse soumise</Label>
                         <p className="whitespace-pre-wrap text-sm text-[#0b2f63]">
                           {existingResponses[order.id]}
                         </p>
@@ -381,7 +382,7 @@ export default function ProviderOrders() {
                           <Label htmlFor={`dispute-${order.id}`}>Votre version des faits</Label>
                           <Textarea
                             id={`dispute-${order.id}`}
-                            placeholder="Ex: J'ai livrÃ© le travail le 15/03, voici les dÃ©tails..."
+                            placeholder="Ex: J'ai livré le travail le 15/03, voici les détails..."
                             value={disputeResponses[order.id] || ''}
                             onChange={(e) =>
                               setDisputeResponses((prev) => ({
@@ -426,7 +427,7 @@ export default function ProviderOrders() {
                           <Send className="h-4 w-4" />
                           {actionLoading === order.link_id
                             ? 'Envoi...'
-                            : 'Soumettre rÃ©ponse + preuves'}
+                            : 'Soumettre réponse + preuves'}
                         </Button>
                       </>
                     )}

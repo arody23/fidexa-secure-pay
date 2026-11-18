@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
-  buildKPayAmount,
+  buildKPayProviderAmount,
   countryIso2ToIso3,
   corsHeaders,
   createKPayPayout,
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const client = Number(clientAmount);
     const providerCredit = Number(providerCreditAmount || 0);
     const paid = Number(link.amount || 0);
-    const distributable = Math.round(paid * 85 * 100) / 100;
+    const distributable = Math.round(paid * 85) / 100; // 85 % max (commission FidexaPay 15 %)
     if (!Number.isFinite(client) || client <= 0 || !Number.isFinite(providerCredit) || providerCredit < 0) {
       throw new Error('Montants invalides');
     }
@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
     }
 
     const country = String(clientCountry).toUpperCase();
-    const charge = buildKPayAmount(client, link.currency, { minAmount: 100 });
+    const kpayProvider = mapMobileMoneyProviderToKPay(clientProvider, country);
+    const charge = await buildKPayProviderAmount(client, link.currency, kpayProvider, { minAmount: 1 });
     const settlement = existing.data ?? (
       await db.from('refund_settlements').insert({
         refund_request_id: request.id,
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
 
     const payout = await createKPayPayout({
       amount: charge.amount,
-      provider: mapMobileMoneyProviderToKPay(clientProvider, country),
+      provider: kpayProvider,
       phoneNumber: normalizePhoneKPay(clientPhone, phonePrefixDigitsForCountry(country)),
       sourceCountry: countryIso2ToIso3(country),
       externalId: `fidexa-refund-${settlement.id}`,
@@ -100,6 +101,7 @@ Deno.serve(async (req) => {
         payment_link_id: link.id,
         provider_id: link.provider_id,
         provider_credit_amount: String(providerCredit),
+        payout_currency: charge.settlementCurrency,
         admin_note: adminNote || '',
       },
     });

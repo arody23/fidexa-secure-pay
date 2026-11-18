@@ -365,9 +365,7 @@ export default function AdminDisputes() {
           <div>
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Administration</p>
             <h1 className="text-3xl font-bold tracking-tight">Centre de litiges</h1>
-            <p className="mt-2 text-muted-foreground">
-              Examinez les dossiers client/prestataire et tranchez avec une décision finale
-            </p>
+            <p className="mt-2 text-muted-foreground">Litiges ouverts et résolus</p>
           </div>
           <Button onClick={loadDisputes} variant="outline" className="gap-2">
             <RefreshCw className="h-4 w-4" />
@@ -735,7 +733,7 @@ export default function AdminDisputes() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Décision finale FidexaPay</CardTitle>
                     <CardDescription>
-                      Remboursement client = payout KPay (max 85 %). La commission FidexaPay est conservée.
+                      Remboursement client via KPay (85 %) · part FidexaPay 15 %
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">

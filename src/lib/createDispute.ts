@@ -5,10 +5,12 @@ export async function createDispute(params: {
   linkId: string;
   reason: string;
   description?: string;
+  evidenceUrls?: string[];
 }): Promise<{ success: boolean; dispute_id?: string; message?: string; error?: string }> {
   const linkId = String(params.linkId || '').trim();
   const reason = String(params.reason || '').trim();
   const description = String(params.description || reason).trim();
+  const evidenceUrls = (params.evidenceUrls || []).filter(Boolean);
 
   if (!linkId) throw new Error('Identifiant de commande manquant');
   if (reason.length < 3) throw new Error('Indiquez la raison du litige');
@@ -23,7 +25,12 @@ export async function createDispute(params: {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           apikey: SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ linkId, reason, description }),
+        body: JSON.stringify({
+          linkId,
+          reason,
+          description,
+          evidenceUrls: evidenceUrls.length ? evidenceUrls : undefined,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data?.success !== false) return data;
@@ -53,5 +60,13 @@ export async function createDispute(params: {
   if (error) throw new Error(error.message || 'Impossible de créer le litige');
   const result = typeof data === 'string' ? JSON.parse(data) : data;
   if (!result?.success) throw new Error(result?.error || 'Impossible de créer le litige');
+
+  if (evidenceUrls.length > 0 && result.dispute_id) {
+    await supabase
+      .from('disputes')
+      .update({ evidence_urls: evidenceUrls })
+      .eq('id', result.dispute_id);
+  }
+
   return result;
 }

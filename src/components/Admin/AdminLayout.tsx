@@ -59,7 +59,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-secondary/30">
+    <div className="min-h-screen bg-[#eef3f9]">
       {/* Desktop Sidebar */}
       <aside
         className={cn(
@@ -89,8 +89,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <Shield className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold">Panneau Admin</p>
-                  <p className="text-xs text-muted-foreground">Gestion avancée</p>
+                  <p className="text-sm font-bold text-[#0b2f63]">FidexaPay Admin</p>
+                  <p className="text-xs text-[#8a9bb0]">Espace opérationnel</p>
                 </div>
               </div>
             </div>

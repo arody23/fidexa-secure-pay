@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  Package,
+  PlayCircle,
+  Headphones,
   Star
 } from "lucide-react";
 import EscrowMark from "@/components/brand/EscrowMark";
@@ -100,6 +101,7 @@ export default function ClientOrder() {
   // Dispute state
   const [disputeReason, setDisputeReason] = useState("");
   const [creatingDispute, setCreatingDispute] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [activeDispute, setActiveDispute] = useState<any>(null);
   const notFoundToasted = useRef(false);
   const paymentIdRef = useRef<string | null>(null);
@@ -175,7 +177,7 @@ export default function ClientOrder() {
       paymentIdRef.current = link.id as string;
       setPaymentData((prev) => {
         const next = link as unknown as PaymentLink;
-        // Ne jamais perdre is_paid=true Ã  cause dâ€™un payload partiel
+        // Ne jamais perdre is_paid=true à cause d'un payload partiel
         if (prev?.is_paid && next && !next.is_paid) {
           return { ...next, is_paid: true };
         }
@@ -324,8 +326,8 @@ export default function ClientOrder() {
 
       setShowFeedback(true);
       toast({
-        title: 'Commande validÃ©e',
-        description: `Paiement libÃ©rÃ© (commission ${result.commission_rate}% : ${result.commission_amount})`,
+        title: 'Commande validée',
+        description: `Paiement libéré (commission ${result.commission_rate}% : ${result.commission_amount})`,
       });
       loadOrderData();
       return true;
@@ -396,8 +398,8 @@ export default function ClientOrder() {
       });
 
       toast({
-        title: 'Litige crÃ©Ã©',
-        description: result.message || "Votre demande a Ã©tÃ© enregistrÃ©e. Notre Ã©quipe va l'examiner.",
+        title: 'Litige créé',
+        description: result.message || "Votre demande a été enregistrée. Notre équipe va l'examiner.",
       });
 
       setDisputeReason('');
@@ -405,7 +407,7 @@ export default function ClientOrder() {
     } catch (err) {
       toast({
         title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Impossible de crÃ©er le litige',
+        description: err instanceof Error ? err.message : 'Impossible de créer le litige',
         variant: 'destructive',
       });
     } finally {
@@ -416,11 +418,11 @@ export default function ClientOrder() {
   const handleAutoRefund = async () => {
     if (!paymentData) return;
 
-    // VÃ©rifier que le prestataire n'a pas commencÃ©
+    // Vérifier que le prestataire n'a pas commencé
     if (paymentData.order_status !== 'paid') {
       toast({
         title: "Impossible",
-        description: "Le prestataire a dÃ©jÃ  commencÃ© le travail. CrÃ©ez un litige pour demander un remboursement.",
+        description: "Le prestataire a déjà commencé le travail. Créez un litige pour demander un remboursement.",
         variant: "destructive",
       });
       return;
@@ -429,14 +431,14 @@ export default function ClientOrder() {
     try {
       const { data, error } = await (supabase as any).rpc("auto_refund_if_not_started", {
         payment_link_id_param: paymentData.id,
-        reason_param: "Annulation avant dÃ©but des travaux"
+        reason_param: "Annulation avant début des travaux"
       });
 
       if (error) throw error;
 
       toast({
         title: "Remboursement en cours",
-        description: "Votre demande de remboursement a Ã©tÃ© acceptÃ©e. Vous serez remboursÃ© sur votre moyen de paiement.",
+        description: "Votre demande de remboursement a été acceptée. Vous serez remboursé sur votre moyen de paiement.",
       });
 
       await loadOrderData();
@@ -449,7 +451,7 @@ export default function ClientOrder() {
     }
   };
 
-  // Hooks AVANT tout return conditionnel (sinon Ã©cran blanc React)
+  // Hooks AVANT tout return conditionnel (sinon écran blanc React)
   const trackerPaymentLink = useMemo(() => {
     if (!paymentData) return undefined;
     const row = paymentData as PaymentLink & {
@@ -486,7 +488,7 @@ export default function ClientOrder() {
           <CardContent className="pt-6 text-center">
             <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">Commande introuvable</h2>
-            <p className="text-muted-foreground">Le lien de commande est invalide ou a expirÃ©.</p>
+            <p className="text-muted-foreground">Le lien de commande est invalide ou a expiré.</p>
           </CardContent>
         </Card>
       </div>
@@ -498,18 +500,18 @@ export default function ClientOrder() {
     
     if (paymentData.refunded) {
       return {
-        title: "Commande remboursÃ©e",
-        description: "Votre requÃªte a Ã©tÃ© acceptÃ©e. Vous serez remboursÃ© sur le numÃ©ro utilisÃ© pour le paiement.",
+        title: "Commande remboursée",
+        description: "Votre requête a été acceptée. Vous serez remboursé sur le numéro utilisé pour le paiement.",
         icon: CheckCircle2,
         color: "text-green-600",
         bg: "bg-green-50"
       };
     }
 
-    if (activeDispute) {
+    if (activeDispute || status === 'disputed') {
       return {
-        title: "Litige en cours",
-        description: "Votre demande est en cours d'examen par notre Ã©quipe.",
+        title: "En litige",
+        description: "Votre demande est en cours d'examen par notre équipe FidexaPay.",
         icon: AlertTriangle,
         color: "text-orange-600",
         bg: "bg-orange-50"
@@ -520,14 +522,14 @@ export default function ClientOrder() {
       case 'pending':
         return {
           title: "En attente de paiement",
-          description: "ComplÃ©tez le paiement pour dÃ©marrer la commande",
+          description: "Complétez le paiement pour démarrer la commande",
           icon: Clock,
           color: "text-amber-600",
           bg: "bg-amber-50"
         };
       case 'paid':
         return {
-          title: "Paiement reÃ§u",
+          title: "Paiement reçu",
           description: "En attente que le prestataire commence le travail",
           icon: CheckCircle2,
           color: "text-blue-600",
@@ -536,14 +538,14 @@ export default function ClientOrder() {
       case 'started':
         return {
           title: "Travail en cours",
-          description: "Le prestataire a commencÃ© le travail",
-          icon: Package,
+          description: "Le prestataire a commencé le travail",
+          icon: PlayCircle,
           color: "text-purple-600",
           bg: "bg-purple-50"
         };
       case 'completed':
         return {
-          title: "Travail terminÃ©",
+          title: "Travail terminé",
           description: "Le prestataire attend votre validation",
           icon: Check,
           color: "text-green-600",
@@ -551,11 +553,27 @@ export default function ClientOrder() {
         };
       case 'validated':
         return {
-          title: "Commande validÃ©e",
-          description: "Les fonds ont Ã©tÃ© libÃ©rÃ©s au prestataire",
+          title: "Commande validée",
+          description: "Les fonds ont été libérés au prestataire",
           icon: CheckCircle2,
           color: "text-emerald-600",
           bg: "bg-emerald-50"
+        };
+      case 'cancelled':
+        return {
+          title: "Annulée — dossier clos",
+          description: "Cette commande est close. Le remboursement a été traité ou est en cours.",
+          icon: XCircle,
+          color: "text-red-600",
+          bg: "bg-red-50"
+        };
+      case 'refunded':
+        return {
+          title: "Remboursement en cours",
+          description: "Votre remboursement est en traitement sur votre moyen de paiement.",
+          icon: Clock,
+          color: "text-sky-600",
+          bg: "bg-sky-50"
         };
       default:
         return {
@@ -614,7 +632,7 @@ export default function ClientOrder() {
         </motion.div>
 
         <div className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-3">
-          {/* Main Content Area â€” mobile first */}
+          {/* Main Content Area — mobile first */}
           <div className="order-2 min-w-0 space-y-4 sm:space-y-6 lg:order-1 lg:col-span-2">
                   {/* Order Details */}
                   <div className="min-w-0 space-y-3 overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:space-y-4 sm:p-5">
@@ -640,7 +658,7 @@ export default function ClientOrder() {
                           <p className="font-bold text-xl mt-1">{formatAmount(paymentData.amount, orderCurrency)}</p>
                         </div>
                         <div>
-                          <Label className="text-sm text-muted-foreground">DÃ©lai</Label>
+                          <Label className="text-sm text-muted-foreground">Délai</Label>
                           <p className="font-medium mt-1">{paymentData.delivery_days} jours</p>
                         </div>
                       </div>
@@ -655,6 +673,7 @@ export default function ClientOrder() {
                   {showActions && (
                     <OrderTracker
                       linkId={paymentData.link_id}
+                      paymentLinkId={paymentData.id}
                       orderStatus={paymentData.order_status || paymentData.status}
                       canCancel={paymentData.order_status === 'paid'}
                       amount={paymentData.amount}
@@ -667,7 +686,7 @@ export default function ClientOrder() {
                   )}
           </div>
 
-          {/* Sidebar â€” prestataire & support en premier sur mobile */}
+          {/* Sidebar — prestataire en premier sur mobile */}
           <div className="order-1 min-w-0 space-y-4 sm:space-y-6 lg:order-2">
             {/* Provider Info */}
             {provider && (
@@ -705,7 +724,7 @@ export default function ClientOrder() {
                 </CardContent>
                 {reviews.length > 0 && (
                   <CardContent className="border-t pt-4">
-                    <h4 className="font-semibold mb-2">Avis rÃ©cents</h4>
+                    <h4 className="font-semibold mb-2">Avis récents</h4>
                     <div className="space-y-3">
                       {reviews.map((r) => (
                         <div key={r.id} className="p-3 bg-gray-50 rounded">
@@ -722,24 +741,15 @@ export default function ClientOrder() {
               </Card>
             )}
 
-            {/* Support Fidexa */}
-            <ClientSupportPanel
-              paymentLinkId={paymentData.id}
-              clientName={paymentData.client_name}
-              clientPhone={paymentData.client_phone}
-              conversation={conversation}
-              onUpdate={loadSupportConversation}
-            />
-
             {/* Security Badge */}
             <Card className="bg-primary/5">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <EscrowMark className="h-8 w-8 text-primary" />
                   <div>
-                    <p className="font-medium text-sm">Paiement sÃ©curisÃ©</p>
+                    <p className="font-medium text-sm">Paiement sécurisé</p>
                     <p className="text-xs text-muted-foreground">
-                      Vos fonds sont protÃ©gÃ©s en escrow
+                      Vos fonds sont protégés en escrow
                     </p>
                   </div>
                 </div>
@@ -762,7 +772,7 @@ export default function ClientOrder() {
                 Notez {provider?.full_name || paymentData.provider_name || 'le prestataire'}
               </CardTitle>
               <CardDescription>
-                Votre avis aidera Ã  amÃ©liorer nos services
+                Votre avis aidera à améliorer nos services
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -786,7 +796,7 @@ export default function ClientOrder() {
                   ))}
                 </div>
                 {feedbackRating === 0 && (
-                  <p className="text-center text-sm text-muted-foreground">SÃ©lectionnez une note</p>
+                  <p className="text-center text-sm text-muted-foreground">Sélectionnez une note</p>
                 )}
               </div>
               <Textarea
@@ -807,6 +817,26 @@ export default function ClientOrder() {
           </Card>
         </motion.div>
       )}
+
+      <Button
+        type="button"
+        aria-label="Contacter le support FidexaPay"
+        className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4 z-40 h-14 w-14 rounded-full shadow-lg sm:right-6"
+        onClick={() => setSupportOpen(true)}
+      >
+        <Headphones className="h-6 w-6" />
+      </Button>
+
+      <ClientSupportPanel
+        paymentLinkId={paymentData.id}
+        clientName={paymentData.client_name}
+        clientPhone={paymentData.client_phone}
+        conversation={conversation}
+        onUpdate={loadSupportConversation}
+        open={supportOpen}
+        onOpenChange={setSupportOpen}
+        hideTrigger
+      />
     </div>
     </OrderAccessGate>
   );

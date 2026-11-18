@@ -385,8 +385,9 @@ async function handleClientRefundPayout(
         idempotencyKey: `refund-payout:${settlement.id}:provider`,
         variables: {
           ...vars,
-          decision_label: `Remboursement client confirmé (commission FidexaPay ${link.commission_rate ?? 15}% conservée)`,
-          resolution_notes: 'Le remboursement Mobile Money a été confirmé par KPay.',
+          decision_label:
+            'FidexaPay a confirmé le remboursement Mobile Money au client, conformément à la politique de litiges.',
+          resolution_notes: 'Le remboursement a été confirmé par l’opérateur de paiement.',
           refundable_amount: String(event.amount ?? ''),
         },
       });

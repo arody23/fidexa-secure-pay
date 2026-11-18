@@ -118,6 +118,12 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
         loadDashboardData();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'disputes' }, () => {
+        loadDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'refund_settlements' }, () => {
+        loadDashboardData();
+      })
       .subscribe();
 
     return () => {
@@ -130,18 +136,21 @@ export default function AdminDashboard() {
       setError('');
 
       const [usersResult, disputesResult, linksResult] = await Promise.all([
-        supabase.from('users').select('id, verified, kyc_status'),
+        supabase.from('users').select('id, verified, kyc_status, role, is_admin'),
         supabase.from('disputes').select('id', { count: 'exact' }).eq('status', 'open'),
         supabase
           .from('payment_links')
           .select(
-            'id, amount, status, is_paid, escrow_released, created_at, provider_id, commission_amount'
+            'id, amount, status, is_paid, escrow_released, refunded, created_at, provider_id, commission_amount'
           )
           .order('created_at', { ascending: false }),
       ]);
 
-      const allUsers = usersResult.data || [];
-      const allLinks = (linksResult.data || []) as PaymentLinkRow[];
+      const allUsers = (usersResult.data || []).filter(
+        (u: { role?: string | null; is_admin?: boolean | null }) =>
+          !u.is_admin && u.role !== 'admin' && u.role !== 'support' && u.role !== 'moderator'
+      );
+      const allLinks = (linksResult.data || []) as (PaymentLinkRow & { refunded?: boolean | null })[];
       setLinks(allLinks);
 
       const providerIds = [
@@ -176,8 +185,12 @@ export default function AdminDashboard() {
               ? convertToUSD(link.commission_amount, currency)
               : commissionToUSD(link.amount, currency);
           totalCommissionsUSD += commission;
-          if (link.escrow_released) {
-            releasedCommissionsUSD += commission;
+          // Commission gagnée : libération prestataire OU remboursement client (part FidexaPay retenue)
+          if (link.escrow_released || link.refunded) {
+            releasedCommissionsUSD +=
+              link.commission_amount != null
+                ? convertToUSD(link.commission_amount, currency)
+                : commissionToUSD(link.amount, currency);
           }
         }
       }

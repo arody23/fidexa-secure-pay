@@ -80,8 +80,9 @@ BEGIN
       'cancelled',
       'Décision litige — remboursement client',
       format(
-        'Admin: remboursement client prévu %s (commission FidexaPay %s%% = %s conservée). %s',
+        'FidexaPay : remboursement client initié — %s %s au client (part plateforme %s%% = %s). %s',
         v_refundable::text,
+        COALESCE(pl.currency, ''),
         v_rate::text,
         v_commission::text,
         COALESCE(resolution_notes_param, '')

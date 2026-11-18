@@ -20,7 +20,9 @@ export default function OrderStatusStepper({ status, className }: OrderStatusSte
           className
         )}
       >
-        Commande {status === 'disputed' ? 'en litige' : 'annulée'} — suivi suspendu.
+        {status === 'disputed'
+          ? 'Commande en litige — suivi actif'
+          : 'Commande annulée — remboursement traité ou en cours'}
       </div>
     );
   }

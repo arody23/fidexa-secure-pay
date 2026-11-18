@@ -35,6 +35,9 @@ interface ClientSupportPanelProps {
   clientPhone?: string | null;
   conversation: Conversation | null;
   onUpdate: () => Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 export default function ClientSupportPanel({
@@ -43,9 +46,14 @@ export default function ClientSupportPanel({
   clientPhone,
   conversation,
   onUpdate,
+  open: openControlled,
+  onOpenChange,
+  hideTrigger = false,
 }: ClientSupportPanelProps) {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = openControlled ?? openInternal;
+  const setOpen = onOpenChange ?? setOpenInternal;
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -161,12 +169,14 @@ export default function ClientSupportPanel({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full gap-2">
-          <Headphones className="h-4 w-4" />
-          Contacter FidexaPay (support)
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" className="w-full gap-2">
+            <Headphones className="h-4 w-4" />
+            Contacter FidexaPay (support)
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Support FidexaPay</DialogTitle>

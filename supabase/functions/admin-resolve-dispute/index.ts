@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
-  buildKPayAmount,
+  buildKPayProviderAmount,
   countryIso2ToIso3,
   corsHeaders,
   createKPayPayout,
@@ -61,7 +61,6 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!(profile?.is_admin || profile?.role === 'admin')) throw new Error('Accès admin requis');
 
-    // RPC avec le JWT admin (auth.uid() dans la fonction)
     const { data: rpcRaw, error: rpcErr } = await anon.rpc('admin_resolve_dispute', {
       dispute_id_param: disputeId,
       decision_param: decision,
@@ -71,22 +70,48 @@ Deno.serve(async (req) => {
     const result = typeof rpcRaw === 'string' ? JSON.parse(rpcRaw) : rpcRaw;
     if (!result?.success) throw new Error(result?.error || 'Résolution impossible');
 
+    const orderAmount = Number(result.amount || 0);
+    const rate = Number(result.commission_rate || 15);
+    // Source de vérité : toujours 85% client / 15% FidexaPay (jamais inverser)
+    const commissionAmount = Number(
+      (result.commission_amount != null
+        ? result.commission_amount
+        : Math.round(orderAmount * rate) / 100
+      ).toFixed(2)
+    );
+    const refundable = Number(
+      (result.refundable_amount != null
+        ? result.refundable_amount
+        : Math.round((orderAmount - commissionAmount) * 100) / 100
+      ).toFixed(2)
+    );
+    if (!(refundable > commissionAmount) && orderAmount > 0) {
+      // Garde-fou : le client doit recevoir plus que la commission retenue
+      const expected = Math.round(orderAmount * (100 - rate)) / 100;
+      if (Math.abs(refundable - expected) > 0.02) {
+        throw new Error(
+          `Montant remboursable incohérent (${refundable}). Attendu ≈ ${expected} (${100 - rate}% de ${orderAmount}).`
+        );
+      }
+    }
+
     const decisionLabel =
       decision === 'refund_client'
-        ? 'Remboursement client (commission FidexaPay conservée)'
-        : 'Paiement prestataire (commission déduite)';
+        ? 'Remboursement accordé au client selon la politique FidexaPay'
+        : 'Paiement libéré au prestataire selon la politique FidexaPay';
 
-    const notifyBoth = async () => {
+    const notifyBoth = async (extra?: Record<string, string>) => {
       const vars = {
         order_reference: result.link_id,
         client_name: result.client_name || 'Client',
         merchant_name: result.provider_name || 'Prestataire',
         decision_label: decisionLabel,
         resolution_notes: resolutionNotes,
-        amount: String(result.amount ?? ''),
+        amount: String(orderAmount),
         currency: String(result.currency || ''),
-        refundable_amount: String(result.refundable_amount ?? ''),
+        refundable_amount: String(refundable),
         reason: resolutionNotes,
+        ...extra,
       };
       const jobs = [];
       if (result.client_phone) {
@@ -94,7 +119,7 @@ Deno.serve(async (req) => {
           dispatchNotificationEvent('dispute.resolved', {
             recipientPhone: result.client_phone,
             paymentLinkId: result.payment_link_id,
-            idempotencyKey: `dispute-resolved:${disputeId}:client`,
+            idempotencyKey: `dispute-resolved:${disputeId}:client:${Date.now()}`,
             variables: vars,
           })
         );
@@ -104,7 +129,7 @@ Deno.serve(async (req) => {
           dispatchNotificationEvent('dispute.resolved', {
             recipientPhone: result.provider_phone,
             paymentLinkId: result.payment_link_id,
-            idempotencyKey: `dispute-resolved:${disputeId}:provider`,
+            idempotencyKey: `dispute-resolved:${disputeId}:provider:${Date.now()}`,
             variables: vars,
           })
         );
@@ -114,23 +139,23 @@ Deno.serve(async (req) => {
 
     if (decision === 'pay_provider') {
       await notifyBoth();
-      return new Response(JSON.stringify({ success: true, ...result }), {
+      return new Response(JSON.stringify({ success: true, ...result, decision_label: decisionLabel }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // refund_client → payout KPay immédiat (max 85%)
     const refundRequestId = result.refund_request_id as string;
-    const refundable = Number(result.refundable_amount);
     const phone = clientPhone || String(result.client_phone || '');
     if (!phone) throw new Error('Numéro Mobile Money du client requis pour le remboursement KPay');
     if (!Number.isFinite(refundable) || refundable <= 0) {
       throw new Error('Montant remboursable invalide');
     }
-    const maxOut = Number(result.refundable_amount);
-    if (providerCreditAmount < 0 || refundable + providerCreditAmount > maxOut + 0.01) {
+    if (providerCreditAmount < 0 || refundable + providerCreditAmount > refundable + 0.01) {
+      // provider credit optional but must not exceed refundable envelope already net of commission
+    }
+    if (providerCreditAmount > 0 && providerCreditAmount + refundable > orderAmount - commissionAmount + 0.01) {
       throw new Error(
-        `Le total client + crédit ne peut pas dépasser ${maxOut} (commission ${result.commission_rate}% FidexaPay conservée)`
+        `Le total client + crédit ne peut pas dépasser ${refundable} ${result.currency} (part FidexaPay ${rate}% retenue).`
       );
     }
 
@@ -142,9 +167,10 @@ Deno.serve(async (req) => {
 
     const existing = await service
       .from('refund_settlements')
-      .select('id, status, kpay_payout_reference')
+      .select('id, status, kpay_payout_reference, failure_reason')
       .eq('refund_request_id', refundRequestId)
       .maybeSingle();
+
     if (existing.data?.status === 'completed') {
       await notifyBoth();
       return new Response(
@@ -153,16 +179,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    const charge = buildKPayAmount(refundable, result.currency, { minAmount: 100 });
-    const settlementRow = existing.data ?? (
-      await service
+    const kpayProvider = mapMobileMoneyProviderToKPay(clientProvider, clientCountry);
+    // Conversion vers la devise de l'opérateur (ex. USD → CDF pour Airtel COD) — pas XAF par défaut
+    const charge = await buildKPayProviderAmount(refundable, result.currency, kpayProvider, {
+      minAmount: 1,
+    });
+
+    let settlementId = existing.data?.id as string | undefined;
+    if (!settlementId) {
+      const inserted = await service
         .from('refund_settlements')
         .insert({
           refund_request_id: refundRequestId,
           payment_link_id: result.payment_link_id,
           client_amount: refundable,
           provider_credit_amount: providerCreditAmount || 0,
-          currency: result.currency || 'FCFA',
+          currency: result.currency || 'USD',
           client_phone: phone,
           client_provider: clientProvider,
           client_country: clientCountry,
@@ -171,48 +203,91 @@ Deno.serve(async (req) => {
           approved_at: new Date().toISOString(),
         })
         .select('id')
-        .single()
-    ).data;
-    if (!settlementRow?.id) throw new Error('Impossible de créer le règlement KPay');
+        .single();
+      if (inserted.error || !inserted.data?.id) {
+        throw new Error(inserted.error?.message || 'Impossible de créer le règlement KPay');
+      }
+      settlementId = inserted.data.id;
+    } else if (existing.data?.status === 'failed') {
+      await service
+        .from('refund_settlements')
+        .update({
+          status: 'processing',
+          failure_reason: null,
+          client_amount: refundable,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', settlementId);
+    }
 
     const payout = await createKPayPayout({
       amount: charge.amount,
-      provider: mapMobileMoneyProviderToKPay(clientProvider, clientCountry),
+      provider: kpayProvider,
       phoneNumber: normalizePhoneKPay(phone, phonePrefixDigitsForCountry(clientCountry)),
       sourceCountry: countryIso2ToIso3(clientCountry),
-      externalId: `fidexa-dispute-refund-${settlementRow.id}`,
-      description: `Remboursement litige Fidexa ${String(result.link_id).slice(0, 12)}`,
+      externalId: `fidexa-dispute-refund-${settlementId}-${Date.now()}`,
+      description: `Remboursement client FidexaPay ${String(result.link_id).slice(0, 12)}`,
       metadata: {
         kind: 'client_refund',
-        settlement_id: settlementRow.id,
+        settlement_id: settlementId,
         refund_request_id: refundRequestId,
         payment_link_id: result.payment_link_id,
         dispute_id: disputeId,
         provider_id: linkMeta?.provider_id || '',
         provider_credit_amount: String(providerCreditAmount || 0),
-        commission_amount: String(result.commission_amount || 0),
+        commission_amount: String(commissionAmount),
+        refundable_original: String(refundable),
+        refundable_currency: String(result.currency || ''),
+        payout_amount: String(charge.amount),
+        payout_currency: charge.settlementCurrency,
         admin_note: resolutionNotes,
       },
     });
 
+    const payoutStatus = String(payout.status || 'PENDING').toUpperCase();
+    const failed =
+      payoutStatus === 'FAILED' || payoutStatus === 'CANCELLED' || Boolean(payout.failureReason);
+
     await service
       .from('refund_settlements')
       .update({
-        status: String(payout.status || 'PENDING').toLowerCase() === 'completed' ? 'completed' : 'processing',
+        status: failed ? 'failed' : payoutStatus === 'COMPLETED' ? 'completed' : 'processing',
         kpay_payout_id: String(payout.id || ''),
         kpay_payout_reference: String(payout.reference || ''),
-        kpay_payout_status: String(payout.status || 'PENDING'),
+        kpay_payout_status: payoutStatus,
+        failure_reason: failed
+          ? String(payout.failureReason || payout.message || 'Payout KPay échoué')
+          : null,
+        completed_at: payoutStatus === 'COMPLETED' ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', settlementRow.id);
+      .eq('id', settlementId);
 
-    // Si KPay confirme immédiatement
-    if (String(payout.status || '').toUpperCase() === 'COMPLETED') {
+    if (failed) {
+      await service.from('order_timeline').insert({
+        payment_link_id: result.payment_link_id,
+        status: 'cancelled',
+        action: 'Remboursement Mobile Money en échec',
+        description:
+          String(payout.failureReason || payout.message || 'Échec KPay') +
+          `. Montant prévu: ${refundable} ${result.currency} (soit ${charge.amount} ${charge.settlementCurrency}). Réessayez depuis Admin → Remboursements.`,
+        actor_type: 'system',
+      });
+      throw new Error(
+        `KPay a refusé le payout: ${payout.failureReason || payout.message || payoutStatus}. ` +
+          `Montant client: ${refundable} ${result.currency} → ${charge.amount} ${charge.settlementCurrency}.`
+      );
+    }
+
+    if (payoutStatus === 'COMPLETED') {
       await service
         .from('payment_links')
         .update({
           refunded: true,
           refunded_at: new Date().toISOString(),
+          commission_rate: rate,
+          commission_amount: commissionAmount,
+          net_amount: refundable,
           updated_at: new Date().toISOString(),
         })
         .eq('id', result.payment_link_id);
@@ -220,37 +295,34 @@ Deno.serve(async (req) => {
         .from('refund_requests')
         .update({ status: 'completed', updated_at: new Date().toISOString() })
         .eq('id', refundRequestId);
+      await service
+        .from('disputes')
+        .update({
+          refund_status: 'completed',
+          refund_amount: refundable,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', disputeId);
     }
 
-    await notifyBoth();
+    await notifyBoth({
+      decision_label:
+        'FidexaPay a tranché en votre faveur. Un remboursement Mobile Money a été initié conformément à notre politique de litiges.',
+    });
 
-    // Notif remboursement initié au client
-    if (phone) {
-      await dispatchNotificationEvent('refund.requested', {
-        recipientPhone: phone,
-        paymentLinkId: result.payment_link_id,
-        idempotencyKey: `dispute-refund-init:${disputeId}:client`,
-        variables: {
-          order_reference: result.link_id,
-          client_name: result.client_name || 'Client',
-          merchant_name: result.provider_name || 'Prestataire',
-          amount: String(refundable),
-          currency: String(result.currency || ''),
-        },
-      });
-    }
     if (result.provider_phone) {
       await dispatchNotificationEvent('dispute.resolved', {
         recipientPhone: result.provider_phone,
         paymentLinkId: result.payment_link_id,
-        idempotencyKey: `dispute-refund-init:${disputeId}:provider-info`,
+        idempotencyKey: `dispute-refund-provider:${disputeId}`,
         variables: {
           order_reference: result.link_id,
           client_name: result.client_name || 'Client',
           merchant_name: result.provider_name || 'Prestataire',
-          decision_label: `Remboursement client de ${refundable} ${result.currency} (commission FidexaPay ${result.commission_rate}% conservée)`,
+          decision_label:
+            'FidexaPay a tranché en faveur du client. Les fonds escrow ne seront pas libérés, conformément à la politique de litiges.',
           resolution_notes: resolutionNotes,
-          amount: String(result.amount ?? ''),
+          amount: String(orderAmount),
           currency: String(result.currency || ''),
           refundable_amount: String(refundable),
         },
@@ -261,9 +333,13 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         ...result,
-        settlementId: settlementRow.id,
+        commission_amount: commissionAmount,
+        refundable_amount: refundable,
+        payout_amount: charge.amount,
+        payout_currency: charge.settlementCurrency,
+        settlementId,
         payout,
-        message: `Remboursement KPay initié: ${refundable} ${result.currency} (commission ${result.commission_amount} conservée)`,
+        message: `Remboursement initié: ${refundable} ${result.currency} au client (${charge.amount} ${charge.settlementCurrency}). Part FidexaPay: ${commissionAmount} ${result.currency}.`,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

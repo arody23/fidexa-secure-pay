@@ -28,6 +28,10 @@ Deno.serve(async (req) => {
     const linkId = String(body.linkId || body.link_id || '').trim();
     const reason = String(body.reason || '').trim();
     const description = String(body.description || reason || '').trim();
+    const evidenceRaw = body.evidenceUrls ?? body.evidence_urls;
+    const evidenceUrls = Array.isArray(evidenceRaw)
+      ? evidenceRaw.map((u: unknown) => String(u || '').trim()).filter(Boolean)
+      : [];
 
     if (!linkId) {
       return new Response(JSON.stringify({ success: false, error: 'linkId requis' }), {
@@ -114,6 +118,7 @@ Deno.serve(async (req) => {
         reason,
         description,
         status: 'open',
+        evidence_urls: evidenceUrls.length ? evidenceUrls : [],
       })
       .select('id')
       .single();

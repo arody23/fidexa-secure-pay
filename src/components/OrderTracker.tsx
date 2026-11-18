@@ -3,6 +3,7 @@ import {
   XCircle,
   AlertTriangle,
   ThumbsUp,
+  Paperclip,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,9 +27,11 @@ import OrderStatusStepper from '@/components/OrderStatusStepper';
 import { getAutoReleaseCountdown } from '@/lib/escrowConfig';
 import { formatAmount } from '@/lib/currency';
 import { createDispute } from '@/lib/createDispute';
+import { uploadSupportAttachment } from '@/lib/orderSupport';
 
 interface OrderTrackerProps {
   linkId: string;
+  paymentLinkId?: string;
   orderStatus: string;
   canCancel: boolean;
   amount: number;
@@ -54,6 +57,17 @@ interface TimelineEvent {
   action: string;
   description: string | null;
   created_at: string;
+  actor_type?: string | null;
+}
+
+function formatTimelineActor(actorType?: string | null): string | null {
+  if (!actorType) return null;
+  const normalized = actorType.toLowerCase();
+  if (normalized === 'admin') return 'FidexaPay';
+  if (normalized === 'system') return 'Système';
+  if (normalized === 'client') return 'Vous';
+  if (normalized === 'provider') return 'Prestataire';
+  return actorType;
 }
 
 function buildSyntheticTimeline(
@@ -97,6 +111,7 @@ function buildSyntheticTimeline(
 
 export default function OrderTracker({
   linkId,
+  paymentLinkId,
   orderStatus,
   canCancel,
   amount,
@@ -113,6 +128,8 @@ export default function OrderTracker({
   const [cancelReason, setCancelReason] = useState('');
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeDescription, setDisputeDescription] = useState('');
+  const [disputeEvidenceUrls, setDisputeEvidenceUrls] = useState<string[]>([]);
+  const [uploadingDisputeEvidence, setUploadingDisputeEvidence] = useState(false);
   const loadTimeline = useCallback(async () => {
     let rows: TimelineEvent[] = [];
     try {
@@ -314,6 +331,42 @@ export default function OrderTracker({
 
   };
 
+  const handleDisputeEvidenceUpload = async (fileList: FileList | null) => {
+    if (!fileList?.length || !paymentLinkId) {
+      if (!paymentLinkId) {
+        toast({
+          title: 'Erreur',
+          description: 'Impossible d’ajouter des preuves pour le moment.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+    const files = Array.from(fileList).slice(0, 5);
+    try {
+      setUploadingDisputeEvidence(true);
+      const urls: string[] = [];
+      for (const file of files) {
+        const ext = file.name.split('.').pop() || 'bin';
+        const url = await uploadSupportAttachment(paymentLinkId, file, ext, file.type);
+        urls.push(url);
+      }
+      setDisputeEvidenceUrls((prev) => [...prev, ...urls].slice(0, 8));
+      toast({
+        title: 'Preuves ajoutées',
+        description: `${urls.length} fichier(s) prêt(s) pour le litige.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Upload impossible',
+        description: error instanceof Error ? error.message : 'Réessayez',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingDisputeEvidence(false);
+    }
+  };
+
   const handleDispute = async () => {
     if (!disputeReason.trim() || !disputeDescription.trim()) return;
     try {
@@ -322,6 +375,7 @@ export default function OrderTracker({
         linkId,
         reason: disputeReason.trim(),
         description: disputeDescription.trim(),
+        evidenceUrls: disputeEvidenceUrls,
       });
       toast({
         title: 'Litige ouvert',
@@ -329,6 +383,7 @@ export default function OrderTracker({
       });
       setDisputeReason('');
       setDisputeDescription('');
+      setDisputeEvidenceUrls([]);
       onStatusUpdate();
     } catch (error) {
       toast({
@@ -448,9 +503,40 @@ export default function OrderTracker({
                     rows={4}
                   />
                 </div>
+                <div>
+                  <Label htmlFor="dispute-evidence">Preuves (images / vidéo / PDF)</Label>
+                  <Input
+                    id="dispute-evidence"
+                    type="file"
+                    accept="image/*,video/*,application/pdf"
+                    multiple
+                    disabled={uploadingDisputeEvidence || !paymentLinkId}
+                    onChange={(e) => {
+                      void handleDisputeEvidenceUpload(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                  {disputeEvidenceUrls.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                      {disputeEvidenceUrls.map((url) => (
+                        <li key={url} className="flex items-center gap-1 truncate">
+                          <Paperclip className="h-3 w-3 shrink-0" />
+                          <a href={url} target="_blank" rel="noreferrer" className="underline">
+                            {url.split('/').pop()}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <Button
                   onClick={handleDispute}
-                  disabled={loading || !disputeReason.trim() || !disputeDescription.trim()}
+                  disabled={
+                    loading ||
+                    uploadingDisputeEvidence ||
+                    !disputeReason.trim() ||
+                    !disputeDescription.trim()
+                  }
                   className="w-full"
                 >
                   Soumettre le litige
@@ -471,20 +557,36 @@ export default function OrderTracker({
           ) : (
             <ul className="space-y-3 border-l-2 border-border pl-4">
 
-              {timeline.map((event) => (
+              {timeline
+                .filter((event) => {
+                  const d = (event.description || '').toLowerCase();
+                  const a = (event.action || '').toLowerCase();
+                  if (d.includes('changement automatique')) return false;
+                  if (a.includes('changement automatique')) return false;
+                  return true;
+                })
+                .map((event) => {
+                const actorLabel = formatTimelineActor(event.actor_type);
+                const description = (event.description || '')
+                  .replace(/^Admin:\s*/i, 'FidexaPay : ')
+                  .replace(/\bAdmin\b/g, 'FidexaPay')
+                  .replace(/commission FidexaPay[\s\S]*?conservée\.?/gi, '')
+                  .trim();
+                return (
                 <li key={event.id} className="relative">
                   <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
-                  <p className="font-medium text-sm">{event.action}</p>
+                  <p className="font-medium text-sm">{event.action.replace(/^Admin\b/i, 'FidexaPay')}</p>
 
-                  {event.description && (
-                    <p className="text-xs text-muted-foreground">{event.description}</p>
+                  {description && (
+                    <p className="text-xs text-muted-foreground">{description}</p>
                   )}
                   <p className="text-[10px] text-muted-foreground mt-0.5">
-
+                    {actorLabel && <span className="mr-1.5 font-medium">{actorLabel} ·</span>}
                     {new Date(event.created_at).toLocaleString('fr-FR')}
                   </p>
                 </li>
-              ))}
+              );
+              })}
             </ul>
           )}
         </CardContent>

@@ -11,7 +11,7 @@ function AdminGate() {
       <div className="flex min-h-screen items-center justify-center bg-secondary/30">
         <div className="text-center">
           <Loader className="mx-auto mb-4 h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Vérification des permissions...</p>
+          <p className="text-sm text-muted-foreground">Chargement…</p>
         </div>
       </div>
     );

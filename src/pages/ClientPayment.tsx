@@ -7,6 +7,7 @@ import {
   Star,
   Upload,
   Loader2,
+  Banknote,
 } from "lucide-react";
 import EscrowMark from "@/components/brand/EscrowMark";
 import { Button } from "@/components/ui/button";
@@ -743,13 +744,28 @@ const ClientPayment = () => {
                   </Label>
                   <div className="flex min-w-0 gap-2">
                     <Select value={whatsappDialKey} onValueChange={setWhatsappDialKey}>
-                      <SelectTrigger className="h-11 w-[8.25rem] shrink-0 tabular-nums">
-                        <SelectValue placeholder="+…" />
+                      <SelectTrigger className="h-11 w-[5.75rem] shrink-0 px-2 tabular-nums">
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                          <img
+                            src={`/assets/flags/${whatsappDialKey.split(':')[0]?.toLowerCase() || 'cd'}.svg`}
+                            alt=""
+                            className="h-3.5 w-5 rounded-[2px] object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                            }}
+                          />
+                          <span className="text-sm font-medium text-[#0b3b78]">{whatsappDial}</span>
+                        </span>
                       </SelectTrigger>
                       <SelectContent className="max-h-72">
                         {WORLD_DIAL_CODES.map((c) => (
                           <SelectItem key={`${c.code}-${c.dial}`} value={`${c.code}:${c.dial}`}>
                             <span className="inline-flex items-center gap-2">
+                              <img
+                                src={`/assets/flags/${c.code.toLowerCase()}.svg`}
+                                alt=""
+                                className="h-3.5 w-5 rounded-[2px] object-cover"
+                              />
                               <span className="tabular-nums text-[#0b3b78]">{c.dial}</span>
                               <span className="truncate text-muted-foreground">{c.name}</span>
                             </span>
@@ -811,7 +827,7 @@ const ClientPayment = () => {
                 {paying ? (
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 ) : (
-                  <EscrowMark className="mr-2 h-5 w-5" />
+                  <Banknote className="mr-2 h-5 w-5" strokeWidth={1.75} />
                 )}
                 {paying
                   ? "Initialisation…"
@@ -853,7 +869,7 @@ const ClientPayment = () => {
             {paying ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
-              <EscrowMark className="mr-2 h-5 w-5" />
+              <Banknote className="mr-2 h-5 w-5" strokeWidth={1.75} />
             )}
             {paying ? "Initialisation…" : awaitingKPayConfirmation ? "Validation en attente…" : "Payer"}
           </Button>
