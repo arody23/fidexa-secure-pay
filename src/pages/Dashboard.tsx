@@ -11,12 +11,10 @@ import {
   Link2,
   ChevronDown,
   ChevronUp,
-  Plus,
   Shield,
   TrendingUp,
   PlayCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useProvider } from "@/contexts/ProviderContext";
@@ -255,21 +253,13 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-[#8a9bb0]">
-            {profile?.full_name ? `Bonjour` : "FidexaPay"}
-          </p>
-          <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">
-            {profile?.full_name?.split(" ")[0] || "Tableau de bord"}
-          </h1>
-        </div>
-        <Button asChild size="sm" className="h-9 bg-[#0b3b78] hover:bg-[#0a3266]">
-          <Link to="/dashboard/create-link">
-            <Plus className="mr-1 h-4 w-4" />
-            Lien
-          </Link>
-        </Button>
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wider text-[#8a9bb0]">
+          {profile?.full_name ? `Bonjour` : "FidexaPay"}
+        </p>
+        <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">
+          {profile?.full_name?.split(" ")[0] || "Tableau de bord"}
+        </h1>
       </div>
 
       {/* Hero finances */}
