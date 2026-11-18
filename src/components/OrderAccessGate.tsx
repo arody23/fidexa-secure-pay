@@ -10,6 +10,7 @@ import {
 } from '@/lib/orderAccess';
 import Logo from '@/components/Logo';
 import { cn } from '@/lib/utils';
+import { formatMaskedInternational } from '@/lib/worldDialCodes';
 
 interface Props {
   linkId: string;
@@ -197,7 +198,7 @@ export default function OrderAccessGate({ linkId, children }: Props) {
           <Logo size="md" />
         </div>
 
-        <div className="rounded-3xl bg-white p-6 sm:p-8">
+        <div className="rounded-3xl border-2 border-[#0b3b78] bg-white p-6 sm:p-8">
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3b78]/10 text-[#0b3b78]">
             <MessageCircle className="h-6 w-6" strokeWidth={1.75} />
           </div>
@@ -210,7 +211,9 @@ export default function OrderAccessGate({ linkId, children }: Props) {
             {maskedPhone ? (
               <>
                 {' '}
-                <span className="font-semibold text-[#0b2f63]">{maskedPhone}</span>
+                <span className="font-semibold tabular-nums text-[#0b2f63]">
+                  {formatMaskedInternational(maskedPhone) || maskedPhone}
+                </span>
               </>
             ) : (
               ' après votre paiement'

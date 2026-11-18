@@ -145,5 +145,9 @@ function maskPhone(phone?: string | null): string | null {
   if (!phone) return null;
   const d = phone.replace(/\D/g, '');
   if (d.length < 6) return '***';
-  return `${d.slice(0, 3)}***${d.slice(-3)}`;
+  const headLen = Math.min(3, d.length - 3);
+  const head = d.slice(0, headLen);
+  const tail = d.slice(-3);
+  const stars = '*'.repeat(Math.max(6, d.length - headLen - 3));
+  return `+${head}${stars}${tail}`;
 }

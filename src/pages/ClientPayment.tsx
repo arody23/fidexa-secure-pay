@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Shield,
   Check,
   AlertTriangle,
   Star,
   Upload,
   Loader2,
 } from "lucide-react";
+import EscrowMark from "@/components/brand/EscrowMark";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,6 +29,11 @@ import { formatAmount } from "@/lib/currency";
 import { getKPayCountry, COVERAGE_COUNTRIES } from "@/lib/kpayProviders";
 import { ProviderNetworkIcon, WhatsAppBrandIcon } from "@/components/brand/ProviderNetworkIcon";
 import OrderTracker from "@/components/OrderTracker";
+import {
+  WORLD_DIAL_CODES,
+  composeE164,
+  toNationalPhoneDigits,
+} from "@/lib/worldDialCodes";
 
 interface PaymentLink {
   id: string;
@@ -65,12 +70,7 @@ interface Provider {
 }
 
 function normalizePhoneForCountry(phone: string, countryCode: string): string {
-  const trimmed = phone.trim();
-  const digits = trimmed.replace(/\D/g, '').replace(/^00/, '');
-  if (trimmed.startsWith('+') || trimmed.startsWith('00')) return digits;
-  const prefix = getKPayCountry(countryCode).phonePrefix.replace('+', '');
-  if (digits.startsWith(prefix)) return digits;
-  return `${prefix}${digits.replace(/^0/, '')}`;
+  return composeE164(getKPayCountry(countryCode).phonePrefix, phone);
 }
 
 const ClientPayment = () => {
@@ -92,10 +92,19 @@ const ClientPayment = () => {
   const [clientCountry, setClientCountry] = useState('CD');
   const [clientMomoPhone, setClientMomoPhone] = useState('');
   const [clientWhatsAppPhone, setClientWhatsAppPhone] = useState('');
+  const [whatsappDialKey, setWhatsappDialKey] = useState('CD:+243');
   const [availableProviderCodes, setAvailableProviderCodes] = useState<string[] | null>(null);
 
   const linkCurrency = paymentData?.currency || provider?.currency || 'FCFA';
   const selectedKPayCountry = getKPayCountry(clientCountry);
+  const whatsappDial = whatsappDialKey.includes(':')
+    ? whatsappDialKey.split(':').slice(1).join(':')
+    : whatsappDialKey;
+
+  useEffect(() => {
+    const c = getKPayCountry(clientCountry);
+    setWhatsappDialKey(`${c.code}:${c.phonePrefix}`);
+  }, [clientCountry]);
   const visibleProviders = selectedKPayCountry.providers.filter(
     (item) => availableProviderCodes === null || availableProviderCodes.includes(item.code)
   );
@@ -145,11 +154,18 @@ const ClientPayment = () => {
         }
 
         const legacyPhone = String((data as PaymentLink).client_phone || '');
+        const countryCode = (data as PaymentLink).client_country || 'CD';
+        const momoPrefix = getKPayCountry(countryCode).phonePrefix;
         setPaymentData(data as any);
         setProvider(providerData as any || null);
-        setClientCountry((data as PaymentLink).client_country || 'CD');
-        setClientMomoPhone((data as PaymentLink).client_momo_phone || legacyPhone);
-        setClientWhatsAppPhone(legacyPhone);
+        setClientCountry(countryCode);
+        setClientMomoPhone(
+          toNationalPhoneDigits(
+            String((data as PaymentLink).client_momo_phone || legacyPhone),
+            momoPrefix
+          )
+        );
+        setClientWhatsAppPhone(toNationalPhoneDigits(legacyPhone, momoPrefix));
       } catch (err) {
         console.error("Error fetching payment link:", err);
         setError("Erreur lors du chargement du lien de paiement");
@@ -255,7 +271,7 @@ const ClientPayment = () => {
     }
 
     const mobileMoneyPhone = normalizePhoneForCountry(clientMomoPhone, clientCountry);
-    const whatsappPhone = normalizePhoneForCountry(clientWhatsAppPhone, clientCountry);
+    const whatsappPhone = composeE164(whatsappDial, clientWhatsAppPhone);
     if (mobileMoneyPhone.length < 9) {
       toast({
         title: 'Numéro Mobile Money requis',
@@ -567,7 +583,7 @@ const ClientPayment = () => {
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:h-16">
           <Logo size="sm" />
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0b3b78]/8 px-3 py-1 text-xs font-semibold text-[#0b3b78]">
-            <Shield className="h-3.5 w-3.5" strokeWidth={2} />
+            <EscrowMark className="h-3.5 w-3.5" strokeWidth={1.7} />
             Escrow
           </span>
         </div>
@@ -645,7 +661,7 @@ const ClientPayment = () => {
 
           <div className="flex items-center gap-3 rounded-xl bg-[#f3f7fc] px-4 py-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0b3b78] text-white">
-              <Shield className="h-5 w-5" strokeWidth={1.75} />
+              <EscrowMark className="h-5 w-5" strokeWidth={1.55} />
             </div>
             <p className="text-sm font-medium text-[#0b2f63]">
               Fonds protégés jusqu’à validation de la livraison
@@ -704,12 +720,17 @@ const ClientPayment = () => {
                       id="clientMomoPhone"
                       type="tel"
                       inputMode="numeric"
-                      placeholder="Numéro"
+                      placeholder="812 345 678"
                       value={clientMomoPhone}
-                      onChange={(event) => setClientMomoPhone(event.target.value)}
-                      className="h-11 min-w-0 flex-1 text-base"
+                      onChange={(event) =>
+                        setClientMomoPhone(
+                          toNationalPhoneDigits(event.target.value, selectedKPayCountry.phonePrefix)
+                        )
+                      }
+                      className="h-11 min-w-0 flex-1 text-base placeholder:text-[#a8b8ca]"
                     />
                   </div>
+                  <p className="text-[11px] text-[#8a9bb0]">Sans indicatif — uniquement le numéro local</p>
                 </div>
 
                 <div className="space-y-2">
@@ -721,19 +742,36 @@ const ClientPayment = () => {
                     WhatsApp (suivi)
                   </Label>
                   <div className="flex min-w-0 gap-2">
-                    <span className="inline-flex h-11 shrink-0 items-center rounded-md border border-input bg-[#f6f9fd] px-3 text-sm font-medium tabular-nums text-[#0b3b78]">
-                      {selectedKPayCountry.phonePrefix}
-                    </span>
+                    <Select value={whatsappDialKey} onValueChange={setWhatsappDialKey}>
+                      <SelectTrigger className="h-11 w-[8.25rem] shrink-0 tabular-nums">
+                        <SelectValue placeholder="+…" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {WORLD_DIAL_CODES.map((c) => (
+                          <SelectItem key={`${c.code}-${c.dial}`} value={`${c.code}:${c.dial}`}>
+                            <span className="inline-flex items-center gap-2">
+                              <span className="tabular-nums text-[#0b3b78]">{c.dial}</span>
+                              <span className="truncate text-muted-foreground">{c.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Input
                       id="clientWhatsAppPhone"
                       type="tel"
                       inputMode="numeric"
-                      placeholder="Numéro"
+                      placeholder="812 345 678"
                       value={clientWhatsAppPhone}
-                      onChange={(event) => setClientWhatsAppPhone(event.target.value)}
-                      className="h-11 min-w-0 flex-1 text-base"
+                      onChange={(event) =>
+                        setClientWhatsAppPhone(toNationalPhoneDigits(event.target.value, whatsappDial))
+                      }
+                      className="h-11 min-w-0 flex-1 text-base placeholder:text-[#a8b8ca]"
                     />
                   </div>
+                  <p className="text-[11px] text-[#8a9bb0]">
+                    Choisissez l’indicatif, puis le numéro sans le préfixe pays
+                  </p>
                 </div>
               </div>
 
@@ -773,7 +811,7 @@ const ClientPayment = () => {
                 {paying ? (
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 ) : (
-                  <Shield className="mr-2 h-5 w-5" />
+                  <EscrowMark className="mr-2 h-5 w-5" />
                 )}
                 {paying
                   ? "Initialisation…"
@@ -815,7 +853,7 @@ const ClientPayment = () => {
             {paying ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
-              <Shield className="mr-2 h-5 w-5" />
+              <EscrowMark className="mr-2 h-5 w-5" />
             )}
             {paying ? "Initialisation…" : awaitingKPayConfirmation ? "Validation en attente…" : "Payer"}
           </Button>
