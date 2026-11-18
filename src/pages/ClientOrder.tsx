@@ -496,9 +496,17 @@ export default function ClientOrder() {
   }
 
   const getStatusInfo = () => {
-    const status = paymentData.is_paid ? (paymentData.order_status || 'paid') : paymentData.status;
-    
-    if (paymentData.refunded) {
+    const status = String(
+      paymentData.is_paid ? (paymentData.order_status || paymentData.status || 'paid') : paymentData.status || 'pending'
+    ).toLowerCase();
+    const isDisputed =
+      Boolean(activeDispute) ||
+      status === 'disputed' ||
+      status === 'in_dispute' ||
+      status.includes('dispute') ||
+      status.includes('litige');
+
+    if (paymentData.refunded || status === 'refunded') {
       return {
         title: "Commande remboursée",
         description: "Votre requête a été acceptée. Vous serez remboursé sur le numéro utilisé pour le paiement.",
@@ -508,10 +516,10 @@ export default function ClientOrder() {
       };
     }
 
-    if (activeDispute || status === 'disputed') {
+    if (isDisputed) {
       return {
         title: "En litige",
-        description: "Votre demande est en cours d'examen par notre équipe FidexaPay.",
+        description: "Votre demande est en cours d'examen par notre équipe FidexaPay. Le suivi reste actif.",
         icon: AlertTriangle,
         color: "text-orange-600",
         bg: "bg-orange-50"
@@ -559,29 +567,30 @@ export default function ClientOrder() {
           color: "text-emerald-600",
           bg: "bg-emerald-50"
         };
+      case 'disputed':
+      case 'in_dispute':
+        return {
+          title: "En litige",
+          description: "Votre demande est en cours d'examen par notre équipe FidexaPay. Le suivi reste actif.",
+          icon: AlertTriangle,
+          color: "text-orange-600",
+          bg: "bg-orange-50"
+        };
       case 'cancelled':
         return {
-          title: "Annulée — dossier clos",
-          description: "Cette commande est close. Le remboursement a été traité ou est en cours.",
+          title: "Commande annulée",
+          description: "Dossier clos. Si un remboursement a été décidé, il est traité ou en cours sur votre Mobile Money.",
           icon: XCircle,
           color: "text-red-600",
           bg: "bg-red-50"
         };
-      case 'refunded':
-        return {
-          title: "Remboursement en cours",
-          description: "Votre remboursement est en traitement sur votre moyen de paiement.",
-          icon: Clock,
-          color: "text-sky-600",
-          bg: "bg-sky-50"
-        };
       default:
         return {
-          title: "Statut inconnu",
-          description: "",
-          icon: AlertTriangle,
-          color: "text-gray-600",
-          bg: "bg-gray-50"
+          title: "Suivi de commande",
+          description: "Consultez l’historique ci-dessous pour l’état détaillé de votre dossier.",
+          icon: EscrowMark,
+          color: "text-[#0b3b78]",
+          bg: "bg-[#0b3b78]/10"
         };
     }
   };

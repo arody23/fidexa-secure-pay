@@ -5,6 +5,20 @@ export type WorldDialCode = {
   dial: string;
 };
 
+/** Drapeau emoji depuis le code ISO (ex. CD → 🇨🇩). */
+export function countryFlagEmoji(iso2: string): string {
+  const code = String(iso2 || '').toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return '🌐';
+  const A = 0x1f1e6;
+  return String.fromCodePoint(A + (code.charCodeAt(0) - 65), A + (code.charCodeAt(1) - 65));
+}
+
+/** URL drapeau (CDN) — fallback local `/assets/flags/{iso}.svg` si présent. */
+export function countryFlagSrc(iso2: string): string {
+  const code = String(iso2 || 'cd').toLowerCase();
+  return `https://flagcdn.com/w40/${code}.png`;
+}
+
 export const WORLD_DIAL_CODES: WorldDialCode[] = [
   { code: 'AF', name: 'Afghanistan', dial: '+93' },
   { code: 'ZA', name: 'Afrique du Sud', dial: '+27' },

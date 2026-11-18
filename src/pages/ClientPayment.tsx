@@ -32,6 +32,7 @@ import { ProviderNetworkIcon, WhatsAppBrandIcon } from "@/components/brand/Provi
 import OrderTracker from "@/components/OrderTracker";
 import {
   WORLD_DIAL_CODES,
+  countryFlagEmoji,
   composeE164,
   toNationalPhoneDigits,
 } from "@/lib/worldDialCodes";
@@ -684,11 +685,9 @@ const ClientPayment = () => {
                       {COVERAGE_COUNTRIES.map((country) => (
                         <SelectItem key={country.code} value={country.code}>
                           <span className="inline-flex items-center gap-2">
-                            <img
-                              src={`/assets/flags/${country.code.toLowerCase()}.svg`}
-                              alt=""
-                              className="h-4 w-6 rounded-[2px] object-cover"
-                            />
+                            <span className="text-base leading-none" aria-hidden>
+                              {countryFlagEmoji(country.code)}
+                            </span>
                             {country.name}
                           </span>
                         </SelectItem>
@@ -744,29 +743,23 @@ const ClientPayment = () => {
                   </Label>
                   <div className="flex min-w-0 gap-2">
                     <Select value={whatsappDialKey} onValueChange={setWhatsappDialKey}>
-                      <SelectTrigger className="h-11 w-[5.75rem] shrink-0 px-2 tabular-nums">
-                        <span className="inline-flex items-center gap-1.5 truncate">
-                          <img
-                            src={`/assets/flags/${whatsappDialKey.split(':')[0]?.toLowerCase() || 'cd'}.svg`}
-                            alt=""
-                            className="h-3.5 w-5 rounded-[2px] object-cover"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                            }}
-                          />
+                      <SelectTrigger className="h-11 w-[5.5rem] shrink-0 gap-1 px-2 tabular-nums [&>span]:line-clamp-none">
+                        {/* Compact : drapeau + indicatif seulement */}
+                        <span className="inline-flex min-w-0 items-center gap-1">
+                          <span className="text-base leading-none" aria-hidden>
+                            {countryFlagEmoji(whatsappDialKey.split(':')[0] || 'CD')}
+                          </span>
                           <span className="text-sm font-medium text-[#0b3b78]">{whatsappDial}</span>
                         </span>
                       </SelectTrigger>
-                      <SelectContent className="max-h-72">
+                      <SelectContent className="max-h-72 min-w-[14rem]">
                         {WORLD_DIAL_CODES.map((c) => (
-                          <SelectItem key={`${c.code}-${c.dial}`} value={`${c.code}:${c.dial}`}>
+                          <SelectItem key={`${c.code}-${c.dial}`} value={`${c.code}:${c.dial}`} textValue={c.dial}>
                             <span className="inline-flex items-center gap-2">
-                              <img
-                                src={`/assets/flags/${c.code.toLowerCase()}.svg`}
-                                alt=""
-                                className="h-3.5 w-5 rounded-[2px] object-cover"
-                              />
-                              <span className="tabular-nums text-[#0b3b78]">{c.dial}</span>
+                              <span className="text-base leading-none" aria-hidden>
+                                {countryFlagEmoji(c.code)}
+                              </span>
+                              <span className="tabular-nums font-medium text-[#0b3b78]">{c.dial}</span>
                               <span className="truncate text-muted-foreground">{c.name}</span>
                             </span>
                           </SelectItem>
