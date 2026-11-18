@@ -449,6 +449,27 @@ export default function ClientOrder() {
     }
   };
 
+  // Hooks AVANT tout return conditionnel (sinon écran blanc React)
+  const trackerPaymentLink = useMemo(() => {
+    if (!paymentData) return undefined;
+    const row = paymentData as PaymentLink & {
+      paid_at?: string | null;
+      started_at?: string | null;
+      completed_at?: string | null;
+      validated_at?: string | null;
+      escrow_released_at?: string | null;
+    };
+    return {
+      created_at: row.created_at,
+      paid_at: row.paid_at,
+      started_at: row.started_at,
+      completed_at: row.completed_at,
+      validated_at: row.validated_at,
+      escrow_released_at: row.escrow_released_at,
+      is_paid: row.is_paid,
+    };
+  }, [paymentData]);
+
   // Render logic
   if (loading) {
     return (
@@ -551,27 +572,6 @@ export default function ClientOrder() {
   const StatusIcon = statusInfo.icon;
   const showActions = paymentData.is_paid && !paymentData.refunded;
   const orderCurrency = paymentData.currency || 'FCFA';
-
-  const trackerPaymentLink = useMemo(
-    () => ({
-      created_at: paymentData.created_at,
-      paid_at: (paymentData as { paid_at?: string | null }).paid_at,
-      started_at: (paymentData as { started_at?: string | null }).started_at,
-      completed_at: (paymentData as { completed_at?: string | null }).completed_at,
-      validated_at: (paymentData as { validated_at?: string | null }).validated_at,
-      escrow_released_at: (paymentData as { escrow_released_at?: string | null }).escrow_released_at,
-      is_paid: paymentData.is_paid,
-    }),
-    [
-      paymentData.created_at,
-      (paymentData as { paid_at?: string | null }).paid_at,
-      (paymentData as { started_at?: string | null }).started_at,
-      (paymentData as { completed_at?: string | null }).completed_at,
-      (paymentData as { validated_at?: string | null }).validated_at,
-      (paymentData as { escrow_released_at?: string | null }).escrow_released_at,
-      paymentData.is_paid,
-    ]
-  );
 
   if (!paymentData.is_paid) {
     return (
