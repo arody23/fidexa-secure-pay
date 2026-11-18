@@ -360,28 +360,25 @@ export default function ClientOrder() {
     try {
       setCreatingDispute(true);
 
-      const { data, error } = await supabase.rpc('create_dispute', {
-        link_id_param: paymentData.link_id,
-        reason_param: disputeReason.trim(),
-        description_param: disputeReason.trim(),
+      const { createDispute } = await import('@/lib/createDispute');
+      const result = await createDispute({
+        linkId: paymentData.link_id,
+        reason: disputeReason.trim(),
+        description: disputeReason.trim(),
       });
-
-      if (error) throw error;
-      const result = typeof data === 'string' ? JSON.parse(data) : data;
-      if (!result?.success) throw new Error(result?.error || 'Erreur');
 
       toast({
-        title: "Litige créé",
-        description: "Votre demande a été enregistrée. Notre équipe va l'examiner.",
+        title: 'Litige créé',
+        description: result.message || "Votre demande a été enregistrée. Notre équipe va l'examiner.",
       });
 
-      setDisputeReason("");
+      setDisputeReason('');
       await loadActiveDispute();
     } catch (err) {
       toast({
-        title: "Erreur",
-        description: err instanceof Error ? err.message : "Impossible de créer le litige",
-        variant: "destructive",
+        title: 'Erreur',
+        description: err instanceof Error ? err.message : 'Impossible de créer le litige',
+        variant: 'destructive',
       });
     } finally {
       setCreatingDispute(false);
@@ -537,43 +534,47 @@ export default function ClientOrder() {
 
   return (
     <OrderAccessGate linkId={paymentData.link_id}>
-    <div className="min-h-[100dvh] overflow-x-hidden bg-[#eef3f9] pb-24">
+    <div className="min-h-[100dvh] overflow-x-hidden bg-[#eef3f9] pb-[max(6rem,env(safe-area-inset-bottom))]">
       <header className="sticky top-0 z-30 border-b border-[#dbe6f2] bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:h-16">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:h-16 sm:px-4">
           <Logo size="sm" />
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0b3b78]/8 px-3 py-1 text-xs font-semibold text-[#0b3b78]">
-            <Shield className="h-3.5 w-3.5" />
+          <span className="inline-flex max-w-[50%] items-center gap-1.5 truncate rounded-full bg-[#0b3b78]/8 px-2.5 py-1 text-[11px] font-semibold text-[#0b3b78] sm:text-xs">
+            <Shield className="h-3.5 w-3.5 shrink-0" />
             #{paymentData.link_id.slice(0, 8).toUpperCase()}
           </span>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-4 rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2]"
+          className="mb-4 overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:p-5"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3b78]/10">
-              <StatusIcon className={`h-6 w-6 ${statusInfo.color}`} strokeWidth={1.75} />
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#0b3b78]/10 sm:h-12 sm:w-12">
+              <StatusIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${statusInfo.color}`} strokeWidth={1.75} />
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-[#0b2f63] sm:text-2xl">{statusInfo.title}</h2>
-              <p className="mt-0.5 text-sm text-[#5c7188]">{statusInfo.description}</p>
+            <div className="min-w-0 flex-1">
+              <h2 className="break-words text-lg font-semibold leading-tight text-[#0b2f63] sm:text-2xl">
+                {statusInfo.title}
+              </h2>
+              <p className="mt-1 text-sm leading-snug text-[#5c7188]">{statusInfo.description}</p>
             </div>
           </div>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-3">
           {/* Main Content Area — mobile first */}
-          <div className="order-2 space-y-6 lg:order-1 lg:col-span-2">
+          <div className="order-2 min-w-0 space-y-4 sm:space-y-6 lg:order-1 lg:col-span-2">
                   {/* Order Details */}
-                  <div className="space-y-4 rounded-2xl bg-white p-5 ring-1 ring-[#dbe6f2]">
+                  <div className="min-w-0 space-y-3 overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-[#dbe6f2] sm:space-y-4 sm:p-5">
                       <h3 className="text-base font-semibold text-[#0b2f63]">Commande</h3>
-                      <div>
+                      <div className="min-w-0">
                         <Label className="text-sm text-[#5c7188]">Prestation</Label>
-                        <p className="mt-1 font-medium text-[#0b2f63]">{paymentData.description}</p>
+                        <p className="mt-1 break-words font-medium leading-snug text-[#0b2f63]">
+                          {paymentData.description}
+                        </p>
                       </div>
                       {paymentData.provider_notes && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -630,30 +631,32 @@ export default function ClientOrder() {
           </div>
 
           {/* Sidebar — prestataire & support en premier sur mobile */}
-          <div className="order-1 space-y-6 lg:order-2">
+          <div className="order-1 min-w-0 space-y-4 sm:space-y-6 lg:order-2">
             {/* Provider Info */}
             {provider && (
-              <Card className="stat-card">
-                <CardHeader>
-                  <CardTitle className="text-lg">Prestataire</CardTitle>
+              <Card className="stat-card overflow-hidden">
+                <CardHeader className="px-4 py-3 sm:px-6">
+                  <CardTitle className="text-base sm:text-lg">Prestataire</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3">
+                <CardContent className="px-4 pb-4 sm:px-6">
+                  <div className="flex min-w-0 items-center gap-3">
                     {provider.avatar_url ? (
                       <img
                         src={provider.avatar_url}
                         alt={provider.full_name}
-                        className="w-16 h-16 rounded-full shadow-md"
+                        className="h-12 w-12 shrink-0 rounded-full shadow-md sm:h-16 sm:w-16"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shadow-md">
-                        <span className="text-xl font-bold text-primary">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 shadow-md sm:h-16 sm:w-16">
+                        <span className="text-lg font-bold text-primary sm:text-xl">
                           {provider.full_name.charAt(0)}
                         </span>
                       </div>
                     )}
-                    <div>
-                      <p className="font-medium text-lg">{provider.full_name || paymentData.provider_name || 'Prestataire'}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-medium sm:text-lg">
+                        {provider.full_name || paymentData.provider_name || 'Prestataire'}
+                      </p>
                       <div className="flex items-center gap-2 mt-1">
                         <StarRating rating={averageRating || (provider.rating ?? 0)} size="sm" showValue />
                         {reviewCount > 0 && (
