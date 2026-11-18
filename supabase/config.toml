@@ -1,1 +1,7 @@
 project_id = "dkmbtwczuheyyxvuypml"
+
+[functions.create-dispute]
+verify_jwt = false
+
+[functions.order-client-access]
+verify_jwt = false

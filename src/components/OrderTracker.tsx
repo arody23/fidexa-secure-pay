@@ -174,43 +174,52 @@ export default function OrderTracker({
     }
 
     setTimeline(rows);
-  }, [linkId, orderStatus, paymentLink]);
+  }, [
+    linkId,
+    orderStatus,
+    paymentLink?.created_at,
+    paymentLink?.paid_at,
+    paymentLink?.started_at,
+    paymentLink?.completed_at,
+    paymentLink?.validated_at,
+    paymentLink?.escrow_released_at,
+    paymentLink?.is_paid,
+  ]);
 
   useEffect(() => {
-    loadTimeline();
-    supabase.rpc('process_auto_escrow_releases').then(() => onStatusUpdate());
+    void loadTimeline();
+    // Auto-release silencieux — ne pas rappeler onStatusUpdate (évite boucle de toasts)
+    void supabase.rpc('process_auto_escrow_releases');
+
     const channel = supabase
       .channel(`timeline-${linkId}`)
       .on(
         'postgres_changes',
-
         { event: '*', schema: 'public', table: 'payment_links' },
         (payload) => {
           if ((payload.new as { link_id?: string })?.link_id === linkId) {
-            loadTimeline();
+            void loadTimeline();
             onStatusUpdate();
           }
-
         }
-
       )
       .on(
         'postgres_changes',
-
         { event: 'INSERT', schema: 'public', table: 'order_timeline' },
-        () => loadTimeline()
+        () => void loadTimeline()
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-
-  }, [linkId, loadTimeline, onStatusUpdate]);
+    // Intentionnel : onStatusUpdate / loadTimeline stables via useCallback côté parent
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkId]);
 
   useEffect(() => {
-    loadTimeline();
-  }, [orderStatus, paymentLink?.validated_at, paymentLink?.completed_at, loadTimeline]);
+    void loadTimeline();
+  }, [orderStatus, paymentLink?.validated_at, paymentLink?.completed_at, linkId]);
 
   const handleValidate = async () => {
     try {

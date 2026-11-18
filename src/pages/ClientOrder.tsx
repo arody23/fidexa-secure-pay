@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -101,108 +101,15 @@ export default function ClientOrder() {
   const [disputeReason, setDisputeReason] = useState("");
   const [creatingDispute, setCreatingDispute] = useState(false);
   const [activeDispute, setActiveDispute] = useState<any>(null);
+  const notFoundToasted = useRef(false);
+  const paymentIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (paymentData?.order_status === 'validated' && paymentData.id) {
-      const timer = window.setTimeout(() => {
-        supabase
-          .from('reviews')
-          .select('id')
-          .eq('transaction_id', paymentData.id)
-          .maybeSingle()
-          .then(({ data }) => {
-            if (!data) setShowFeedback(true);
-          });
-      }, 2000);
-      return () => window.clearTimeout(timer);
-    }
-  }, [paymentData?.order_status, paymentData?.id]);
-
-  useEffect(() => {
-    loadOrderData();
-    supabase.rpc('process_auto_escrow_releases');
-
-    if (!linkId) return;
-    const channel = supabase
-      .channel(`order-${linkId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'payment_links', filter: `link_id=eq.${linkId}` },
-        (payload) => {
-          setPaymentData(payload.new as PaymentLink);
-          loadActiveDispute();
-          loadSupportConversation();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [linkId]);
-
-  useEffect(() => {
-    if (paymentData?.id) {
-      loadSupportConversation();
-      loadActiveDispute();
-      if (paymentData.provider_id) loadReviews();
-    }
-  }, [paymentData?.id, paymentData?.provider_id]);
-
-  useEffect(() => {
-    if (!loading && paymentData && !paymentData.is_paid && linkId) {
-      navigate(`/pay/${linkId}`, { replace: true });
-    }
-  }, [loading, paymentData, linkId, navigate]);
-
-  const loadOrderData = async () => {
-    if (!linkId) return;
-
-    try {
-      const { data: link, error: linkError } = await supabase
-        .from("payment_links")
-        .select("*")
-        .eq("link_id", linkId)
-        .single();
-
-      if (linkError || !link) {
-        toast({
-          title: "Erreur",
-          description: "Commande introuvable",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setPaymentData(link as any);
-      if (import.meta.env.DEV) {
-        console.log('[ClientOrder] loadOrderData -> paymentData', link);
-      }
-
-      // Charger info prestataire
-      if ((link as any).provider_id) {
-        const { data: providerData } = await supabase
-          .from("users")
-          .select("full_name, avatar_url, rating")
-          .eq("id", (link as any).provider_id)
-          .single();
-
-        if (providerData) {
-          setProvider(providerData as Provider);
-        }
-      }
-    } catch (err) {
-      console.error("Error loading order:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSupportConversation = async () => {
-    if (!paymentData?.id) return;
+  const loadSupportConversation = useCallback(async (paymentLinkId?: string) => {
+    const id = paymentLinkId || paymentIdRef.current;
+    if (!id) return;
 
     const { data, error } = await supabase.rpc('get_order_support', {
-      payment_link_id_param: paymentData.id,
+      payment_link_id_param: id,
     });
 
     if (error) {
@@ -224,20 +131,141 @@ export default function ClientOrder() {
     } else {
       setConversation(null);
     }
-  };
+  }, []);
 
-  const loadActiveDispute = async () => {
-    if (!paymentData?.id) return;
+  const loadActiveDispute = useCallback(async (paymentLinkId?: string) => {
+    const id = paymentLinkId || paymentIdRef.current;
+    if (!id) return;
 
-    const result: any = await supabase
-      .from("disputes")
-      .select("*")
-      .eq("payment_link_id", paymentData.id)
-      .eq("status", "open")
+    const { data } = await supabase
+      .from('disputes')
+      .select('*')
+      .eq('payment_link_id', id)
+      .eq('status', 'open')
       .maybeSingle();
-    
-    setActiveDispute(result.data);
-  };
+
+    setActiveDispute(data);
+  }, []);
+
+  const loadOrderData = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!linkId) return;
+    const silent = opts?.silent === true;
+
+    try {
+      const { data: link, error: linkError } = await supabase
+        .from('payment_links')
+        .select('*')
+        .eq('link_id', linkId)
+        .maybeSingle();
+
+      if (linkError || !link) {
+        console.error('Order load failed', linkError);
+        if (!silent && !notFoundToasted.current) {
+          notFoundToasted.current = true;
+          toast({
+            title: 'Erreur',
+            description: 'Commande introuvable',
+            variant: 'destructive',
+          });
+        }
+        return;
+      }
+
+      notFoundToasted.current = false;
+      paymentIdRef.current = link.id as string;
+      setPaymentData((prev) => {
+        const next = link as unknown as PaymentLink;
+        // Ne jamais perdre is_paid=true à cause d’un payload partiel
+        if (prev?.is_paid && next && !next.is_paid) {
+          return { ...next, is_paid: true };
+        }
+        return next;
+      });
+
+      if ((link as { provider_id?: string }).provider_id) {
+        const { data: providerData } = await supabase
+          .from('users')
+          .select('full_name, avatar_url, rating')
+          .eq('id', (link as { provider_id: string }).provider_id)
+          .maybeSingle();
+
+        if (providerData) setProvider(providerData as Provider);
+      }
+    } catch (err) {
+      console.error('Error loading order:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [linkId, toast]);
+
+  const refreshOrderQuiet = useCallback(async () => {
+    await loadOrderData({ silent: true });
+    await loadActiveDispute();
+    await loadSupportConversation();
+  }, [loadOrderData, loadActiveDispute, loadSupportConversation]);
+
+  useEffect(() => {
+    if (paymentData?.order_status === 'validated' && paymentData.id) {
+      const timer = window.setTimeout(() => {
+        supabase
+          .from('reviews')
+          .select('id')
+          .eq('transaction_id', paymentData.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (!data) setShowFeedback(true);
+          });
+      }, 2000);
+      return () => window.clearTimeout(timer);
+    }
+  }, [paymentData?.order_status, paymentData?.id]);
+
+  useEffect(() => {
+    void loadOrderData();
+    void supabase.rpc('process_auto_escrow_releases');
+
+    if (!linkId) return;
+    const channel = supabase
+      .channel(`order-${linkId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'payment_links', filter: `link_id=eq.${linkId}` },
+        (payload) => {
+          const row = payload.new as PaymentLink;
+          if (!row?.link_id) return;
+          paymentIdRef.current = row.id;
+          setPaymentData((prev) => ({
+            ...(prev || ({} as PaymentLink)),
+            ...row,
+            is_paid: Boolean(row.is_paid ?? prev?.is_paid),
+            link_id: row.link_id || prev?.link_id || linkId,
+          }));
+          void loadActiveDispute(row.id);
+          void loadSupportConversation(row.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [linkId, loadOrderData, loadActiveDispute, loadSupportConversation]);
+
+  useEffect(() => {
+    if (paymentData?.id) {
+      paymentIdRef.current = paymentData.id;
+      void loadSupportConversation(paymentData.id);
+      void loadActiveDispute(paymentData.id);
+      if (paymentData.provider_id) void loadReviews();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentData?.id, paymentData?.provider_id]);
+
+  useEffect(() => {
+    if (!loading && paymentData && paymentData.is_paid === false && linkId) {
+      navigate(`/pay/${linkId}`, { replace: true });
+    }
+  }, [loading, paymentData?.is_paid, linkId, navigate]);
 
   const loadReviews = async () => {
     try {
@@ -524,6 +552,27 @@ export default function ClientOrder() {
   const showActions = paymentData.is_paid && !paymentData.refunded;
   const orderCurrency = paymentData.currency || 'FCFA';
 
+  const trackerPaymentLink = useMemo(
+    () => ({
+      created_at: paymentData.created_at,
+      paid_at: (paymentData as { paid_at?: string | null }).paid_at,
+      started_at: (paymentData as { started_at?: string | null }).started_at,
+      completed_at: (paymentData as { completed_at?: string | null }).completed_at,
+      validated_at: (paymentData as { validated_at?: string | null }).validated_at,
+      escrow_released_at: (paymentData as { escrow_released_at?: string | null }).escrow_released_at,
+      is_paid: paymentData.is_paid,
+    }),
+    [
+      paymentData.created_at,
+      (paymentData as { paid_at?: string | null }).paid_at,
+      (paymentData as { started_at?: string | null }).started_at,
+      (paymentData as { completed_at?: string | null }).completed_at,
+      (paymentData as { validated_at?: string | null }).validated_at,
+      (paymentData as { escrow_released_at?: string | null }).escrow_released_at,
+      paymentData.is_paid,
+    ]
+  );
+
   if (!paymentData.is_paid) {
     return (
       <div className="min-h-[100dvh] bg-background flex items-center justify-center">
@@ -611,20 +660,8 @@ export default function ClientOrder() {
                       amount={paymentData.amount}
                       currency={orderCurrency}
                       autoReleaseAt={paymentData.auto_release_at}
-                      paymentLink={{
-                        created_at: paymentData.created_at,
-                        paid_at: (paymentData as { paid_at?: string | null }).paid_at,
-                        started_at: (paymentData as { started_at?: string | null }).started_at,
-                        completed_at: (paymentData as { completed_at?: string | null }).completed_at,
-                        validated_at: (paymentData as { validated_at?: string | null }).validated_at,
-                        escrow_released_at: (paymentData as { escrow_released_at?: string | null }).escrow_released_at,
-                        is_paid: paymentData.is_paid,
-                      }}
-                      onStatusUpdate={async () => {
-                        await loadOrderData();
-                        await loadActiveDispute();
-                        await loadSupportConversation();
-                      }}
+                      paymentLink={trackerPaymentLink}
+                      onStatusUpdate={refreshOrderQuiet}
                       onValidateDelivery={handleValidateDelivery}
                     />
                   )}
