@@ -71,8 +71,6 @@ export default function OrderAccessGate({ linkId, children }: Props) {
     return () => window.clearInterval(t);
   }, [cooldown]);
 
-  const code = digits.join('');
-
   const clearDigits = () => {
     setDigits(Array(OTP_LEN).fill(''));
     inputsRef.current[0]?.focus();
@@ -184,8 +182,8 @@ export default function OrderAccessGate({ linkId, children }: Props) {
 
   if (checking) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0b2f63]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0b3b78]" />
       </div>
     );
   }
@@ -193,14 +191,13 @@ export default function OrderAccessGate({ linkId, children }: Props) {
   if (unlocked) return <>{children}</>;
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#0b2f63]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,0.12),_transparent_55%)]" />
+    <div className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-white">
       <div className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col px-5 pb-8 pt-10">
-        <div className="mb-10 flex justify-center [&_img]:brightness-0 [&_img]:invert">
+        <div className="mb-10 flex justify-center">
           <Logo size="md" />
         </div>
 
-        <div className="rounded-3xl bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] sm:p-8">
+        <div className="rounded-3xl bg-white p-6 sm:p-8">
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3b78]/10 text-[#0b3b78]">
             <MessageCircle className="h-6 w-6" strokeWidth={1.75} />
           </div>
@@ -278,10 +275,6 @@ export default function OrderAccessGate({ linkId, children }: Props) {
               'Renvoyer le code'
             )}
           </Button>
-
-          <p className="mt-3 text-center text-[11px] text-[#8a9bb0]">
-            Code {code.length}/{OTP_LEN} · validation automatique
-          </p>
         </div>
       </div>
     </div>

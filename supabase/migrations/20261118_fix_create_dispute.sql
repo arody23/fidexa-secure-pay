@@ -41,14 +41,11 @@ BEGIN
     );
   END IF;
 
+  -- Schéma prod: pas de client_name/email/phone; raised_by nullable (client anon)
   INSERT INTO public.disputes (
-    payment_link_id, client_name, client_email, client_phone,
-    reason, description, status
+    payment_link_id, reason, description, status
   ) VALUES (
     pl.id,
-    COALESCE(pl.client_name, 'Client'),
-    pl.client_email,
-    pl.client_phone,
     reason_param,
     description_param,
     'open'

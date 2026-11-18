@@ -1,9 +1,21 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
+function errorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (err && typeof err === 'object') {
+    const o = err as Record<string, unknown>;
+    if (typeof o.message === 'string' && o.message) return o.message;
+    if (typeof o.error === 'string' && o.error) return o.error;
+    if (typeof o.details === 'string' && o.details) return o.details;
+  }
+  return 'Impossible de créer le litige';
+}
+
 /**
  * Ouverture de litige côté client (anon) — service role pour contourner RLS.
  * Body: { linkId, reason, description? }
+ * Schéma disputes prod: payment_link_id, reason, description, status, raised_by (nullable)
  */
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -64,17 +76,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const blocked = ['validated', 'cancelled', 'disputed'];
-    if (blocked.includes(String(link.order_status || ''))) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: `Impossible d’ouvrir un litige (statut: ${link.order_status})`,
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const { data: existing } = await supabase
       .from('disputes')
       .select('id')
@@ -94,13 +95,21 @@ Deno.serve(async (req) => {
       );
     }
 
+    const blocked = ['validated', 'cancelled', 'disputed'];
+    if (blocked.includes(String(link.order_status || ''))) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Impossible d’ouvrir un litige (statut: ${link.order_status})`,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { data: dispute, error: insErr } = await supabase
       .from('disputes')
       .insert({
         payment_link_id: link.id,
-        client_name: link.client_name || 'Client',
-        client_email: link.client_email,
-        client_phone: link.client_phone,
         reason,
         description,
         status: 'open',
@@ -110,7 +119,6 @@ Deno.serve(async (req) => {
 
     if (insErr) throw insErr;
 
-    // Ne touche que order_status — `status` paiement peut avoir une contrainte différente
     const { error: updErr } = await supabase
       .from('payment_links')
       .update({ order_status: 'disputed' })
@@ -118,8 +126,16 @@ Deno.serve(async (req) => {
 
     if (updErr) {
       console.error('order_status update failed', updErr.message);
-      // Le litige existe déjà — on ne rollback pas, mais on signale
     }
+
+    const { error: tlErr } = await supabase.from('order_timeline').insert({
+      payment_link_id: link.id,
+      status: 'disputed',
+      action: 'Litige ouvert',
+      description: reason,
+      actor_type: 'client',
+    });
+    if (tlErr) console.error('order_timeline insert failed', tlErr.message);
 
     return new Response(
       JSON.stringify({
@@ -130,11 +146,11 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    console.error(err);
+    console.error('create-dispute error', err);
     return new Response(
       JSON.stringify({
         success: false,
-        error: err instanceof Error ? err.message : 'Impossible de créer le litige',
+        error: errorMessage(err),
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

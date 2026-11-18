@@ -27,12 +27,17 @@ export async function createDispute(params: {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data?.success !== false) return data;
-      if (typeof data?.error === 'string' && data.error.length > 0) {
+      // Erreurs métier 4xx → pas de fallback RPC
+      if (res.status >= 400 && res.status < 500 && typeof data?.error === 'string' && data.error) {
         throw new Error(data.error);
       }
+      // 5xx / schéma : on tente le RPC corrigé
     } catch (err) {
-      // Si erreur métier (ex. déjà ouvert / statut), on s’arrête
-      if (err instanceof Error && !/Failed to fetch|NetworkError|TypeError/i.test(err.message)) {
+      if (
+        err instanceof Error &&
+        !/Failed to fetch|NetworkError|TypeError/i.test(err.message) &&
+        !/Impossible de créer le litige|does not exist|raised_by|client_name/i.test(err.message)
+      ) {
         throw err;
       }
     }

@@ -273,14 +273,14 @@ export type Database = {
       disputes: {
         Row: {
           id: string
+          transaction_id: string | null
           payment_link_id: string | null
-          client_name: string
-          client_email: string | null
-          client_phone: string | null
+          raised_by: string | null
           reason: string
           description: string | null
           status: string
           created_at: string
+          updated_at: string
           resolution: string | null
           resolved_by: string | null
           resolved_at: string | null
@@ -292,17 +292,21 @@ export type Database = {
           provider_response: string | null
           provider_response_at: string | null
           provider_evidence_urls: Json | null
+          refund_status: string | null
+          refund_amount: number | null
+          refund_processed_at: string | null
+          priority: string | null
         }
         Insert: {
           id?: string
+          transaction_id?: string | null
           payment_link_id?: string | null
-          client_name: string
-          client_email?: string | null
-          client_phone?: string | null
+          raised_by?: string | null
           reason: string
           description?: string | null
           status?: string
           created_at?: string
+          updated_at?: string
           resolution?: string | null
           resolved_by?: string | null
           resolved_at?: string | null
@@ -311,14 +315,14 @@ export type Database = {
         }
         Update: {
           id?: string
+          transaction_id?: string | null
           payment_link_id?: string | null
-          client_name?: string
-          client_email?: string | null
-          client_phone?: string | null
+          raised_by?: string | null
           reason?: string
           description?: string | null
           status?: string
           created_at?: string
+          updated_at?: string
           resolution?: string | null
           resolved_by?: string | null
           resolved_at?: string | null
