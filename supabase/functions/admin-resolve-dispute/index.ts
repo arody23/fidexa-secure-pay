@@ -101,13 +101,16 @@ Deno.serve(async (req) => {
         : 'Paiement libéré au prestataire selon la politique FidexaPay';
 
     const notifyBoth = async (extra?: Record<string, string>) => {
+      // Toujours notifier le montant commande (ex. 0.85 USD), jamais le montant KPay converti (CDF)
+      const notifyAmount =
+        decision === 'refund_client' ? String(refundable) : String(orderAmount);
       const vars = {
         order_reference: result.link_id,
         client_name: result.client_name || 'Client',
         merchant_name: result.provider_name || 'Prestataire',
         decision_label: decisionLabel,
         resolution_notes: resolutionNotes,
-        amount: String(orderAmount),
+        amount: notifyAmount,
         currency: String(result.currency || ''),
         refundable_amount: String(refundable),
         reason: resolutionNotes,

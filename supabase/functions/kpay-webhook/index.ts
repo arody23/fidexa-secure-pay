@@ -8,6 +8,52 @@ import { dispatchNotificationEvent } from '../_shared/notifyDispatch.ts';
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
+/** Montant client-facing : toujours la devise commande, jamais le montant opérateur (ex. CDF). */
+function formatNotifyMoney(value: unknown): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value ?? '').trim();
+  const rounded = Math.round(n * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+}
+
+function clientFacingRefundAmount(opts: {
+  settlementAmount?: unknown;
+  settlementCurrency?: unknown;
+  metadataAmount?: unknown;
+  metadataCurrency?: unknown;
+  linkAmount?: unknown;
+  linkCurrency?: unknown;
+  payoutAmount?: unknown;
+  payoutCurrency?: unknown;
+}): { amount: string; currency: string } {
+  const settlementAmt = Number(opts.settlementAmount);
+  if (Number.isFinite(settlementAmt) && settlementAmt > 0) {
+    return {
+      amount: formatNotifyMoney(settlementAmt),
+      currency: String(opts.settlementCurrency || opts.linkCurrency || '').toUpperCase() || 'USD',
+    };
+  }
+  const metaAmt = Number(opts.metadataAmount);
+  if (Number.isFinite(metaAmt) && metaAmt > 0) {
+    return {
+      amount: formatNotifyMoney(metaAmt),
+      currency: String(opts.metadataCurrency || opts.linkCurrency || '').toUpperCase() || 'USD',
+    };
+  }
+  const linkAmt = Number(opts.linkAmount);
+  if (Number.isFinite(linkAmt) && linkAmt > 0) {
+    return {
+      amount: formatNotifyMoney(linkAmt),
+      currency: String(opts.linkCurrency || '').toUpperCase() || 'USD',
+    };
+  }
+  // Dernier recours : montant payout + sa propre devise (ne jamais croiser avec la devise commande)
+  return {
+    amount: formatNotifyMoney(opts.payoutAmount ?? ''),
+    currency: String(opts.payoutCurrency || '').toUpperCase() || 'CDF',
+  };
+}
+
 async function handlePayoutEvent(
   supabase: SupabaseClient,
   eventType: string,
@@ -270,6 +316,11 @@ async function handleRefundEvent(
     const merchant = link.provider_id
       ? await supabase.from('users').select('full_name').eq('id', link.provider_id).maybeSingle()
       : { data: null };
+    const money = clientFacingRefundAmount({
+      linkAmount: link.amount,
+      linkCurrency: link.currency,
+      // Ne pas utiliser event.amount ici : c’est souvent la devise opérateur (CDF), pas USD/FCFA commande
+    });
     const notification = await dispatchNotificationEvent(
       completed ? 'refund.completed' : 'refund.failed',
       {
@@ -278,9 +329,9 @@ async function handleRefundEvent(
         variables: {
           client_name: link.client_name || 'Client',
           merchant_name: merchant.data?.full_name || 'Prestataire',
-          amount: String(event.amount ?? link.amount ?? ''),
-          currency: String(link.currency || 'FCFA'),
-          order_reference: reference || link.kpay_reference || link.link_id,
+          amount: money.amount,
+          currency: money.currency,
+          order_reference: link.link_id || reference || link.kpay_reference,
           transaction_id: refundId || reference,
         },
       }
@@ -308,7 +359,7 @@ async function handleClientRefundPayout(
     status === 'CANCELLED';
   const { data: settlement } = await supabase
     .from('refund_settlements')
-    .select('id, payment_link_id, refund_request_id, provider_credit_amount, status')
+    .select('id, payment_link_id, refund_request_id, provider_credit_amount, client_amount, currency, status')
     .eq('id', settlementId)
     .maybeSingle();
   if (!settlement) return { ok: true, skipped: true, reason: 'refund_settlement_not_found' };
@@ -339,6 +390,7 @@ async function handleClientRefundPayout(
 
   const providerId = String(metadata.provider_id || '');
   const credit = Number(settlement.provider_credit_amount || 0);
+  const settlementCurrency = String(settlement.currency || metadata.refundable_currency || 'USD');
   if (providerId && credit > 0) {
     await supabase.from('provider_wallet_credits').upsert(
       {
@@ -346,7 +398,7 @@ async function handleClientRefundPayout(
         payment_link_id: settlement.payment_link_id,
         refund_settlement_id: settlement.id,
         amount: credit,
-        currency: String(event.currency || 'FCFA'),
+        currency: settlementCurrency,
         reason: 'Compensation prestataire décidée par l’admin',
       },
       { onConflict: 'refund_settlement_id' }
@@ -362,13 +414,24 @@ async function handleClientRefundPayout(
     const merchant = link.provider_id
       ? await supabase.from('users').select('full_name, phone_number').eq('id', link.provider_id).maybeSingle()
       : { data: null };
+    const money = clientFacingRefundAmount({
+      settlementAmount: settlement.client_amount,
+      settlementCurrency: settlement.currency,
+      metadataAmount: metadata.refundable_original,
+      metadataCurrency: metadata.refundable_currency,
+      linkAmount: link.amount,
+      linkCurrency: link.currency,
+      payoutAmount: event.amount,
+      payoutCurrency: event.currency || metadata.payout_currency,
+    });
     const vars = {
       client_name: link.client_name || 'Client',
       merchant_name: link.provider_name || merchant.data?.full_name || 'Prestataire',
-      amount: String(event.amount ?? link.amount ?? ''),
-      currency: String(link.currency || 'FCFA'),
+      amount: money.amount,
+      currency: money.currency,
       order_reference: link.link_id,
       transaction_id: String(event.paymentId || event.reference || settlement.id),
+      refundable_amount: money.amount,
     };
     if (link.client_phone) {
       await dispatchNotificationEvent('refund.completed', {
@@ -387,8 +450,7 @@ async function handleClientRefundPayout(
           ...vars,
           decision_label:
             'FidexaPay a confirmé le remboursement Mobile Money au client, conformément à la politique de litiges.',
-          resolution_notes: 'Le remboursement a été confirmé par l’opérateur de paiement.',
-          refundable_amount: String(event.amount ?? ''),
+          resolution_notes: `Remboursement confirmé : ${money.amount} ${money.currency}.`,
         },
       });
     }
