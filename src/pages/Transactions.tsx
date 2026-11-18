@@ -3,6 +3,7 @@ import { AlertCircle, CircleDollarSign, Clock, Receipt } from 'lucide-react';
 import { useProvider } from '@/contexts/ProviderContext';
 import { useProviderPaymentLinks } from '@/hooks/useProviderPaymentLinks';
 import { formatAmount, convertAmount } from '@/lib/currency';
+import { escrowStatusLabel, isActivelyInEscrow } from '@/lib/escrowConfig';
 import { cn } from '@/lib/utils';
 
 interface Transaction {
@@ -13,6 +14,8 @@ interface Transaction {
   currency?: string;
   net_amount?: number;
   escrow_released?: boolean;
+  refunded?: boolean;
+  order_status?: string;
   status: string;
   is_paid: boolean;
   created_at: string;
@@ -33,6 +36,8 @@ export default function Transactions() {
         currency: (link.currency as string) || undefined,
         net_amount: link.net_amount as number | undefined,
         escrow_released: link.escrow_released as boolean | undefined,
+        refunded: Boolean(link.refunded),
+        order_status: link.order_status as string | undefined,
         status: (link.status as string) || 'pending',
         is_paid: Boolean(link.is_paid),
         created_at: link.created_at as string,
@@ -51,12 +56,17 @@ export default function Transactions() {
   const releasedTransactions = transactions.filter(
     (t) => t.is_paid && t.escrow_released === true
   );
+  const escrowTransactions = transactions.filter((t) => isActivelyInEscrow(t));
   const totalRevenue = releasedTransactions.reduce(
     (sum, t) =>
       sum + convertAmount(t.net_amount || t.amount, t.currency || currency, currency),
     0
   );
-  const paidCount = transactions.filter((t) => t.is_paid).length;
+  const escrowHeld = escrowTransactions.reduce(
+    (sum, t) => sum + convertAmount(t.amount, t.currency || currency, currency),
+    0
+  );
+  const paidCount = transactions.filter((t) => t.is_paid && !t.refunded).length;
   const pendingCount = transactions.filter(
     (t) => !t.is_paid && t.status !== 'cancelled'
   ).length;
@@ -75,7 +85,7 @@ export default function Transactions() {
         Transactions
       </h1>
 
-      <section className="grid grid-cols-3 gap-2.5">
+      <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
           <CircleDollarSign className="h-4 w-4 text-[#0b3b78]" strokeWidth={1.75} />
           <p className="mt-2 text-lg font-semibold tabular-nums leading-none text-[#0b2f63]">
@@ -85,6 +95,13 @@ export default function Transactions() {
         </div>
         <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
           <Clock className="h-4 w-4 text-[#b8860b]" strokeWidth={1.75} />
+          <p className="mt-2 text-lg font-semibold tabular-nums leading-none text-[#0b2f63]">
+            {formatAmount(escrowHeld, currency)}
+          </p>
+          <p className="mt-1 text-[11px] text-[#8a9bb0]">Escrow actif</p>
+        </div>
+        <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
+          <Clock className="h-4 w-4 text-[#8a9bb0]" strokeWidth={1.75} />
           <p className="mt-2 text-lg font-semibold tabular-nums leading-none text-[#0b2f63]">
             {pendingCount}
           </p>
@@ -129,7 +146,9 @@ export default function Transactions() {
       ) : (
         <div className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
           <div className="divide-y divide-[#eef3f9]">
-            {filteredTransactions.map((t) => (
+            {filteredTransactions.map((t) => {
+              const label = escrowStatusLabel(t);
+              return (
               <div
                 key={t.id}
                 className="flex items-center justify-between gap-3 px-4 py-2"
@@ -140,12 +159,15 @@ export default function Transactions() {
                     <span
                       className={cn(
                         'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
-                        t.is_paid
-                          ? 'bg-[#edf9f2] text-[#178c52]'
-                          : 'bg-[#f1f5f9] text-[#64748b]'
+                        label === 'Libéré' && 'bg-[#edf9f2] text-[#178c52]',
+                        label === 'Escrow' && 'bg-[#eef4fb] text-[#0b3b78]',
+                        label === 'Litige' && 'bg-[#fff4e5] text-[#b86e00]',
+                        (label === 'Remboursé' || label === 'Annulé') &&
+                          'bg-[#fef2f2] text-[#b91c1c]',
+                        label === 'Ouvert' && 'bg-[#f1f5f9] text-[#64748b]'
                       )}
                     >
-                      {t.is_paid ? (t.escrow_released ? 'Libéré' : 'Escrow') : 'Ouvert'}
+                      {label}
                     </span>
                   </div>
                   <p className="mt-1 text-[11px] text-[#8a9bb0]">
@@ -159,7 +181,8 @@ export default function Transactions() {
                   )}
                 </p>
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       )}

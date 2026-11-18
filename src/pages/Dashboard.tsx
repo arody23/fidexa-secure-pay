@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProvider } from "@/contexts/ProviderContext";
 import { useProviderPaymentLinks } from "@/hooks/useProviderPaymentLinks";
 import { formatAmount, convertAmount } from "@/lib/currency";
+import { isActivelyInEscrow } from "@/lib/escrowConfig";
 
 interface PaymentLink {
   id: string;
@@ -33,6 +34,7 @@ interface PaymentLink {
   is_paid: boolean;
   order_status?: string;
   escrow_released?: boolean;
+  refunded?: boolean;
   net_amount?: number;
 }
 
@@ -152,6 +154,7 @@ const Dashboard = () => {
         is_paid: Boolean(link.is_paid),
         order_status: link.order_status as string | undefined,
         escrow_released: link.escrow_released as boolean | undefined,
+        refunded: Boolean(link.refunded),
         net_amount: link.net_amount as number | undefined,
       })) as PaymentLink[],
     [rawLinks]
@@ -189,7 +192,8 @@ const Dashboard = () => {
     const paidLinks = paymentLinks.filter((l) => l.is_paid);
     const unpaidLinks = paymentLinks.filter((l) => !l.is_paid && l.status !== "cancelled");
     const releasedLinks = paidLinks.filter((l) => l.escrow_released === true);
-    const heldLinks = paidLinks.filter((l) => !l.escrow_released);
+    // Exclure annulé / remboursé / litige : ces fonds ne sont plus un escrow prestataire
+    const heldLinks = paidLinks.filter((l) => isActivelyInEscrow(l));
     const monthlyVolume = releasedLinks.reduce(
       (sum, l) =>
         sum +

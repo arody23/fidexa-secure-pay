@@ -29,6 +29,44 @@ export function getStepIndex(status: string): number {
   return map[status] ?? -1;
 }
 
+/** Fonds encore bloqués au bénéfice potentiel du prestataire (hors litige/annulation/remboursement). */
+export function isActivelyInEscrow(link: {
+  is_paid?: boolean | null;
+  escrow_released?: boolean | null;
+  refunded?: boolean | null;
+  order_status?: string | null;
+  status?: string | null;
+}): boolean {
+  if (!link.is_paid) return false;
+  if (link.escrow_released) return false;
+  if (link.refunded) return false;
+  const orderStatus = String(link.order_status || '').toLowerCase();
+  const status = String(link.status || '').toLowerCase();
+  if (['cancelled', 'validated', 'refunded'].includes(orderStatus)) return false;
+  if (status === 'cancelled') return false;
+  // Litige : hors escrow « prestataire » (fonds gelés côté admin, pas un solde prestataire)
+  if (orderStatus === 'disputed' || orderStatus === 'in_dispute') return false;
+  return true;
+}
+
+export function escrowStatusLabel(link: {
+  is_paid?: boolean | null;
+  escrow_released?: boolean | null;
+  refunded?: boolean | null;
+  order_status?: string | null;
+  status?: string | null;
+}): string {
+  if (!link.is_paid) return 'Ouvert';
+  if (link.refunded) return 'Remboursé';
+  const orderStatus = String(link.order_status || '').toLowerCase();
+  if (orderStatus === 'disputed' || orderStatus === 'in_dispute') return 'Litige';
+  if (orderStatus === 'cancelled' || String(link.status || '').toLowerCase() === 'cancelled') {
+    return 'Annulé';
+  }
+  if (link.escrow_released || orderStatus === 'validated') return 'Libéré';
+  return 'Escrow';
+}
+
 export function getAutoReleaseCountdown(autoReleaseAt?: string | null): string | null {
   if (!autoReleaseAt) return null;
   const target = new Date(autoReleaseAt).getTime();

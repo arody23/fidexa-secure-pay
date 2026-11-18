@@ -41,11 +41,13 @@ import {
   commissionToUSD,
   normalizeCurrency,
 } from '@/lib/currency';
+import { isActivelyInEscrow } from '@/lib/escrowConfig';
 
 interface PaymentLinkRow {
   id: string;
   amount: number;
   status: string;
+  order_status?: string | null;
   is_paid: boolean;
   escrow_released: boolean | null;
   created_at: string;
@@ -64,6 +66,7 @@ interface Stats {
   pendingDisputes: number;
   totalCommissions: number;
   releasedCommissions: number;
+  escrowCommissions: number;
   fidexaBalance: number;
   totalIncoming: number;
 }
@@ -96,6 +99,7 @@ export default function AdminDashboard() {
     pendingDisputes: 0,
     totalCommissions: 0,
     releasedCommissions: 0,
+    escrowCommissions: 0,
     fidexaBalance: 0,
     totalIncoming: 0,
   });
@@ -141,7 +145,7 @@ export default function AdminDashboard() {
         supabase
           .from('payment_links')
           .select(
-            'id, amount, status, is_paid, escrow_released, refunded, created_at, provider_id, commission_amount'
+            'id, amount, status, order_status, is_paid, escrow_released, refunded, created_at, provider_id, commission_amount'
           )
           .order('created_at', { ascending: false }),
       ]);
@@ -175,6 +179,7 @@ export default function AdminDashboard() {
       let totalIncomingUSD = 0;
       let totalCommissionsUSD = 0;
       let releasedCommissionsUSD = 0;
+      let escrowCommissionsUSD = 0;
 
       for (const link of allLinks) {
         const currency = getCurrency(link);
@@ -191,6 +196,9 @@ export default function AdminDashboard() {
               link.commission_amount != null
                 ? convertToUSD(link.commission_amount, currency)
                 : commissionToUSD(link.amount, currency);
+          } else if (isActivelyInEscrow(link)) {
+            // Uniquement les commandes encore vraiment en escrow (pas annulées / litige tranché)
+            escrowCommissionsUSD += commission;
           }
         }
       }
@@ -206,6 +214,7 @@ export default function AdminDashboard() {
         pendingDisputes: disputesResult.count || 0,
         totalCommissions: totalCommissionsUSD,
         releasedCommissions: releasedCommissionsUSD,
+        escrowCommissions: escrowCommissionsUSD,
         fidexaBalance: releasedCommissionsUSD,
         totalIncoming: totalIncomingUSD,
       });
@@ -337,9 +346,9 @@ export default function AdminDashboard() {
     },
     {
       title: 'Commissions en escrow',
-      value: formatUSD(stats.totalCommissions - stats.releasedCommissions),
+      value: formatUSD(stats.escrowCommissions),
       icon: Activity,
-      description: 'En attente de libération',
+      description: 'Uniquement commandes encore actives',
       color: 'text-amber-600',
       bg: 'bg-amber-50',
     },

@@ -81,13 +81,19 @@ export default function AdminEscrow() {
       o.is_paid &&
       !o.escrow_released &&
       !o.refunded &&
-      !['cancelled', 'validated'].includes(String(o.order_status || ''))
+      !['cancelled', 'validated', 'disputed', 'refunded'].includes(String(o.order_status || ''))
   );
   const released = orders.filter((o) => o.escrow_released);
   const pendingAuto = orders.filter(
-    (o) => o.order_status === 'completed' && !o.escrow_released && o.auto_release_at
+    (o) =>
+      o.order_status === 'completed' &&
+      !o.escrow_released &&
+      !o.refunded &&
+      o.auto_release_at
   );
-  const disputed = orders.filter((o) => o.order_status === 'disputed' && !o.escrow_released);
+  const disputed = orders.filter(
+    (o) => o.order_status === 'disputed' && !o.escrow_released && !o.refunded
+  );
 
   const stats = useMemo(() => {
     const escrowUSD = inEscrow.reduce((s, o) => s + convertToUSD(o.amount, o.currency), 0);
