@@ -1,14 +1,16 @@
-import { useMemo, useState, useEffect } from 'react';
-import { PlayCircle, CheckCircle, Package, Clock, Send, Scale, Copy, Check } from 'lucide-react';
+﻿import { useMemo, useState, useEffect } from 'react';
+import { PlayCircle, CheckCircle, Package, Clock, Send, Scale, Copy, Check, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';import { useToast } from '@/hooks/use-toast';
 import { useProvider } from '@/contexts/ProviderContext';
 import { useProviderPaymentLinks } from '@/hooks/useProviderPaymentLinks';
 import { formatAmount } from '@/lib/currency';
 import { copyToClipboard } from '@/lib/clipboard';
+import { uploadSupportAttachment } from '@/lib/orderSupport';
 
 interface Order {
   id: string;
@@ -28,6 +30,8 @@ export default function ProviderOrders() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [disputeResponses, setDisputeResponses] = useState<Record<string, string>>({});
   const [existingResponses, setExistingResponses] = useState<Record<string, string>>({});
+  const [disputeEvidence, setDisputeEvidence] = useState<Record<string, string[]>>({});
+  const [uploadingEvidence, setUploadingEvidence] = useState<string | null>(null);
   const [refundRequestIds, setRefundRequestIds] = useState<Record<string, string>>({});
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
@@ -37,7 +41,7 @@ export default function ProviderOrders() {
     setCopiedLinkId(ok ? linkId : null);
     setTimeout(() => setCopiedLinkId(null), 2000);
     toast({
-      title: ok ? 'Lien copié' : 'Copie manuelle',
+      title: ok ? 'Lien copiÃ©' : 'Copie manuelle',
       description: ok ? 'Envoyez ce lien au client si besoin.' : url,
       variant: ok ? 'default' : 'destructive',
     });
@@ -114,7 +118,7 @@ export default function ProviderOrders() {
       if (error) throw error;
       const result = typeof data === 'string' ? JSON.parse(data) : data;
       if (result.success) {
-        toast({ title: 'Commande démarrée', description: result.message });
+        toast({ title: 'Commande dÃ©marrÃ©e', description: result.message });
         refetch();
       } else {
         throw new Error(result.error);
@@ -122,7 +126,7 @@ export default function ProviderOrders() {
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Impossible de démarrer',
+        description: error instanceof Error ? error.message : 'Impossible de dÃ©marrer',
         variant: 'destructive',
       });
     } finally {
@@ -139,7 +143,7 @@ export default function ProviderOrders() {
       if (error) throw error;
       const result = typeof data === 'string' ? JSON.parse(data) : data;
       if (result.success) {
-        toast({ title: 'Commande finalisée', description: result.message });
+        toast({ title: 'Commande finalisÃ©e', description: result.message });
         refetch();
       } else {
         throw new Error(result.error);
@@ -155,12 +159,39 @@ export default function ProviderOrders() {
     }
   };
 
+  const handleEvidenceUpload = async (orderId: string, fileList: FileList | null) => {
+    if (!fileList?.length) return;
+    const files = Array.from(fileList).slice(0, 5);
+    try {
+      setUploadingEvidence(orderId);
+      const urls: string[] = [];
+      for (const file of files) {
+        const ext = file.name.split('.').pop() || 'bin';
+        const url = await uploadSupportAttachment(orderId, file, ext, file.type);
+        urls.push(url);
+      }
+      setDisputeEvidence((prev) => ({
+        ...prev,
+        [orderId]: [...(prev[orderId] || []), ...urls].slice(0, 8),
+      }));
+      toast({ title: 'Preuves ajoutÃ©es', description: `${urls.length} fichier(s) prÃªt(s)` });
+    } catch (err) {
+      toast({
+        title: 'Upload impossible',
+        description: err instanceof Error ? err.message : 'RÃ©essayez',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingEvidence(null);
+    }
+  };
+
   const handleSubmitDisputeResponse = async (linkId: string, orderId: string) => {
     const response = disputeResponses[orderId]?.trim();
     if (!response || response.length < 10) {
       toast({
-        title: 'Réponse requise',
-        description: 'Décrivez votre version des faits (min. 10 caractères)',
+        title: 'RÃ©ponse requise',
+        description: 'DÃ©crivez votre version des faits (min. 10 caractÃ¨res)',
         variant: 'destructive',
       });
       return;
@@ -169,6 +200,7 @@ export default function ProviderOrders() {
     try {
       setActionLoading(linkId);
       const refundId = refundRequestIds[orderId];
+      const evidence = disputeEvidence[orderId] || [];
 
       if (refundId) {
         const { data, error } = await supabase.rpc('respond_refund_request' as never, {
@@ -178,11 +210,18 @@ export default function ProviderOrders() {
         if (error) throw error;
         const result = typeof data === 'string' ? JSON.parse(data) : data;
         if (!result?.success) throw new Error(result?.error || 'Erreur');
+        if (evidence.length > 0) {
+          await supabase.rpc('submit_provider_dispute_response', {
+            link_id_param: linkId,
+            response_param: response,
+            evidence_urls_param: evidence,
+          });
+        }
       } else {
         const { data, error } = await supabase.rpc('submit_provider_dispute_response', {
           link_id_param: linkId,
           response_param: response,
-          evidence_urls_param: [],
+          evidence_urls_param: evidence,
         });
         if (error) throw error;
         const result = typeof data === 'string' ? JSON.parse(data) : data;
@@ -190,15 +229,18 @@ export default function ProviderOrders() {
       }
 
       toast({
-        title: 'Réponse envoyée',
-        description: 'Votre version a été transmise à FidexaPay pour arbitrage',
+        title: 'RÃ©ponse envoyÃ©e',
+        description:
+          evidence.length > 0
+            ? 'Votre version et vos preuves ont Ã©tÃ© transmises Ã  FidexaPay'
+            : 'Votre version a Ã©tÃ© transmise Ã  FidexaPay pour arbitrage',
       });
       setExistingResponses((prev) => ({ ...prev, [orderId]: response }));
       refetch();
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: error instanceof Error ? error.message : "Impossible d'envoyer la réponse",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer la rÃ©ponse",
         variant: 'destructive',
       });
     } finally {
@@ -212,7 +254,7 @@ export default function ProviderOrders() {
       started: { color: 'bg-yellow-100 text-yellow-800', label: 'En cours' },
       completed: { color: 'bg-amber-100 text-amber-900', label: 'En attente de validation' },
       disputed: { color: 'bg-red-100 text-red-800', label: 'Litige' },
-      validated: { color: 'bg-green-100 text-green-800', label: 'Validée' },
+      validated: { color: 'bg-green-100 text-green-800', label: 'ValidÃ©e' },
     };
     const style = styles[status] || styles.paid;
     return <Badge className={style.color}>{style.label}</Badge>;
@@ -269,7 +311,7 @@ export default function ProviderOrders() {
               {order.started_at && (
                 <p className="text-xs text-[#8a9bb0]">
                   <Clock className="mr-1 inline h-3.5 w-3.5" />
-                  Démarré le {new Date(order.started_at).toLocaleDateString('fr-FR')}
+                  DÃ©marrÃ© le {new Date(order.started_at).toLocaleDateString('fr-FR')}
                 </p>
               )}
 
@@ -323,12 +365,12 @@ export default function ProviderOrders() {
                       <p className="text-sm font-semibold">
                         {refundRequestIds[order.id]
                           ? "Demande d'annulation / remboursement"
-                          : 'Litige en cours — votre réponse est requise'}
+                          : 'Litige en cours â€” votre rÃ©ponse est requise'}
                       </p>
                     </div>
                     {existingResponses[order.id] ? (
                       <div className="space-y-1">
-                        <Label className="text-xs text-[#5c7188]">Votre réponse soumise</Label>
+                        <Label className="text-xs text-[#5c7188]">Votre rÃ©ponse soumise</Label>
                         <p className="whitespace-pre-wrap text-sm text-[#0b2f63]">
                           {existingResponses[order.id]}
                         </p>
@@ -339,7 +381,7 @@ export default function ProviderOrders() {
                           <Label htmlFor={`dispute-${order.id}`}>Votre version des faits</Label>
                           <Textarea
                             id={`dispute-${order.id}`}
-                            placeholder="Ex: J'ai livré le travail le 15/03, voici les détails..."
+                            placeholder="Ex: J'ai livrÃ© le travail le 15/03, voici les dÃ©tails..."
                             value={disputeResponses[order.id] || ''}
                             onChange={(e) =>
                               setDisputeResponses((prev) => ({
@@ -350,15 +392,41 @@ export default function ProviderOrders() {
                             rows={4}
                           />
                         </div>
+                        <div className="min-w-0 space-y-1.5">
+                          <Label htmlFor={`evidence-${order.id}`}>Preuves (images / PDF)</Label>
+                          <Input
+                            id={`evidence-${order.id}`}
+                            type="file"
+                            accept="image/*,application/pdf"
+                            multiple
+                            disabled={uploadingEvidence === order.id}
+                            onChange={(e) => {
+                              void handleEvidenceUpload(order.id, e.target.files);
+                              e.target.value = '';
+                            }}
+                          />
+                          {(disputeEvidence[order.id]?.length || 0) > 0 && (
+                            <ul className="space-y-1 text-xs text-[#5c7188]">
+                              {disputeEvidence[order.id].map((url) => (
+                                <li key={url} className="flex items-center gap-1 truncate">
+                                  <Paperclip className="h-3 w-3 shrink-0" />
+                                  <a href={url} target="_blank" rel="noreferrer" className="underline">
+                                    {url.split('/').pop()}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                         <Button
                           onClick={() => handleSubmitDisputeResponse(order.link_id, order.id)}
-                          disabled={actionLoading === order.link_id}
+                          disabled={actionLoading === order.link_id || uploadingEvidence === order.id}
                           className="w-full gap-2 bg-[#0b3b78] hover:bg-[#0a3266]"
                         >
                           <Send className="h-4 w-4" />
                           {actionLoading === order.link_id
                             ? 'Envoi...'
-                            : 'Soumettre ma réponse à FidexaPay'}
+                            : 'Soumettre rÃ©ponse + preuves'}
                         </Button>
                       </>
                     )}

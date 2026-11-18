@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.order-client-access]
 verify_jwt = false
+
+[functions.admin-resolve-dispute]
+verify_jwt = true

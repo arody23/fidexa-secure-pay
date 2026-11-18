@@ -95,7 +95,7 @@ export default function AdminRefunds() {
         title: decision === 'approved' ? 'Remboursement approuvé' : 'Demande rejetée',
         description:
           decision === 'approved'
-            ? 'Marqué remboursé côté FidexaPay — exécutez le remboursement PSP manuellement selon la politique.'
+            ? 'Préparez le payout KPay (max 85 % — commission FidexaPay conservée). Le solde n’est marqué remboursé qu’après confirmation KPay.'
             : 'La commande est rétablie en statut payé.',
       });
       await load();

@@ -24,6 +24,7 @@ interface EscrowOrder {
   auto_release_at: string | null;
   created_at: string;
   is_paid?: boolean;
+  refunded?: boolean | null;
   currency: string;
 }
 
@@ -35,7 +36,7 @@ export default function AdminEscrow() {
     const { data } = await supabase
       .from('payment_links')
       .select(
-        'id, link_id, client_name, provider_id, amount, net_amount, commission_amount, order_status, escrow_released, auto_release_at, created_at, is_paid'
+        'id, link_id, client_name, provider_id, amount, net_amount, commission_amount, order_status, escrow_released, auto_release_at, created_at, is_paid, refunded'
       )
       .eq('is_paid', true)
       .order('created_at', { ascending: false })
@@ -75,7 +76,13 @@ export default function AdminEscrow() {
     };
   }, []);
 
-  const inEscrow = orders.filter((o) => o.is_paid && !o.escrow_released);
+  const inEscrow = orders.filter(
+    (o) =>
+      o.is_paid &&
+      !o.escrow_released &&
+      !o.refunded &&
+      !['cancelled', 'validated'].includes(String(o.order_status || ''))
+  );
   const released = orders.filter((o) => o.escrow_released);
   const pendingAuto = orders.filter(
     (o) => o.order_status === 'completed' && !o.escrow_released && o.auto_release_at

@@ -352,6 +352,47 @@ async function handleClientRefundPayout(
       { onConflict: 'refund_settlement_id' }
     );
   }
+
+  const { data: link } = await supabase
+    .from('payment_links')
+    .select('id, link_id, client_name, client_phone, amount, currency, provider_id, provider_name, commission_amount, commission_rate')
+    .eq('id', settlement.payment_link_id)
+    .maybeSingle();
+  if (link) {
+    const merchant = link.provider_id
+      ? await supabase.from('users').select('full_name, phone_number').eq('id', link.provider_id).maybeSingle()
+      : { data: null };
+    const vars = {
+      client_name: link.client_name || 'Client',
+      merchant_name: link.provider_name || merchant.data?.full_name || 'Prestataire',
+      amount: String(event.amount ?? link.amount ?? ''),
+      currency: String(link.currency || 'FCFA'),
+      order_reference: link.link_id,
+      transaction_id: String(event.paymentId || event.reference || settlement.id),
+    };
+    if (link.client_phone) {
+      await dispatchNotificationEvent('refund.completed', {
+        recipientPhone: link.client_phone,
+        paymentLinkId: link.id,
+        idempotencyKey: `refund-payout:${settlement.id}:client`,
+        variables: vars,
+      });
+    }
+    if (merchant.data?.phone_number) {
+      await dispatchNotificationEvent('dispute.resolved', {
+        recipientPhone: merchant.data.phone_number,
+        paymentLinkId: link.id,
+        idempotencyKey: `refund-payout:${settlement.id}:provider`,
+        variables: {
+          ...vars,
+          decision_label: `Remboursement client confirmé (commission FidexaPay ${link.commission_rate ?? 15}% conservée)`,
+          resolution_notes: 'Le remboursement Mobile Money a été confirmé par KPay.',
+          refundable_amount: String(event.amount ?? ''),
+        },
+      });
+    }
+  }
+
   return { ok: true };
 }
 

@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { dispatchNotificationEvent } from '../_shared/notifyDispatch.ts';
 
 function errorMessage(err: unknown): string {
   if (err instanceof Error && err.message) return err.message;
@@ -49,7 +50,7 @@ Deno.serve(async (req) => {
     const { data: link, error: linkErr } = await supabase
       .from('payment_links')
       .select(
-        'id, link_id, client_name, client_email, client_phone, order_status, status, is_paid, refunded'
+        'id, link_id, client_name, client_email, client_phone, order_status, status, is_paid, refunded, provider_id, provider_name, amount, currency'
       )
       .eq('link_id', linkId)
       .maybeSingle();
@@ -136,6 +137,34 @@ Deno.serve(async (req) => {
       actor_type: 'client',
     });
     if (tlErr) console.error('order_timeline insert failed', tlErr.message);
+
+    const provider = link.provider_id
+      ? await supabase.from('users').select('full_name, phone_number').eq('id', link.provider_id).maybeSingle()
+      : { data: null };
+    const notifyVars = {
+      order_reference: link.link_id,
+      client_name: link.client_name || 'Client',
+      merchant_name: link.provider_name || provider.data?.full_name || 'Prestataire',
+      reason,
+      amount: String(link.amount ?? ''),
+      currency: String(link.currency || ''),
+    };
+    if (link.client_phone) {
+      await dispatchNotificationEvent('dispute.opened', {
+        recipientPhone: link.client_phone,
+        paymentLinkId: link.id,
+        idempotencyKey: `dispute-opened:${dispute.id}:client`,
+        variables: notifyVars,
+      });
+    }
+    if (provider.data?.phone_number) {
+      await dispatchNotificationEvent('dispute.opened', {
+        recipientPhone: provider.data.phone_number,
+        paymentLinkId: link.id,
+        idempotencyKey: `dispute-opened:${dispute.id}:provider`,
+        variables: notifyVars,
+      });
+    }
 
     return new Response(
       JSON.stringify({

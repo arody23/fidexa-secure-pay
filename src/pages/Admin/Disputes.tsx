@@ -116,6 +116,8 @@ export default function AdminDisputes() {
   const [resolution, setResolution] = useState('');
   const [decision, setDecision] = useState<'refund_client' | 'pay_provider' | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [refundPhone, setRefundPhone] = useState('');
+  const [refundProvider, setRefundProvider] = useState('Airtel');
   const [paymentLink, setPaymentLink] = useState<PaymentLinkInfo | null>(null);
   const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
   const [providerLoading, setProviderLoading] = useState(false);
@@ -296,27 +298,45 @@ export default function AdminDisputes() {
       return;
     }
 
+    if (decision === 'refund_client' && !refundPhone.trim() && !selectedDispute.payment_links?.client_phone) {
+      toast({
+        title: 'Numéro client requis',
+        description: 'Indiquez le Mobile Money du client pour le payout KPay (85 %, commission FidexaPay conservée).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setResolving(true);
 
-      const { data, error } = await supabase.rpc('admin_resolve_dispute', {
-        dispute_id_param: selectedDispute.id,
-        decision_param: decision,
-        resolution_notes_param: resolution.trim(),
+      const { data, error } = await supabase.functions.invoke('admin-resolve-dispute', {
+        body: {
+          disputeId: selectedDispute.id,
+          decision,
+          resolutionNotes: resolution.trim(),
+          clientPhone: refundPhone.trim() || selectedDispute.payment_links?.client_phone || '',
+          clientProvider: refundProvider,
+          clientCountry: 'CD',
+        },
       });
 
       if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || 'Impossible de résoudre le litige');
 
-      const result = parseRpcResult(data);
-      if (!result.success) {
-        throw new Error(result.error || 'Impossible de résoudre le litige');
-      }
+      const commissionNote =
+        decision === 'refund_client'
+          ? ` Remboursement KPay: ${data.refundable_amount} ${data.currency || ''} — commission ${data.commission_amount} (${data.commission_rate}%) conservée.`
+          : '';
 
       toast({
         title: 'Litige résolu',
-        description: result.message || 'Décision enregistrée avec succès',
+        description: (data.message || 'Décision enregistrée') + commissionNote,
       });
       setSelectedDispute(null);
+      setDecision(null);
+      setResolution('');
+      setRefundPhone('');
       await loadDisputes();
     } catch (error) {
       console.error('Resolve dispute error:', error);
@@ -683,8 +703,28 @@ export default function AdminDisputes() {
                           : '—'}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-3">
                       <p className="whitespace-pre-wrap text-sm">{selectedDispute.provider_response}</p>
+                      {Array.isArray(selectedDispute.provider_evidence_urls) &&
+                        selectedDispute.provider_evidence_urls.length > 0 && (
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Preuves jointes</Label>
+                            <ul className="mt-1 space-y-1 text-sm">
+                              {selectedDispute.provider_evidence_urls.map((url) => (
+                                <li key={url}>
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-primary underline"
+                                  >
+                                    {String(url).split('/').pop()}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                     </CardContent>
                   </Card>
                 )}
@@ -695,7 +735,7 @@ export default function AdminDisputes() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Décision finale FidexaPay</CardTitle>
                     <CardDescription>
-                      Cette action est irréversible et déclenche remboursement ou libération escrow
+                      Remboursement client = payout KPay (max 85 %). La commission FidexaPay est conservée.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -717,12 +757,15 @@ export default function AdminDisputes() {
                         <Button
                           type="button"
                           variant={decision === 'refund_client' ? 'default' : 'outline'}
-                          onClick={() => setDecision('refund_client')}
+                          onClick={() => {
+                            setDecision('refund_client');
+                            setRefundPhone(selectedDispute.payment_links?.client_phone || '');
+                          }}
                           className={`h-auto flex-col gap-2 py-4 ${decision === 'refund_client' ? 'bg-red-600 hover:bg-red-700' : ''}`}
                         >
                           <XCircle className="h-5 w-5" />
                           <span>Rembourser le client</span>
-                          <span className="text-xs font-normal opacity-80">Fonds non libérés au prestataire</span>
+                          <span className="text-xs font-normal opacity-80">85 % via KPay · 15 % FidexaPay</span>
                         </Button>
                         <Button
                           type="button"
@@ -736,6 +779,45 @@ export default function AdminDisputes() {
                         </Button>
                       </div>
                     </div>
+
+                    {decision === 'refund_client' && (
+                      <div className="space-y-3 rounded-lg border border-red-200 bg-red-50/60 p-4">
+                        <p className="text-sm text-muted-foreground">
+                          Montant commande{' '}
+                          <strong>
+                            {selectedDispute.payment_links?.amount != null
+                              ? formatAmount(selectedDispute.payment_links.amount, providerCurrency)
+                              : '—'}
+                          </strong>
+                          . Seuls ~85 % partent au client ; la commission reste chez FidexaPay.
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <Label htmlFor="refund-phone">Mobile Money client</Label>
+                            <Input
+                              id="refund-phone"
+                              className="mt-1"
+                              placeholder="+243…"
+                              value={refundPhone}
+                              onChange={(e) => setRefundPhone(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="refund-op">Opérateur</Label>
+                            <select
+                              id="refund-op"
+                              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                              value={refundProvider}
+                              onChange={(e) => setRefundProvider(e.target.value)}
+                            >
+                              <option>Airtel</option>
+                              <option>Orange</option>
+                              <option>Vodacom M-Pesa</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <Button
                       type="button"
