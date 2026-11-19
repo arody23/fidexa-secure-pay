@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import Logo from '@/components/Logo';
+import Seo from '@/components/Seo';
 import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
@@ -60,6 +61,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen bg-[#eef3f9]">
+      <Seo title="Admin" path="/admin" noIndex />
       {/* Desktop Sidebar */}
       <aside
         className={cn(

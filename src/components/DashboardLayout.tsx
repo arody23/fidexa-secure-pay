@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
+import Seo from "@/components/Seo";
 import NotificationBell from "@/components/NotificationBell";
 import PushNotificationPrompt from "@/components/layout/PushNotificationPrompt";
 import { cn } from "@/lib/utils";
@@ -108,6 +109,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
 
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-[#eef3f9]">
+      <Seo title="Espace prestataire" path="/dashboard" noIndex />
       <aside className="fixed left-0 top-0 z-40 hidden h-[100dvh] w-[17rem] bg-[#0a2f5f] lg:block">
         <div className="flex h-full flex-col">
           <div className="flex h-[4.75rem] items-center justify-between border-b border-white/10 px-5">

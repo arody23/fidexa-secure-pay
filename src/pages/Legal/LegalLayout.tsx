@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Logo from '@/components/Logo';
+import Seo from '@/components/Seo';
 import SiteFooter from '@/components/layout/SiteFooter';
 
 interface LegalPageProps {
   title: string;
   children: React.ReactNode;
+  path?: string;
 }
 
-export function LegalPageLayout({ title, children }: LegalPageProps) {
+export function LegalPageLayout({ title, children, path = '/legal' }: LegalPageProps) {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background">
+      <Seo title={title} description={`${title} — FidexaPay`} path={path} />
       <header className="border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4">
           <Logo />

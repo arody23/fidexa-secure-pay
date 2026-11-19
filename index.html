@@ -3,28 +3,104 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>FidexaPay</title>
-    <meta name="description" content="FidexaPay - Mobile Money, escrow et paiements sécurisés pour prestataires africains" />
+    <title>FidexaPay — Paiements Mobile Money sécurisés par escrow</title>
+    <meta
+      name="description"
+      content="FidexaPay sécurise les paiements Mobile Money entre prestataires et clients en Afrique : escrow, suivi de commande, litiges et retraits. Orange Money, MTN MoMo, Airtel, Wave et plus."
+    />
+    <meta
+      name="keywords"
+      content="FidexaPay, paiement Mobile Money, escrow Afrique, paiement sécurisé freelance, Orange Money, MTN MoMo, Airtel Money, Wave, séquestre, prestataire Afrique, RD Congo, Côte d'Ivoire"
+    />
     <meta name="author" content="FidexaPay" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#0b3b78" />
+    <meta name="geo.region" content="CD" />
+    <meta name="geo.placename" content="Kinshasa" />
+    <link rel="canonical" href="https://fidexa-secure-pay.vercel.app/" />
+
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="FidexaPay" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- Favicon navigateur : marque transparente -->
+
     <link rel="icon" type="image/png" href="/assets/logo/fidexapay-mark.png" />
     <link rel="shortcut icon" type="image/png" href="/assets/logo/fidexapay-mark.png" />
-    <!-- Icône app / écran d'ouverture : fond blanc (fichiers dédiés) -->
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/assets/icons/icon-512.png" />
-    <meta property="og:title" content="FidexaPay" />
-    <meta property="og:description" content="Paiements sécurisés Mobile Money avec escrow" />
+
+    <meta property="og:title" content="FidexaPay — Paiements Mobile Money sécurisés par escrow" />
+    <meta
+      property="og:description"
+      content="Protégez vos prestations : le client paie en Mobile Money, les fonds restent en escrow jusqu’à validation de la livraison."
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/assets/icons/icon-512.png" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:image" content="/assets/icons/icon-512.png" />
+    <meta property="og:url" content="https://fidexa-secure-pay.vercel.app/" />
+    <meta property="og:image" content="https://fidexa-secure-pay.vercel.app/assets/icons/icon-512.png" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="FidexaPay" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FidexaPay — Paiements Mobile Money sécurisés" />
+    <meta
+      name="twitter:description"
+      content="Escrow Mobile Money pour prestataires africains. Paiement protégé, suivi, litiges et retraits."
+    />
+    <meta name="twitter:image" content="https://fidexa-secure-pay.vercel.app/assets/icons/icon-512.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://fidexa-secure-pay.vercel.app/#organization",
+            "name": "FidexaPay",
+            "url": "https://fidexa-secure-pay.vercel.app/",
+            "logo": "https://fidexa-secure-pay.vercel.app/assets/logo/fidexapay-mark.png",
+            "email": "contact@fidexapay.com",
+            "telephone": "+243822726674",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Kinshasa",
+              "addressCountry": "CD"
+            },
+            "sameAs": [
+              "https://twitter.com/FidexaPay",
+              "https://linkedin.com/company/fidexapay",
+              "https://facebook.com/fidexapay"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://fidexa-secure-pay.vercel.app/#website",
+            "url": "https://fidexa-secure-pay.vercel.app/",
+            "name": "FidexaPay",
+            "publisher": { "@id": "https://fidexa-secure-pay.vercel.app/#organization" },
+            "inLanguage": "fr-FR",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://fidexa-secure-pay.vercel.app/?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "FidexaPay",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "description": "Plateforme d’escrow Mobile Money pour sécuriser les paiements entre prestataires et clients en Afrique."
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

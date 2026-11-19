@@ -1,14 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /pay/
+Disallow: /order/
+Disallow: /avis/
+
 User-agent: Googlebot
 Allow: /
+Disallow: /dashboard
+Disallow: /admin
 
 User-agent: Bingbot
 Allow: /
+Disallow: /dashboard
+Disallow: /admin
 
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: *
-Allow: /
+Sitemap: https://fidexa-secure-pay.vercel.app/sitemap.xml

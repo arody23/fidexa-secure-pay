@@ -16,7 +16,8 @@ import {
 } from '@/components/landing/sections/LandingTestimonialsSection';
 import { LandingUseCasesSection } from '@/components/landing/sections/LandingUseCasesSection';
 import { LandingWhySection } from '@/components/landing/sections/LandingWhySection';
-import { MVP_SUBSCRIPTION } from '@/config/site';
+import Seo from '@/components/Seo';
+import { MVP_SUBSCRIPTION, SITE } from '@/config/site';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -186,6 +187,11 @@ const Landing = () => {
 
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-[#F5F7FA] font-body antialiased">
+      <Seo
+        title="Paiements Mobile Money sécurisés par escrow"
+        description={SITE.description}
+        path="/"
+      />
       <LandingHeroSection user={!!user} onOpenMenu={() => setMobileNav(true)} />
 
       {mobileNav && (

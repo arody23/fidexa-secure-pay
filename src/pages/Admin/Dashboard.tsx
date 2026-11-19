@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Activity,
   Wallet,
+  Globe2,
+  Lock,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +44,8 @@ import {
   normalizeCurrency,
 } from '@/lib/currency';
 import { isActivelyInEscrow } from '@/lib/escrowConfig';
+import { COVERAGE_COUNTRIES } from '@/lib/kpayProviders';
+import { countryFlagEmoji } from '@/lib/worldDialCodes';
 
 interface PaymentLinkRow {
   id: string;
@@ -50,6 +54,7 @@ interface PaymentLinkRow {
   order_status?: string | null;
   is_paid: boolean;
   escrow_released: boolean | null;
+  refunded?: boolean | null;
   created_at: string;
   provider_id: string | null;
   commission_amount: number | null;
@@ -79,12 +84,6 @@ const statusChartConfig = {
   paid: { label: 'Payées', color: 'hsl(142 76% 36%)' },
   pending: { label: 'En attente', color: 'hsl(45 93% 47%)' },
   cancelled: { label: 'Annulées', color: 'hsl(0 84% 60%)' },
-} satisfies ChartConfig;
-
-const kycChartConfig = {
-  verified: { label: 'Validés', color: 'hsl(142 76% 36%)' },
-  pending: { label: 'En attente', color: 'hsl(45 93% 47%)' },
-  rejected: { label: 'Rejetés', color: 'hsl(0 84% 60%)' },
 } satisfies ChartConfig;
 
 export default function AdminDashboard() {
@@ -278,15 +277,30 @@ export default function AdminDashboard() {
     ].filter((d) => d.value > 0);
   }, [links]);
 
-  const kycStatusData = useMemo(
-    () =>
-      [
-        { name: 'verified', value: stats.kycVerified, fill: 'var(--color-verified)' },
-        { name: 'pending', value: stats.kycPending, fill: 'var(--color-pending)' },
-        { name: 'rejected', value: stats.kycRejected, fill: 'var(--color-rejected)' },
-      ].filter((d) => d.value > 0),
-    [stats]
-  );
+  const escrowOverview = useMemo(() => {
+    const active = links.filter((l) => isActivelyInEscrow(l));
+    const disputed = links.filter(
+      (l) =>
+        l.is_paid &&
+        !l.escrow_released &&
+        !l.refunded &&
+        String(l.order_status || '').toLowerCase() === 'disputed'
+    );
+    const released = links.filter((l) => l.is_paid && l.escrow_released);
+    const refunded = links.filter((l) => l.is_paid && l.refunded);
+    const getCurrency = (link: PaymentLinkRow) =>
+      (link.provider_id && currencyMap[link.provider_id]) || 'FCFA';
+    const activeUSD = active.reduce((s, l) => s + convertToUSD(l.amount, getCurrency(l)), 0);
+    const disputedUSD = disputed.reduce((s, l) => s + convertToUSD(l.amount, getCurrency(l)), 0);
+    return {
+      activeCount: active.length,
+      activeUSD,
+      disputedCount: disputed.length,
+      disputedUSD,
+      releasedCount: released.length,
+      refundedCount: refunded.length,
+    };
+  }, [links, currencyMap]);
 
   const monthlyVolume = useMemo(() => {
     const months: Record<string, number> = {};
@@ -391,9 +405,6 @@ export default function AdminDashboard() {
       <div>
         <p className="text-xs uppercase tracking-wide text-muted-foreground">Administration</p>
         <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-        <p className="mt-2 text-muted-foreground">
-          Tous les montants financiers sont affichés en USD (conversion automatique).
-        </p>
       </div>
 
       {error && (
@@ -507,31 +518,76 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Statut KYC</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-[#0b3b78]" /> Escrow &amp; couverture
+            </CardTitle>
+            <CardDescription>Fonds actifs et pays ouverts à la plateforme</CardDescription>
           </CardHeader>
-          <CardContent>
-            {kycStatusData.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">Aucun dossier KYC</p>
-            ) : (
-              <ChartContainer config={kycChartConfig} className="mx-auto h-[260px] w-full max-w-sm">
-                <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                  <Pie
-                    data={kycStatusData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={4}
+          <CardContent className="space-y-5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-[#eef5ff] p-3">
+                <p className="text-[11px] font-medium text-[#5c7188]">En escrow</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums text-[#0b2f63]">
+                  {formatUSD(escrowOverview.activeUSD)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[#8a9bb0]">
+                  {escrowOverview.activeCount} commande{escrowOverview.activeCount === 1 ? '' : 's'}
+                </p>
+              </div>
+              <div className="rounded-xl bg-[#fff6e8] p-3">
+                <p className="text-[11px] font-medium text-[#5c7188]">En litige</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums text-[#0b2f63]">
+                  {formatUSD(escrowOverview.disputedUSD)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[#8a9bb0]">
+                  {escrowOverview.disputedCount} dossier{escrowOverview.disputedCount === 1 ? '' : 's'}
+                </p>
+              </div>
+              <div className="rounded-xl bg-[#edf9f2] p-3">
+                <p className="text-[11px] font-medium text-[#5c7188]">Libérées</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums text-[#0b2f63]">
+                  {escrowOverview.releasedCount}
+                </p>
+              </div>
+              <div className="rounded-xl bg-[#fef2f2] p-3">
+                <p className="text-[11px] font-medium text-[#5c7188]">Remboursées</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums text-[#0b2f63]">
+                  {escrowOverview.refundedCount}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <Globe2 className="h-4 w-4 text-[#0b3b78]" />
+                <p className="text-sm font-semibold text-[#0b2f63]">
+                  Pays actifs ({COVERAGE_COUNTRIES.length})
+                </p>
+              </div>
+              <ul className="max-h-[160px] space-y-2 overflow-y-auto pr-1">
+                {COVERAGE_COUNTRIES.map((country) => (
+                  <li
+                    key={country.code}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-[#e4edf6] px-3 py-2"
                   >
-                    {kycStatusData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                </PieChart>
-              </ChartContainer>
-            )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[#0b2f63]">
+                        <span className="mr-1.5" aria-hidden>
+                          {countryFlagEmoji(country.code)}
+                        </span>
+                        {country.name}
+                      </p>
+                      <p className="mt-0.5 truncate text-[11px] text-[#8a9bb0]">
+                        {country.providers.map((p) => p.label).join(' · ')}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      {country.phonePrefix}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </CardContent>
         </Card>
       </div>
