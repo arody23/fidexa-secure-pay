@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>FidexaPay — Suivi</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 390px; height: 844px; overflow: hidden; background: #f7f9fc; font-family: Inter, Segoe UI, system-ui, sans-serif; }
+    .wrap { padding: 24px 16px; }
+    .logo { font-weight: 700; color: #0b3b78; font-size: 15px; }
+    .card { margin-top: 20px; background: #fff; border: 1px solid #dce7f3; border-radius: 12px; padding: 16px; }
+    .top { display: flex; justify-content: space-between; gap: 8px; }
+    .label { font-size: 10px; color: #71859a; }
+    .name { font-size: 14px; font-weight: 700; color: #183a60; }
+    .badge { align-self: flex-start; background: #fff3d8; color: #8a6200; border-radius: 999px; padding: 4px 8px; font-size: 8px; font-weight: 600; }
+    .done { margin-top: 16px; background: #edf9f2; border-radius: 8px; padding: 12px; }
+    .done strong { font-size: 11px; color: #245c43; }
+    .done p { margin-top: 4px; font-size: 9px; color: #56736a; }
+    .steps { margin-top: 20px; display: grid; gap: 16px; }
+    .step { display: flex; gap: 12px; }
+    .dot { width: 14px; height: 14px; margin-top: 2px; border-radius: 999px; border: 2px solid #2bb673; background: #2bb673; }
+    .dot.off { border-color: #c6d3df; background: transparent; }
+    .step strong { display: block; font-size: 11px; color: #183a60; }
+    .step span { font-size: 9px; color: #71859a; }
+    .cta { margin-top: 24px; background: #2bb673; color: #fff; border-radius: 8px; padding: 14px; text-align: center; font-size: 11px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">FidexaPay</div>
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="label">Commande</div>
+          <div class="name">Création d'un logo</div>
+        </div>
+        <div class="badge">À valider</div>
+      </div>
+      <div class="done">
+        <strong>✓ Travail terminé</strong>
+        <p>Le prestataire attend votre validation.</p>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="dot"></div><div><strong>Paiement effectué</strong><span>Fonds sécurisés en escrow</span></div></div>
+        <div class="step"><div class="dot"></div><div><strong>Travail démarré</strong><span>Prestation en cours</span></div></div>
+        <div class="step"><div class="dot"></div><div><strong>Travail terminé</strong><span>En attente de votre validation</span></div></div>
+        <div class="step"><div class="dot off"></div><div><strong>Fonds libérés</strong><span>Après votre confirmation</span></div></div>
+      </div>
+      <div class="cta">Valider la livraison</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,18 +1,13 @@
 import {
   ArrowRight,
-  CheckCircle2,
-  Clock,
   Clock3,
   LayoutDashboard,
   Link2,
-  LockKeyhole,
-  MessageCircle,
   Package,
   PlayCircle,
   Plus,
   Receipt,
   ShieldCheck,
-  Smartphone,
   Wallet,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
@@ -192,18 +187,34 @@ function PhoneFrame({
   step,
   title,
   caption,
+  screenshotSrc,
   children,
 }: {
   step: string;
   title: string;
   caption: string;
-  children: React.ReactNode;
+  /** Capture réelle 390×844 — remplit exactement la zone écran du mockup */
+  screenshotSrc?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <article className="w-[min(226px,78vw)] shrink-0 snap-center">
-      <div className="relative mx-auto aspect-[9/19] max-h-[474px] w-full overflow-hidden rounded-[2rem] border-[6px] border-[#102946] bg-[#f7f9fc] shadow-[0_22px_55px_rgba(11,47,99,.16)] sm:rounded-[2.25rem] sm:border-[7px]">
+      <div className="relative mx-auto aspect-[9/19] max-h-[474px] w-full overflow-hidden rounded-[2rem] border-[6px] border-[#102946] bg-[#0b1220] shadow-[0_22px_55px_rgba(11,47,99,.16)] sm:rounded-[2.25rem] sm:border-[7px]">
         <div className="absolute left-1/2 top-0 z-20 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-[#102946]" />
-        <div className="relative h-full overflow-hidden pt-5">{children}</div>
+        <div className="relative h-full overflow-hidden pt-5">
+          {screenshotSrc ? (
+            <img
+              src={screenshotSrc}
+              alt={title}
+              className="absolute inset-0 h-full w-full object-cover object-top"
+              loading="lazy"
+              width={390}
+              height={844}
+            />
+          ) : (
+            children
+          )}
+        </div>
       </div>
       <div className="mt-4 flex gap-3 sm:mt-5">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0b3b78] text-xs font-semibold text-white">
@@ -218,191 +229,38 @@ function PhoneFrame({
   );
 }
 
-/** Miroir de ClientPayment.tsx */
-function PaymentScreen() {
-  return (
-    <div className="relative h-full bg-[#f7f9fc] px-4 py-5">
-      <Logo size="sm" />
-      <div className="mt-5 rounded-xl border border-[#dce7f3] bg-white p-4">
-        <p className="text-xs font-semibold text-[#183a60]">Détails du paiement</p>
-        <div className="mt-3 rounded-xl bg-[#f1f5f9] p-4 text-center">
-          <p className="text-[10px] text-[#6b7f93]">Montant à payer</p>
-          <p className="mt-1 text-2xl font-semibold text-[#102f55]">120 000 CDF</p>
-        </div>
-        <div className="mt-3 flex justify-between text-[10px]">
-          <span className="text-[#71859a]">Service</span>
-          <span className="font-medium text-[#183a60]">Création d&apos;un logo</span>
-        </div>
-        <div className="mt-2 flex justify-between text-[10px]">
-          <span className="text-[#71859a]">Délai</span>
-          <span className="font-medium text-[#183a60]">7 jours</span>
-        </div>
-        <div className="mt-3 rounded-lg border border-[#b9d4f1] bg-[#eef6ff] p-3">
-          <div className="flex gap-2">
-            <ShieldCheck className="h-4 w-4 shrink-0 text-[#1354b8]" />
-            <p className="text-[9px] leading-relaxed text-[#4c6680]">
-              Fonds protégés par escrow jusqu&apos;à validation de la livraison.
-            </p>
-          </div>
-        </div>
-        <label className="mt-4 block text-[10px] font-medium text-[#183a60]">Numéro Mobile Money</label>
-        <div className="mt-1 rounded-lg border border-[#d5e0eb] px-3 py-2 text-[10px] text-[#71859a]">+243 8XX XXX XXX</div>
-        <label className="mt-3 block text-[10px] font-medium text-[#183a60]">WhatsApp de suivi</label>
-        <div className="mt-1 rounded-lg border border-[#d5e0eb] px-3 py-2 text-[10px] text-[#71859a]">+243 9XX XXX XXX</div>
-      </div>
-      <div className="absolute inset-x-3 bottom-3 rounded-xl bg-[#0b3b78] py-3 text-center text-xs font-semibold text-white">
-        Payer en sécurité
-      </div>
-    </div>
-  );
-}
-
-function UssdScreen() {
-  return (
-    <div className="flex h-full flex-col bg-[#e9edf2]">
-      <div className="flex items-center justify-between px-5 py-3 text-[9px] font-medium text-[#1d2939]">
-        <span>10:24</span>
-        <span>4G · 86%</span>
-      </div>
-      <div className="flex flex-1 items-center px-4">
-        <div className="w-full rounded-2xl bg-white p-5 shadow-xl">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff4cc]">
-            <Smartphone className="h-5 w-5 text-[#8a6400]" />
-          </div>
-          <p className="mt-4 text-sm font-semibold text-[#182230]">Demande Mobile Money</p>
-          <p className="mt-2 text-[11px] leading-relaxed text-[#59697b]">
-            Confirmez le paiement de <strong>120 000 CDF</strong> pour FidexaPay avec votre code secret.
-          </p>
-          <div className="mt-4 rounded-lg border border-[#d6dee8] px-3 py-2.5 text-[11px] text-[#8a98a8]">
-            Code secret
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <div className="rounded-lg bg-[#edf1f5] py-2.5 text-center text-[10px] font-medium text-[#516273]">
-              Annuler
-            </div>
-            <div className="rounded-lg bg-[#ffcc00] py-2.5 text-center text-[10px] font-semibold text-[#231f00]">
-              Confirmer
-            </div>
-          </div>
-        </div>
-      </div>
-      <p className="px-6 pb-7 text-center text-[9px] leading-relaxed text-[#718096]">
-        Fenêtre sécurisée affichée par l&apos;opérateur Mobile Money.
-      </p>
-    </div>
-  );
-}
-
-function WhatsAppScreen() {
-  return (
-    <div className="h-full bg-[#e8e1d8]">
-      <div className="bg-[#075e54] px-4 pb-3 pt-5 text-white">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
-            <img src="/assets/logo/fidexapay-mark.png" alt="" className="h-7 w-7" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold">FidexaPay</p>
-            <p className="text-[9px] text-white/70">Compte professionnel</p>
-          </div>
-        </div>
-      </div>
-      <div className="p-4 pt-16">
-        <div className="max-w-[92%] rounded-xl rounded-tl-none bg-white p-3 shadow-sm">
-          <p className="text-[10px] leading-relaxed text-[#283b3a]">
-            FidexaPay — votre code d&apos;accès au suivi de commande est <strong>482 731</strong>.
-            Valable 15 minutes. Ne le partagez avec personne.
-          </p>
-          <p className="mt-1 text-right text-[8px] text-[#869895]">10:26 ✓✓</p>
-        </div>
-      </div>
-      <div className="absolute inset-x-3 bottom-4 flex items-center gap-2 rounded-full bg-white px-4 py-3 text-[9px] text-[#879594]">
-        <MessageCircle className="h-4 w-4" /> Message
-      </div>
-    </div>
-  );
-}
-
-function OtpScreen() {
-  return (
-    <div className="h-full bg-[#f3f6f9] px-4 py-8">
-      <div className="flex justify-center">
-        <Logo size="sm" />
-      </div>
-      <div className="mt-8 rounded-xl border border-[#dce5ee] bg-white p-5 shadow-sm">
-        <div className="flex items-center gap-2">
-          <LockKeyhole className="h-5 w-5 text-[#1354b8]" />
-          <p className="text-sm font-semibold text-[#183a60]">Vérification sécurisée</p>
-        </div>
-        <p className="mt-3 text-[10px] leading-relaxed text-[#6b7f93]">
-          Entrez le code OTP envoyé sur WhatsApp (+243 9•• ••• •79).
-        </p>
-        <div className="mt-5 flex justify-between gap-1.5">
-          {'482731'.split('').map((digit, index) => (
-            <span
-              key={`${digit}-${index}`}
-              className="flex h-9 w-8 items-center justify-center rounded-lg border border-[#bfd0e3] text-xs font-semibold text-[#183a60]"
-            >
-              {digit}
-            </span>
-          ))}
-        </div>
-        <div className="mt-5 rounded-lg bg-[#0b3b78] py-3 text-center text-[10px] font-semibold text-white">
-          Vérifier et accéder
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TrackingScreen() {
-  return (
-    <div className="h-full bg-[#f7f9fc] px-4 py-6">
-      <Logo size="sm" />
-      <div className="mt-5 rounded-xl border border-[#dce7f3] bg-white p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="text-[10px] text-[#71859a]">Commande</p>
-            <p className="text-sm font-semibold text-[#183a60]">Création d&apos;un logo</p>
-          </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#fff3d8] px-2 py-1 text-[8px] font-medium text-[#8a6200]">
-            <Clock className="h-3 w-3" /> À valider
-          </span>
-        </div>
-        <div className="mt-4 rounded-lg bg-[#edf9f2] p-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-[#178c52]" />
-            <p className="text-[10px] font-semibold text-[#245c43]">Travail terminé</p>
-          </div>
-          <p className="mt-1 text-[9px] text-[#56736a]">Le prestataire attend votre validation.</p>
-        </div>
-        <div className="mt-5 space-y-4">
-          {[
-            ['Paiement effectué', 'Fonds sécurisés en escrow', true],
-            ['Travail démarré', 'Prestation en cours', true],
-            ['Travail terminé', 'En attente de votre validation', true],
-            ['Fonds libérés', 'Après votre confirmation', false],
-          ].map(([title, text, done]) => (
-            <div key={String(title)} className="flex gap-3">
-              <span
-                className={`mt-0.5 h-4 w-4 rounded-full border-2 ${
-                  done ? 'border-[#2bb673] bg-[#2bb673]' : 'border-[#c6d3df]'
-                }`}
-              />
-              <div>
-                <p className="text-[10px] font-medium text-[#183a60]">{title}</p>
-                <p className="text-[8px] text-[#71859a]">{text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 rounded-lg bg-[#2bb673] py-3 text-center text-[10px] font-semibold text-white">
-          Valider la livraison
-        </div>
-      </div>
-    </div>
-  );
-}
+const CLIENT_JOURNEY_SHOTS = [
+  {
+    step: '1',
+    title: 'Paiement sécurisé',
+    caption: 'Le client vérifie le service et paie via Mobile Money.',
+    src: '/assets/landing/journey/step-01-payment.png',
+  },
+  {
+    step: '2',
+    title: 'Validation Mobile Money',
+    caption: 'L’opérateur affiche la demande USSD sécurisée.',
+    src: '/assets/landing/journey/step-02-ussd.png',
+  },
+  {
+    step: '3',
+    title: 'Code reçu sur WhatsApp',
+    caption: 'Le code OTP protège l’accès au suivi.',
+    src: '/assets/landing/journey/step-03-whatsapp.png',
+  },
+  {
+    step: '4',
+    title: 'Accès au suivi',
+    caption: 'Le client saisit son code une seule fois.',
+    src: '/assets/landing/journey/step-04-otp.png',
+  },
+  {
+    step: '5',
+    title: 'Livraison validée',
+    caption: 'Après vérification, les fonds sont libérés.',
+    src: '/assets/landing/journey/step-05-tracking.png',
+  },
+] as const;
 
 export function LandingProductJourneySection() {
   return (
@@ -449,21 +307,15 @@ export function LandingProductJourneySection() {
             <p className="mt-2 text-xs text-[#8aa0b5] sm:hidden">Faites glisser pour voir chaque étape →</p>
           </div>
           <div className="-mx-4 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-8 [scrollbar-width:thin] sm:mx-0 sm:mt-10 sm:px-0 xl:grid xl:grid-cols-5 xl:overflow-visible">
-            <PhoneFrame step="1" title="Paiement sécurisé" caption="Le client vérifie le service et paie via Mobile Money.">
-              <PaymentScreen />
-            </PhoneFrame>
-            <PhoneFrame step="2" title="Validation Mobile Money" caption="L’opérateur affiche la demande USSD sécurisée.">
-              <UssdScreen />
-            </PhoneFrame>
-            <PhoneFrame step="3" title="Code reçu sur WhatsApp" caption="Le code OTP protège l’accès au suivi.">
-              <WhatsAppScreen />
-            </PhoneFrame>
-            <PhoneFrame step="4" title="Accès au suivi" caption="Le client saisit son code une seule fois.">
-              <OtpScreen />
-            </PhoneFrame>
-            <PhoneFrame step="5" title="Livraison validée" caption="Après vérification, les fonds sont libérés.">
-              <TrackingScreen />
-            </PhoneFrame>
+            {CLIENT_JOURNEY_SHOTS.map((shot) => (
+              <PhoneFrame
+                key={shot.step}
+                step={shot.step}
+                title={shot.title}
+                caption={shot.caption}
+                screenshotSrc={shot.src}
+              />
+            ))}
           </div>
           <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#6b7f93]">
             <Clock3 className="h-4 w-4 shrink-0 text-[#178c52]" />

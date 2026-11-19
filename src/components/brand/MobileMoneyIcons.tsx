@@ -64,7 +64,9 @@ export function MobileMoneyRow({
               key={`${id}-${index}`}
               className="flex w-[168px] shrink-0 flex-col items-center rounded-2xl border border-black/[0.06] bg-white px-4 py-5 shadow-sm sm:w-[190px]"
             >
-              <Icon className="h-12 w-full max-w-[140px]" />
+              <div className="flex h-12 w-full max-w-[140px] items-center justify-center">
+                <Icon className="h-10 w-full max-w-[132px]" />
+              </div>
               <span className="mt-3 text-center text-xs font-semibold text-[#1A3A5C] sm:text-sm">{name}</span>
               <span className="mt-1 text-center text-[10px] text-[#7a90a5]">{countries}</span>
             </div>
@@ -82,7 +84,9 @@ export function MobileMoneyRow({
             key={id}
             className="flex flex-col items-center rounded-2xl border border-black/[0.06] bg-white px-3 py-6 shadow-sm"
           >
-            <Icon className="h-14 w-full max-w-32 sm:h-16" />
+            <div className="flex h-16 w-full max-w-32 items-center justify-center">
+              <Icon className="h-12 w-full sm:h-14" />
+            </div>
             <span className="mt-4 text-center text-xs font-semibold text-[#1A3A5C] sm:text-sm">{name}</span>
             <span className="mt-1 text-center text-[10px] text-[#7a90a5]">{countries}</span>
           </li>
