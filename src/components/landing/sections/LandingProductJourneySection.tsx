@@ -267,24 +267,24 @@ export function LandingProductJourneySection() {
     <section id="product-journey" className="overflow-x-clip bg-[#eef5ff] py-16 sm:py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#178c52]">Le produit, réellement</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#178c52]">Encaissez sans stress</p>
           <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#0b2f63] sm:text-5xl">
-            Les écrans FidexaPay, tels qu&apos;ils sont.
+            FidexaPay protège chaque mission, du devis au paiement.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-[#526d87] sm:text-lg">
-            Aperçus fidèles du tableau de bord prestataire, de la création de lien, et du parcours client
-            jusqu&apos;à la validation.
+            Créez un lien, faites payer votre client en Mobile Money, et ne libérez les fonds
+            qu&apos;une fois le travail validé.
           </p>
         </div>
 
         <div className="mt-10 sm:mt-14">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#0b2f63]">Espace prestataire</p>
-              <p className="text-xs text-[#6b7f93]">Tableau de bord réel FidexaPay</p>
+              <p className="text-sm font-semibold text-[#0b2f63]">Votre activité, sous contrôle</p>
+              <p className="text-xs text-[#6b7f93]">Soldes, commandes et retraits au même endroit</p>
             </div>
             <span className="hidden items-center gap-2 text-xs font-medium text-[#178c52] sm:flex">
-              <ShieldCheck className="h-4 w-4" /> Fonds et commandes en un seul endroit
+              <ShieldCheck className="h-4 w-4" /> Escrow actif sur chaque mission
             </span>
           </div>
           <RealDashboardPreview />
@@ -292,19 +292,19 @@ export function LandingProductJourneySection() {
 
         <div className="mt-10 sm:mt-14">
           <div className="mb-5">
-            <p className="text-sm font-semibold text-[#0b2f63]">Création d&apos;un lien de paiement</p>
-            <p className="text-xs text-[#6b7f93]">Formulaire réel utilisé dans l&apos;application</p>
+            <p className="text-sm font-semibold text-[#0b2f63]">Un lien. Une mission sécurisée.</p>
+            <p className="text-xs text-[#6b7f93]">Montant, délai et client — prêts en moins d&apos;une minute</p>
           </div>
           <CreateLinkPreview />
         </div>
 
         <div className="mt-14 sm:mt-20">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold text-[#0b2f63]">Parcours client sur mobile</p>
+            <p className="text-sm font-semibold text-[#0b2f63]">Votre client paie. Vous êtes couvert.</p>
             <p className="mt-2 text-sm leading-relaxed text-[#617a93]">
-              Paiement, confirmation opérateur, OTP WhatsApp, puis validation de livraison.
+              Mobile Money, confirmation, suivi WhatsApp — jusqu&apos;à la validation de livraison.
             </p>
-            <p className="mt-2 text-xs text-[#8aa0b5] sm:hidden">Faites glisser pour voir chaque étape →</p>
+            <p className="mt-2 text-xs text-[#8aa0b5] sm:hidden">Glissez pour suivre le parcours →</p>
           </div>
           <div className="-mx-4 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-8 [scrollbar-width:thin] sm:mx-0 sm:mt-10 sm:px-0 xl:grid xl:grid-cols-5 xl:overflow-visible">
             {CLIENT_JOURNEY_SHOTS.map((shot) => (
