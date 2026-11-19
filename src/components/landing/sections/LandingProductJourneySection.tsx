@@ -1,185 +1,30 @@
-import {
-  ArrowRight,
-  Clock3,
-  LayoutDashboard,
-  Link2,
-  Package,
-  PlayCircle,
-  Plus,
-  Receipt,
-  ShieldCheck,
-  Wallet,
-} from 'lucide-react';
-import Logo from '@/components/Logo';
+import { ArrowRight, Clock3, Link2, ShieldCheck, Smartphone } from 'lucide-react';
 
-/** Navigation réelle du DashboardLayout */
-const dashboardNav = [
-  { label: 'Tableau de bord', icon: LayoutDashboard, active: true },
-  { label: 'Créer un lien', icon: Link2 },
-  { label: 'Tous mes liens', icon: Package },
-  { label: 'Commandes actives', icon: PlayCircle },
-  { label: 'Retraits', icon: Wallet },
-  { label: 'Transactions', icon: Receipt },
-];
-
-function BrowserChrome({ url, children }: { url: string; children: React.ReactNode }) {
+function PhoneMockup({
+  src,
+  alt,
+  className = '',
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#cbd9e8] bg-white shadow-[0_28px_80px_rgba(11,47,99,.15)]">
-      <div className="flex h-10 items-center gap-2 border-b border-[#dfe8f2] bg-[#f8fafc] px-3 sm:px-4">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ff6b6b]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ffd166]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#2bb673]" />
-        <span className="ml-2 truncate rounded-md bg-white px-2 py-1 text-[10px] text-[#6b7f93] shadow-sm sm:ml-3 sm:px-4">
-          {url}
-        </span>
+    <div
+      className={`relative mx-auto w-[min(280px,78vw)] overflow-hidden rounded-[2.1rem] border-[7px] border-[#102946] bg-[#0b1220] shadow-[0_28px_70px_rgba(11,47,99,.22)] sm:w-[300px] sm:rounded-[2.35rem] sm:border-[8px] ${className}`}
+    >
+      <div className="absolute left-1/2 top-0 z-20 h-5 w-28 -translate-x-1/2 rounded-b-2xl bg-[#102946]" />
+      <div className="aspect-[9/19] w-full overflow-hidden bg-[#f6f9fd]">
+        <img
+          src={src}
+          alt={alt}
+          className="h-full w-full object-cover object-top"
+          loading="lazy"
+          width={473}
+          height={1024}
+        />
       </div>
-      {children}
     </div>
-  );
-}
-
-/** Miroir du vrai Dashboard.tsx */
-function RealDashboardPreview() {
-  return (
-    <BrowserChrome url="app.fidexapay.com/dashboard">
-      <div className="grid min-h-0 bg-[#f6f9fd] md:min-h-[440px] md:grid-cols-[200px_1fr] lg:grid-cols-[220px_1fr]">
-        <aside className="hidden border-r border-[#dbe6f2] bg-white p-3 md:block">
-          <Logo size="sm" className="mb-5" to="/dashboard" />
-          <nav className="space-y-1">
-            {dashboardNav.map((item) => (
-              <div
-                key={item.label}
-                className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-[11px] font-medium ${
-                  item.active ? 'bg-[#0b3b78] text-white' : 'text-[#5c7188]'
-                }`}
-              >
-                <item.icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                <span className="truncate">{item.label}</span>
-              </div>
-            ))}
-          </nav>
-        </aside>
-        <div className="min-w-0 p-4 sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-lg font-semibold tracking-tight text-[#132f52] sm:text-2xl">Tableau de bord</p>
-              <p className="text-[10px] text-[#6b7f93] sm:text-xs">Aperçu de votre activité</p>
-            </div>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#0b3b78] px-2.5 py-2 text-[10px] font-semibold text-white sm:text-xs">
-              <Plus className="h-3 w-3" /> Créer un lien
-            </span>
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-[1.45fr_.55fr]">
-            <div className="flex min-h-28 flex-col justify-between rounded-2xl bg-[#0b3b78] p-4 text-white sm:min-h-32">
-              <div>
-                <p className="text-[10px] text-white/70">Fonds libérés ce mois</p>
-                <p className="mt-2 text-xl font-semibold sm:text-3xl">1 240 000 CDF</p>
-              </div>
-              <p className="border-t border-white/15 pt-3 text-[9px] text-white/65 sm:text-[11px]">
-                Net de commission · Voir les transactions
-              </p>
-            </div>
-            <div className="flex min-h-28 flex-col justify-between rounded-2xl border border-[#cfe9da] bg-[#eff8f3] p-4 sm:min-h-32">
-              <Wallet className="h-5 w-5 text-[#178c52]" />
-              <div>
-                <p className="text-[10px] text-[#56736a]">Retraits prestataire</p>
-                <p className="mt-1 text-sm font-semibold text-[#0b3b78]">Solde disponible</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {[
-              ['3', 'À livrer'],
-              ['18', 'Validées'],
-              ['1', 'Annulées'],
-              ['0', 'Litiges'],
-            ].map(([value, label], index) => (
-              <div key={label} className="rounded-xl p-3">
-                <div className={`mb-3 h-8 w-8 rounded-xl ${index === 0 ? 'bg-[#fff6e8]' : 'bg-[#edf9f2]'}`} />
-                <p className="text-lg font-semibold text-[#0b2f63]">{value}</p>
-                <p className="text-[9px] text-[#5b738c]">{label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-[#132f52]">Liens de paiement récents</p>
-              <span className="text-[9px] text-[#1354b8]">Voir tout</span>
-            </div>
-            <div className="mt-2 divide-y divide-[#e4edf6]">
-              {[
-                ['Client Logo Corp', 'pay_1739…a2f', '420 000 CDF', 'Payé'],
-                ['Site vitrine PME', 'pay_1738…91c', '680 000 CDF', 'À livrer'],
-              ].map(([name, id, amount, status]) => (
-                <div key={id} className="flex items-center justify-between gap-2 py-2.5">
-                  <div className="min-w-0">
-                    <p className="truncate text-[11px] font-medium text-[#183a60]">{name}</p>
-                    <p className="truncate text-[9px] text-[#7a90a5]">{id}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-[11px] font-semibold text-[#0b2f63]">{amount}</p>
-                    <p className="text-[9px] text-[#178c52]">{status}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </BrowserChrome>
-  );
-}
-
-/** Miroir de CreatePaymentLink.tsx */
-function CreateLinkPreview() {
-  return (
-    <BrowserChrome url="app.fidexapay.com/dashboard/create-link">
-      <div className="bg-[#f6f9fd] p-4 sm:p-6">
-        <div className="mx-auto max-w-xl rounded-xl border border-[#dce7f3] bg-white p-5 sm:p-6">
-          <div className="flex items-center gap-2">
-            <Link2 className="h-4 w-4 text-[#0b3b78]" />
-            <p className="text-sm font-semibold text-[#0b2f63]">Nouveau lien de paiement</p>
-          </div>
-          <p className="mt-1 text-[11px] text-[#6b7f93]">Remplissez les informations pour créer votre lien.</p>
-
-          <div className="mt-5 space-y-3">
-            <div>
-              <p className="text-[10px] font-medium text-[#3d566f]">Montant (CDF)</p>
-              <div className="mt-1 rounded-lg border border-[#d5e0eb] px-3 py-2 text-sm font-semibold text-[#0b2f63]">
-                120 000
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-[#3d566f]">Description du service</p>
-              <div className="mt-1 rounded-lg border border-[#d5e0eb] px-3 py-2 text-[11px] text-[#516273]">
-                Création d&apos;un logo entreprise — 2 propositions + fichiers sources
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-[#3d566f]">Délai de livraison (jours)</p>
-              <div className="mt-1 rounded-lg border border-[#d5e0eb] px-3 py-2 text-[11px] text-[#0b2f63]">7</div>
-            </div>
-            <div className="rounded-lg border border-[#e4edf6] bg-[#f7faff] p-3">
-              <p className="text-[10px] font-medium text-[#3d566f]">Informations client (optionnel)</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <div className="rounded-md border border-[#d5e0eb] bg-white px-2.5 py-2 text-[10px] text-[#71859a]">
-                  Nom · Amina K.
-                </div>
-                <div className="rounded-md border border-[#d5e0eb] bg-white px-2.5 py-2 text-[10px] text-[#71859a]">
-                  +243 · 8XX XXX XXX
-                </div>
-              </div>
-            </div>
-            <div className="rounded-lg bg-[#0b3b78] py-3 text-center text-xs font-semibold text-white">
-              Créer le lien sécurisé
-            </div>
-          </div>
-        </div>
-      </div>
-    </BrowserChrome>
   );
 }
 
@@ -188,32 +33,25 @@ function PhoneFrame({
   title,
   caption,
   screenshotSrc,
-  children,
 }: {
   step: string;
   title: string;
   caption: string;
-  /** Capture réelle 390×844 — remplit exactement la zone écran du mockup */
-  screenshotSrc?: string;
-  children?: React.ReactNode;
+  screenshotSrc: string;
 }) {
   return (
     <article className="w-[min(226px,78vw)] shrink-0 snap-center">
       <div className="relative mx-auto aspect-[9/19] max-h-[474px] w-full overflow-hidden rounded-[2rem] border-[6px] border-[#102946] bg-[#0b1220] shadow-[0_22px_55px_rgba(11,47,99,.16)] sm:rounded-[2.25rem] sm:border-[7px]">
         <div className="absolute left-1/2 top-0 z-20 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-[#102946]" />
-        <div className="relative h-full overflow-hidden pt-5">
-          {screenshotSrc ? (
-            <img
-              src={screenshotSrc}
-              alt={title}
-              className="absolute inset-0 h-full w-full object-cover object-top"
-              loading="lazy"
-              width={390}
-              height={844}
-            />
-          ) : (
-            children
-          )}
+        <div className="relative h-full overflow-hidden">
+          <img
+            src={screenshotSrc}
+            alt={title}
+            className="absolute inset-0 h-full w-full object-cover object-top"
+            loading="lazy"
+            width={390}
+            height={844}
+          />
         </div>
       </div>
       <div className="mt-4 flex gap-3 sm:mt-5">
@@ -239,13 +77,13 @@ const CLIENT_JOURNEY_SHOTS = [
   {
     step: '2',
     title: 'Validation Mobile Money',
-    caption: 'L’opérateur affiche la demande USSD sécurisée.',
+    caption: "L'opérateur affiche la demande USSD sécurisée.",
     src: '/assets/landing/journey/step-02-ussd.png',
   },
   {
     step: '3',
     title: 'Code reçu sur WhatsApp',
-    caption: 'Le code OTP protège l’accès au suivi.',
+    caption: "Le code OTP protège l'accès au suivi.",
     src: '/assets/landing/journey/step-03-whatsapp.png',
   },
   {
@@ -277,25 +115,108 @@ export function LandingProductJourneySection() {
           </p>
         </div>
 
-        <div className="mt-10 sm:mt-14">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#0b2f63]">Votre activité, sous contrôle</p>
-              <p className="text-xs text-[#6b7f93]">Soldes, commandes et retraits au même endroit</p>
-            </div>
-            <span className="hidden items-center gap-2 text-xs font-medium text-[#178c52] sm:flex">
-              <ShieldCheck className="h-4 w-4" /> Escrow actif sur chaque mission
-            </span>
+        <div className="mt-12 sm:mt-16">
+          <div className="mb-8 text-center sm:mb-10">
+            <p className="text-sm font-semibold text-[#0b2f63]">Votre activité, sous contrôle</p>
+            <p className="mt-1 text-xs text-[#6b7f93]">Soldes, commandes et retraits au même endroit</p>
           </div>
-          <RealDashboardPreview />
+          <div className="flex flex-col items-center justify-center gap-10 lg:flex-row lg:items-end lg:gap-14">
+            <div className="flex flex-col items-center">
+              <PhoneMockup
+                src="/assets/landing/journey/provider-dashboard.png"
+                alt="Tableau de bord FidexaPay sur mobile"
+              />
+              <p className="mt-4 text-center text-xs font-medium text-[#5c7188]">Tableau de bord</p>
+            </div>
+            <div className="flex flex-col items-center lg:-translate-y-6">
+              <PhoneMockup
+                src="/assets/landing/journey/provider-withdraw.png"
+                alt="Retraits FidexaPay sur mobile"
+              />
+              <p className="mt-4 text-center text-xs font-medium text-[#5c7188]">Retraits Mobile Money</p>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-10 sm:mt-14">
-          <div className="mb-5">
-            <p className="text-sm font-semibold text-[#0b2f63]">Un lien. Une mission sécurisée.</p>
-            <p className="text-xs text-[#6b7f93]">Montant, délai et client — prêts en moins d&apos;une minute</p>
+        <div className="mt-16 sm:mt-20">
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="order-2 flex justify-center lg:order-1">
+              <PhoneMockup
+                src="/assets/landing/journey/provider-create-link.png"
+                alt="Création d'un lien de paiement FidexaPay"
+              />
+            </div>
+            <div className="order-1 lg:order-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#178c52]">Création de lien</p>
+              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
+                Un lien. Une mission sécurisée.
+              </h3>
+              <p className="mt-4 text-sm leading-relaxed text-[#617a93] sm:text-base">
+                Montant, délai et infos client — prêts en moins d&apos;une minute. Vous envoyez le lien
+                sur WhatsApp, le reste se fait tout seul.
+              </p>
+              <ul className="mt-6 space-y-3 text-sm text-[#3d566f]">
+                <li className="flex items-start gap-2.5">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#178c52]" />
+                  Fonds bloqués en escrow dès le paiement
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-[#178c52]" />
+                  Partage instantané par message ou QR
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-[#178c52]" />
+                  Pensé pour Mobile Money africain
+                </li>
+              </ul>
+            </div>
           </div>
-          <CreateLinkPreview />
+        </div>
+
+        {/* Client sans compte — seulement un lien */}
+        <div className="mt-16 overflow-hidden rounded-3xl border border-[#d5e4f4] bg-white sm:mt-20">
+          <div className="grid lg:grid-cols-2">
+            <div className="flex flex-col justify-center px-6 py-10 sm:px-10 sm:py-14">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#178c52]">
+                Côté client
+              </p>
+              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-[#0b2f63] sm:text-3xl">
+                Pas de compte à créer. Juste votre lien.
+              </h3>
+              <p className="mt-4 text-sm leading-relaxed text-[#617a93] sm:text-base">
+                Votre client ouvre le lien, paie en Mobile Money, puis suit la mission.
+                Aucune inscription, aucun mot de passe — la friction reste chez vous, pas chez lui.
+              </p>
+              <div className="mt-7 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-[#f4f8fd] px-4 py-4">
+                  <p className="text-sm font-semibold text-[#0b2f63]">Vous</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[#617a93]">
+                    Compte prestataire, liens, retraits, litiges.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-[#eef9f3] px-4 py-4">
+                  <p className="text-sm font-semibold text-[#0b2f63]">Votre client</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[#617a93]">
+                    Un lien. Un paiement. Un suivi.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="relative flex items-center justify-center bg-gradient-to-br from-[#0b3b78] to-[#0b2f63] px-6 py-12 sm:px-10">
+              <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, #fff 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
+              <div className="relative max-w-sm text-center text-white">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+                  <Link2 className="h-7 w-7" />
+                </div>
+                <p className="mt-5 text-xl font-semibold leading-snug sm:text-2xl">
+                  fidexapay.com/pay/…
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-white/70">
+                  Un seul URL à envoyer. Le client paie et suit — sans jamais ouvrir un compte FidexaPay.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="mt-14 sm:mt-20">
