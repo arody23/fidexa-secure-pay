@@ -35,11 +35,11 @@ export function VodafoneCashIcon({ className, title = 'Vodafone Cash' }: IconPro
 }
 
 export const MOBILE_MONEY_NETWORKS = [
-  { id: 'orange', name: 'Orange Money', Icon: OrangeMoneyIcon, countries: 'CI · SN · ML · BF · CD' },
-  { id: 'mtn', name: 'MTN MoMo', Icon: MtnMoneyIcon, countries: 'CI · BJ · CG · CM · TG' },
-  { id: 'airtel', name: 'Airtel Money', Icon: AirtelMoneyIcon, countries: 'CD · CG · ML' },
+  { id: 'orange', name: 'Orange Money', Icon: OrangeMoneyIcon, countries: 'CI · SN · CM · CD' },
+  { id: 'mtn', name: 'MTN MoMo', Icon: MtnMoneyIcon, countries: 'CI · BJ · CG · CM' },
+  { id: 'airtel', name: 'Airtel Money', Icon: AirtelMoneyIcon, countries: 'CD · CG · GA' },
   { id: 'mpesa', name: 'M-Pesa', Icon: MpesaIcon, countries: 'CD' },
-  { id: 'moov', name: 'Moov Money', Icon: MoovMoneyIcon, countries: 'CI · BJ · TG · BF' },
+  { id: 'moov', name: 'Moov Money', Icon: MoovMoneyIcon, countries: 'CI · BJ' },
   { id: 'wave', name: 'Wave', Icon: WaveIcon, countries: 'CI · SN · BJ' },
   { id: 'vodafone', name: 'Vodafone Cash', Icon: VodafoneCashIcon, countries: 'CD' },
 ] as const;

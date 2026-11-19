@@ -75,19 +75,31 @@ export const COUNTRIES_DATA = {
     flag: '🇨🇲',
     phonePrefix: '+237',
   },
-  'TG': {
-    name: 'Togo',
-    nameFR: 'Togo',
-    code: 'TG',
+  'SN': {
+    name: 'Senegal',
+    nameFR: 'Sénégal',
+    code: 'SN',
     currency: 'XOF',
     currencyName: 'Franc CFA WAEMU',
     mobileMoneyProviders: [
       { name: 'Orange Money', icon: '📱' },
-      { name: 'MTN Money', icon: '📱' },
+      { name: 'Free Money', icon: '📱' },
       { name: 'Wave', icon: '📱' },
     ],
-    flag: '🇹🇬',
-    phonePrefix: '+228',
+    flag: '🇸🇳',
+    phonePrefix: '+221',
+  },
+  'GA': {
+    name: 'Gabon',
+    nameFR: 'Gabon',
+    code: 'GA',
+    currency: 'XAF',
+    currencyName: 'Franc CFA BEAC',
+    mobileMoneyProviders: [
+      { name: 'Airtel Money', icon: '📱' },
+    ],
+    flag: '🇬🇦',
+    phonePrefix: '+241',
   },
 } as const;
 

@@ -2,14 +2,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
+/** 7 pays couverts FidexaPay — positions relatives sur la carte */
 export const COVERED_COUNTRIES = [
-  { id: 'bj', name: 'Bénin', flagSrc: '/assets/flags/bj.svg', x: 36.2, y: 44.5 },
-  { id: 'bf', name: 'Burkina Faso', flagSrc: '/assets/flags/bf.svg', x: 32.8, y: 38.5 },
+  { id: 'sn', name: 'Sénégal', flagSrc: '/assets/flags/sn.svg', x: 18.5, y: 31.5 },
   { id: 'ci', name: "Côte d'Ivoire", flagSrc: '/assets/flags/ci.svg', x: 28.5, y: 46.5 },
-  { id: 'cd', name: 'RD Congo', flagSrc: '/assets/flags/cd.svg', x: 54.5, y: 60 },
+  { id: 'bj', name: 'Bénin', flagSrc: '/assets/flags/bj.svg', x: 36.2, y: 44.5 },
+  { id: 'cm', name: 'Cameroun', flagSrc: '/assets/flags/cm.svg', x: 44.5, y: 49 },
+  { id: 'ga', name: 'Gabon', flagSrc: '/assets/flags/ga.svg', x: 45.5, y: 55.5 },
   { id: 'cg', name: 'Congo', flagSrc: '/assets/flags/cg.svg', x: 48.5, y: 56 },
-  { id: 'ml', name: 'Mali', flagSrc: '/assets/flags/ml.svg', x: 29.5, y: 32 },
-  { id: 'tg', name: 'Togo', flagSrc: '/assets/flags/tg.svg', x: 34.8, y: 45.5 },
+  { id: 'cd', name: 'RD Congo', flagSrc: '/assets/flags/cd.svg', x: 54.5, y: 60 },
 ] as const;
 
 type AfricaCoverageMapProps = {
@@ -28,7 +29,7 @@ export function AfricaCoverageMap({
   const isLight = theme === 'light';
   const [internalActive, setInternalActive] = useState(0);
   const active = activeIndex ?? internalActive;
-  const activeCountry = COVERED_COUNTRIES[active] ?? COVERED_COUNTRIES[5];
+  const activeCountry = COVERED_COUNTRIES[active] ?? COVERED_COUNTRIES[0];
 
   useEffect(() => {
     if (activeIndex !== undefined) return;
@@ -83,7 +84,14 @@ export function AfricaCoverageMap({
               <motion.span
                 animate={
                   isActive
-                    ? { scale: [1, 1.2, 1], boxShadow: ['0 0 0 0 rgba(43,182,115,0.5)', '0 0 0 10px rgba(43,182,115,0)', '0 0 0 0 rgba(43,182,115,0.5)'] }
+                    ? {
+                        scale: [1, 1.2, 1],
+                        boxShadow: [
+                          '0 0 0 0 rgba(43,182,115,0.5)',
+                          '0 0 0 10px rgba(43,182,115,0)',
+                          '0 0 0 0 rgba(43,182,115,0.5)',
+                        ],
+                      }
                     : { scale: 1, boxShadow: '0 0 0 0 rgba(43,182,115,0)' }
                 }
                 transition={isActive ? { duration: 1.5, repeat: Infinity } : { duration: 0.25 }}
@@ -107,9 +115,7 @@ export function AfricaCoverageMap({
             transition={{ duration: 0.28 }}
             className={cn(
               'inline-flex items-center gap-3 rounded-full border px-4 py-2.5 shadow-sm',
-              isLight
-                ? 'border-black/[0.06] bg-white'
-                : 'border-white/10 bg-[#0B1220]/85'
+              isLight ? 'border-black/[0.06] bg-white' : 'border-white/10 bg-[#0B1220]/85'
             )}
           >
             <img src={activeCountry.flagSrc} alt="" className="h-5 w-7 rounded-sm object-cover" />
@@ -123,19 +129,20 @@ export function AfricaCoverageMap({
       </div>
 
       {showLegend && (
-        <ul className="mt-4 flex flex-wrap justify-center gap-2">
+        <ul className="mt-6 flex flex-wrap justify-center gap-2">
           {COVERED_COUNTRIES.map((c, i) => (
-            <li
-              key={c.id}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors',
-                i === active
-                  ? 'border-[#2BB673]/50 bg-[#E8F8F0] text-[#1A3A5C]'
-                  : 'border-black/[0.06] bg-white text-[#6B7280]'
-              )}
-            >
-              <img src={c.flagSrc} alt="" className="h-3.5 w-5 rounded-[2px] object-cover" loading="lazy" />
-              {c.name}
+            <li key={c.id}>
+              <span
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs',
+                  i === active
+                    ? 'border-[#2BB673]/40 bg-[#E8F8F0] text-[#1A3A5C]'
+                    : 'border-black/[0.06] bg-white text-[#5c7188]'
+                )}
+              >
+                <img src={c.flagSrc} alt="" className="h-3.5 w-5 rounded-[2px] object-cover" />
+                {c.name}
+              </span>
             </li>
           ))}
         </ul>
@@ -143,5 +150,3 @@ export function AfricaCoverageMap({
     </div>
   );
 }
-
-export default AfricaCoverageMap;

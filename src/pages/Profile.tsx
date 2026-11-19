@@ -311,14 +311,10 @@ export function Profile() {
               )}
               {(formData.country === 'CI' ||
                 formData.country === 'SN' ||
-                formData.country === 'BF' ||
-                formData.country === 'BJ' ||
-                formData.country === 'TG' ||
-                formData.country === 'ML' ||
-                formData.country === 'NE') && (
+                formData.country === 'BJ') && (
                 <SelectItem value="XOF">XOF</SelectItem>
               )}
-              {!['CD', 'CG', 'CM', 'GA', 'CI', 'SN', 'BF', 'BJ', 'TG', 'ML', 'NE'].includes(formData.country) && (
+              {!['CD', 'CG', 'CM', 'GA', 'CI', 'SN', 'BJ'].includes(formData.country) && (
                 <>
                   <SelectItem value="CDF">CDF</SelectItem>
                   <SelectItem value="XAF">XAF</SelectItem>

@@ -6,7 +6,8 @@ export type KPayCountry = {
 };
 
 /** Pays affichés côté client / couverture FidexaPay */
-export const FIDEXA_COVERAGE_CODES = ['BJ', 'BF', 'CI', 'CD', 'CG', 'ML', 'TG'] as const;
+/** Couverture FidexaPay : BJ, CM, CI, CD, CG, SN, GA */
+export const FIDEXA_COVERAGE_CODES = ['BJ', 'CM', 'CI', 'CD', 'CG', 'SN', 'GA'] as const;
 
 export type FidexaCoverageCode = (typeof FIDEXA_COVERAGE_CODES)[number];
 
@@ -18,15 +19,6 @@ export const KPAY_COUNTRIES: KPayCountry[] = [
     providers: [
       { code: 'MTN_MOMO_BEN', label: 'MTN MoMo' },
       { code: 'MOOV_BEN', label: 'Moov Money' },
-    ],
-  },
-  {
-    code: 'BF',
-    name: 'Burkina Faso',
-    phonePrefix: '+226',
-    providers: [
-      { code: 'ORANGE_BFA', label: 'Orange Money' },
-      { code: 'MOOV_BFA', label: 'Moov Money' },
     ],
   },
   {
@@ -69,33 +61,10 @@ export const KPAY_COUNTRIES: KPayCountry[] = [
     ],
   },
   {
-    code: 'ML',
-    name: 'Mali',
-    phonePrefix: '+223',
-    providers: [
-      { code: 'ORANGE_MLI', label: 'Orange Money' },
-      { code: 'AIRTEL_MLI', label: 'Airtel Money' },
-    ],
-  },
-  {
-    code: 'TG',
-    name: 'Togo',
-    phonePrefix: '+228',
-    providers: [
-      { code: 'MTN_MOMO_TGO', label: 'MTN MoMo' },
-      { code: 'MOOV_TGO', label: 'Moov Money' },
-    ],
-  },
-  { code: 'GA', name: 'Gabon', phonePrefix: '+241', providers: [{ code: 'AIRTEL_GAB', label: 'Airtel Money' }] },
-  { code: 'KE', name: 'Kenya', phonePrefix: '+254', providers: [{ code: 'MPESA_KEN', label: 'M-Pesa' }] },
-  {
-    code: 'RW',
-    name: 'Rwanda',
-    phonePrefix: '+250',
-    providers: [
-      { code: 'AIRTEL_RWA', label: 'Airtel Money' },
-      { code: 'MTN_MOMO_RWA', label: 'MTN MoMo' },
-    ],
+    code: 'GA',
+    name: 'Gabon',
+    phonePrefix: '+241',
+    providers: [{ code: 'AIRTEL_GAB', label: 'Airtel Money' }],
   },
   {
     code: 'SN',
@@ -104,6 +73,18 @@ export const KPAY_COUNTRIES: KPayCountry[] = [
     providers: [
       { code: 'FREE_SEN', label: 'Free Money' },
       { code: 'ORANGE_SEN', label: 'Orange Money' },
+      { code: 'WAVE_SEN', label: 'Wave' },
+    ],
+  },
+  // Autres pays KPay (hors couverture Fidexa — utiles pour API / settle)
+  { code: 'KE', name: 'Kenya', phonePrefix: '+254', providers: [{ code: 'MPESA_KEN', label: 'M-Pesa' }] },
+  {
+    code: 'RW',
+    name: 'Rwanda',
+    phonePrefix: '+250',
+    providers: [
+      { code: 'AIRTEL_RWA', label: 'Airtel Money' },
+      { code: 'MTN_MOMO_RWA', label: 'MTN MoMo' },
     ],
   },
   { code: 'SL', name: 'Sierra Leone', phonePrefix: '+232', providers: [{ code: 'ORANGE_SLE', label: 'Orange Money' }] },

@@ -107,7 +107,7 @@ const FAQ = [
   },
   {
     q: 'Dans quels pays FidexaPay est-il disponible ?',
-    a: 'Actuellement dans plusieurs pays d’Afrique de l’Ouest et d’Afrique centrale. La liste évolue au fur et à mesure des intégrations opérateurs.',
+    a: 'Actuellement au Cameroun, Sénégal, Côte d’Ivoire, RD Congo, Congo, Bénin et Gabon — via Mobile Money local.',
   },
 ];
 
