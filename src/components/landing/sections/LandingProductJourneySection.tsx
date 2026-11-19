@@ -11,17 +11,20 @@ function PhoneMockup({
 }) {
   return (
     <div
-      className={`relative mx-auto w-[min(280px,78vw)] overflow-hidden rounded-[2.1rem] border-[7px] border-[#102946] bg-[#0b1220] shadow-[0_28px_70px_rgba(11,47,99,.22)] sm:w-[300px] sm:rounded-[2.35rem] sm:border-[8px] ${className}`}
+      className={`relative mx-auto w-[min(280px,78vw)] rounded-[2.1rem] border-[7px] border-[#102946] bg-[#102946] p-[3px] shadow-[0_28px_70px_rgba(11,47,99,.22)] sm:w-[300px] sm:rounded-[2.35rem] sm:border-[8px] ${className}`}
     >
-      <div className="absolute left-1/2 top-0 z-20 h-5 w-28 -translate-x-1/2 rounded-b-2xl bg-[#102946]" />
-      <div className="aspect-[9/19] w-full overflow-hidden bg-[#f6f9fd]">
+      {/* Encoche discrète — ne masque pas le contenu */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[10px] z-20 h-[18px] w-[72px] -translate-x-1/2 rounded-full bg-[#102946]/90"
+        aria-hidden
+      />
+      <div className="overflow-hidden rounded-[1.65rem] bg-[#f6f9fd] sm:rounded-[1.85rem]">
         <img
           src={src}
           alt={alt}
-          className="h-full w-full object-cover object-top"
+          className="block h-auto w-full"
           loading="lazy"
-          width={473}
-          height={1024}
+          decoding="async"
         />
       </div>
     </div>
