@@ -1,82 +1,61 @@
-// Plans d'abonnement disponibles
+/**
+ * @deprecated Préférer `@/lib/plans` (source de vérité).
+ * Conservé pour compatibilité avec l’ancien écran Subscriptions.
+ */
 
-import { SubscriptionPlan } from '@/types/index';
+import {
+  getAllPlans,
+  getCommissionRate,
+  getPlan,
+  normalizePlanId,
+  type PlanDefinition,
+  type PlanId,
+} from '@/lib/plans';
+
+export type { PlanDefinition, PlanId };
+
+/** Forme legacy (IDs anglais + color) pour composants non migrés */
+export interface SubscriptionPlan {
+  id: PlanId | 'basic' | 'essential' | 'standard';
+  name: string;
+  description: string;
+  price: number;
+  commission: number;
+  features: string[];
+  color: string;
+}
+
+const LEGACY_COLORS: Record<PlanId, string> = {
+  basique: 'from-blue-500 to-blue-600',
+  essentiel: 'from-purple-500 to-purple-600',
+  premium: 'from-pink-500 to-pink-600',
+};
+
+function toLegacyShape(plan: PlanDefinition): SubscriptionPlan {
+  return {
+    id: plan.id,
+    name: plan.name,
+    description: plan.description,
+    price: plan.priceMonthlyUsd,
+    commission: plan.commission,
+    features: [...plan.features],
+    color: LEGACY_COLORS[plan.id],
+  };
+}
 
 export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
-  basic: {
-    id: 'basic',
-    name: 'Basique',
-    description: 'Parfait pour débuter',
-    price: 0,
-    commission: 15,
-    features: [
-      '✓ Liens de paiement illimités',
-      '✓ Commission: 15%',
-      '✓ Support email',
-      '✓ Rapport mensuel basique',
-    ],
-    color: 'from-blue-500 to-blue-600',
-  },
-  essential: {
-    id: 'essential',
-    name: 'Essentiel',
-    description: 'Pour les petits commerces',
-    price: 15,
-    commission: 6,
-    features: [
-      '✓ Tout du plan Basique',
-      '✓ Commission: 6%',
-      '✓ Support prioritaire',
-      '✓ Rapport détaillé',
-      '✓ 2 comptes collaborateurs',
-    ],
-    color: 'from-purple-500 to-purple-600',
-  },
-  standard: {
-    id: 'standard',
-    name: 'Standard',
-    description: 'Pour les entreprises',
-    price: 29,
-    commission: 4,
-    features: [
-      '✓ Tout du plan Essentiel',
-      '✓ Commission: 4%',
-      '✓ Support 24/7',
-      '✓ Rapport avancé',
-      '✓ 5 comptes collaborateurs',
-      '✓ Intégrations API',
-    ],
-    color: 'from-orange-500 to-orange-600',
-  },
-  premium: {
-    id: 'premium',
-    name: 'Premium',
-    description: 'Pour les experts',
-    price: 49,
-    commission: 0,
-    features: [
-      '✓ Tout du plan Standard',
-      '✓ Commission: 0%',
-      '✓ Gestionnaire compte dédié',
-      '✓ Rapports personnalisés',
-      '✓ Collaborateurs illimités',
-      '✓ API complet',
-      '✓ Formation incluse',
-    ],
-    color: 'from-pink-500 to-pink-600',
-  },
+  basique: toLegacyShape(getPlan('basique')),
+  essentiel: toLegacyShape(getPlan('essentiel')),
+  premium: toLegacyShape(getPlan('premium')),
+  // Alias anglais
+  basic: toLegacyShape(getPlan('basique')),
+  essential: toLegacyShape(getPlan('essentiel')),
+  standard: toLegacyShape(getPlan('premium')),
 };
 
 export const getPlanById = (planId: string): SubscriptionPlan | null => {
-  return SUBSCRIPTION_PLANS[planId] || null;
+  const plan = SUBSCRIPTION_PLANS[planId] ?? SUBSCRIPTION_PLANS[normalizePlanId(planId)];
+  return plan ?? null;
 };
 
-export const getAllPlans = (): SubscriptionPlan[] => {
-  return Object.values(SUBSCRIPTION_PLANS);
-};
-
-// Obtenir commission pour un plan
-export const getCommissionRate = (planId: string): number => {
-  const plan = getPlanById(planId);
-  return plan?.commission || 15;
-};
+export { getAllPlans, getCommissionRate };

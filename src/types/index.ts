@@ -10,7 +10,7 @@ export interface UserProfile {
   phone_number?: string;
   country?: string;
   currency?: string;
-  subscription_plan: 'basic' | 'essential' | 'standard' | 'premium';
+  subscription_plan: 'basique' | 'essentiel' | 'premium' | 'basic' | 'essential' | 'standard';
   commission_rate: number;
   kyc_status: 'pending' | 'verified' | 'rejected' | 'not_submitted';
   kyc_document_url?: string;
@@ -23,7 +23,7 @@ export interface UserProfile {
 export interface Subscription {
   id: string;
   user_id: string;
-  plan: 'basic' | 'essential' | 'standard' | 'premium';
+  plan: 'basique' | 'essentiel' | 'premium' | 'basic' | 'essential' | 'standard';
   price: number;
   currency: 'USD' | 'EUR' | 'XOF' | 'XAF' | 'CDF';
   commission_rate: number;
@@ -34,7 +34,7 @@ export interface Subscription {
 }
 
 export interface SubscriptionPlan {
-  id: 'basic' | 'essential' | 'standard' | 'premium';
+  id: 'basique' | 'essentiel' | 'premium' | 'basic' | 'essential' | 'standard';
   name: string;
   description: string;
   price: number;

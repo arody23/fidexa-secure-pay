@@ -1,3 +1,5 @@
+import { PLANS } from '@/lib/plans';
+
 /** URL publique de production (liens partage / WhatsApp côté client si besoin) */
 export const APP_PUBLIC_URL = (
   import.meta.env.VITE_APP_PUBLIC_URL || 'https://fidexa-secure-pay.vercel.app'
@@ -32,19 +34,16 @@ export const SITE = {
     kycAml: '/legal/kyc-aml',
     prePayment: '/legal/avant-paiement',
   },
-  commissionBasic: 15,
+  /** Dérivé de `lib/plans.ts` — ne pas modifier ici */
+  commissionBasic: PLANS.basique.commission,
 } as const;
 
+/** Affichage landing / abonnement — valeurs issues de `lib/plans.ts` */
 export const MVP_SUBSCRIPTION = {
-  id: 'basic',
-  name: 'Basique',
-  description: 'Parfait pour débuter',
-  price: 0,
-  commission: SITE.commissionBasic,
-  features: [
-    'Liens de paiement illimités',
-    'Commission: 15 %',
-    'Support email',
-    'Rapport mensuel basique',
-  ],
+  id: PLANS.basique.id,
+  name: PLANS.basique.name,
+  description: PLANS.basique.description,
+  price: PLANS.basique.priceMonthlyUsd,
+  commission: PLANS.basique.commission,
+  features: PLANS.basique.features,
 } as const;

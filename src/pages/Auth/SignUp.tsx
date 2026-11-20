@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { getOAuthErrorMessage } from '@/lib/authErrors';
+import { DEFAULT_PLAN_ID, getCommissionRate } from '@/lib/plans';
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -90,9 +91,10 @@ export default function SignUp() {
             role: 'provider',
             is_admin: false,
             verified: false,
-            subscription_type: 'basic',
+            subscription_type: DEFAULT_PLAN_ID,
+            subscription_plan: DEFAULT_PLAN_ID,
             subscription_status: 'active',
-            commission_rate: 15,
+            commission_rate: getCommissionRate(DEFAULT_PLAN_ID),
           }
         ]);
 

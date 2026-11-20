@@ -1,13 +1,20 @@
+import { PLANS, type PlanId } from '@/lib/plans';
+
 /** Règles métier escrow Fidexa */
 
 export const AUTO_RELEASE_HOURS = 72;
 
+/** Dérivé de `lib/plans.ts` — ne pas dupliquer les taux ici */
 export const COMMISSION_BY_PLAN: Record<string, number> = {
-  basic: 15,
-  essential: 6,
-  standard: 4,
-  premium: 0,
+  basique: PLANS.basique.commission,
+  essentiel: PLANS.essentiel.commission,
+  premium: PLANS.premium.commission,
+  basic: PLANS.basique.commission,
+  essential: PLANS.essentiel.commission,
+  standard: PLANS.premium.commission,
 };
+
+export type EscrowPlanId = PlanId;
 
 export const ORDER_STEPS = [
   { key: 'paid', label: 'Payée', description: 'Paiement sécurisé en escrow' },
