@@ -1,4 +1,4 @@
-import { ArrowRight, Clock3, Link2, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowRight, Link2, ShieldCheck, Smartphone } from 'lucide-react';
 
 function PhoneMockup({
   src,
@@ -13,7 +13,6 @@ function PhoneMockup({
     <div
       className={`relative mx-auto w-[min(280px,78vw)] rounded-[2.1rem] border-[7px] border-[#102946] bg-[#102946] p-[3px] shadow-[0_28px_70px_rgba(11,47,99,.22)] sm:w-[300px] sm:rounded-[2.35rem] sm:border-[8px] ${className}`}
     >
-      {/* Encoche discrète — ne masque pas le contenu */}
       <div
         className="pointer-events-none absolute left-1/2 top-[10px] z-20 h-[18px] w-[72px] -translate-x-1/2 rounded-full bg-[#102946]/90"
         aria-hidden
@@ -31,75 +30,19 @@ function PhoneMockup({
   );
 }
 
-function PhoneFrame({
-  step,
-  title,
-  caption,
-  screenshotSrc,
-}: {
-  step: string;
-  title: string;
-  caption: string;
-  screenshotSrc: string;
-}) {
-  return (
-    <article className="w-[min(226px,78vw)] shrink-0 snap-center">
-      <div className="relative mx-auto aspect-[9/19] max-h-[474px] w-full overflow-hidden rounded-[2rem] border-[6px] border-[#102946] bg-[#0b1220] shadow-[0_22px_55px_rgba(11,47,99,.16)] sm:rounded-[2.25rem] sm:border-[7px]">
-        <div className="absolute left-1/2 top-0 z-20 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-[#102946]" />
-        <div className="relative h-full overflow-hidden">
-          <img
-            src={screenshotSrc}
-            alt={title}
-            className="absolute inset-0 h-full w-full object-cover object-top"
-            loading="lazy"
-            width={390}
-            height={844}
-          />
-        </div>
-      </div>
-      <div className="mt-4 flex gap-3 sm:mt-5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0b3b78] text-xs font-semibold text-white">
-          {step}
-        </span>
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-[#0b2f63]">{title}</h3>
-          <p className="mt-1 text-xs leading-relaxed text-[#617a93]">{caption}</p>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-const CLIENT_JOURNEY_SHOTS = [
+/** Remplace les faux screenshots client — parcours textuel clair */
+const CLIENT_FLOW = [
   {
-    step: '1',
-    title: 'Paiement sécurisé',
-    caption: 'Le client vérifie le service et paie via Mobile Money.',
-    src: '/assets/landing/journey/step-01-payment.png',
+    title: 'Ouvre votre lien',
+    text: 'Aucun compte à créer. Le client voit le montant et la mission.',
   },
   {
-    step: '2',
-    title: 'Validation Mobile Money',
-    caption: "L'opérateur affiche la demande USSD sécurisée.",
-    src: '/assets/landing/journey/step-02-ussd.png',
+    title: 'Paie en Mobile Money',
+    text: 'USSD sur son téléphone. Les fonds partent en escrow tout de suite.',
   },
   {
-    step: '3',
-    title: 'Code reçu sur WhatsApp',
-    caption: "Le code OTP protège l'accès au suivi.",
-    src: '/assets/landing/journey/step-03-whatsapp.png',
-  },
-  {
-    step: '4',
-    title: 'Accès au suivi',
-    caption: 'Le client saisit son code une seule fois.',
-    src: '/assets/landing/journey/step-04-otp.png',
-  },
-  {
-    step: '5',
-    title: 'Livraison validée',
-    caption: 'Après vérification, les fonds sont libérés.',
-    src: '/assets/landing/journey/step-05-tracking.png',
+    title: 'Suit et valide',
+    text: 'Code WhatsApp pour le suivi. Il confirme la livraison — vous êtes payé.',
   },
 ] as const;
 
@@ -226,24 +169,28 @@ export function LandingProductJourneySection() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold text-[#0b2f63]">Votre client paie. Vous êtes couvert.</p>
             <p className="mt-2 text-sm leading-relaxed text-[#617a93]">
-              Mobile Money, confirmation, suivi WhatsApp — jusqu&apos;à la validation de livraison.
+              Trois gestes côté client — sans inscription, jusqu&apos;à la validation de livraison.
             </p>
-            <p className="mt-2 text-xs text-[#8aa0b5] sm:hidden">Glissez pour suivre le parcours →</p>
           </div>
-          <div className="-mx-4 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-8 [scrollbar-width:thin] sm:mx-0 sm:mt-10 sm:px-0 xl:grid xl:grid-cols-5 xl:overflow-visible">
-            {CLIENT_JOURNEY_SHOTS.map((shot) => (
-              <PhoneFrame
-                key={shot.step}
-                step={shot.step}
-                title={shot.title}
-                caption={shot.caption}
-                screenshotSrc={shot.src}
-              />
+          <div className="mx-auto mt-8 grid max-w-4xl gap-3 sm:mt-10 sm:grid-cols-3 sm:gap-4">
+            {CLIENT_FLOW.map((step, i) => (
+              <article
+                key={step.title}
+                className="rounded-2xl border border-[#d5e4f4] bg-white p-5 shadow-[0_8px_30px_rgba(11,47,99,.04)]"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0b3b78] text-sm font-semibold text-white">
+                  {i + 1}
+                </span>
+                <h3 className="mt-4 text-base font-semibold text-[#0b2f63]">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#617a93]">{step.text}</p>
+              </article>
             ))}
           </div>
-          <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#6b7f93]">
-            <Clock3 className="h-4 w-4 shrink-0 text-[#178c52]" />
-            Le client peut ouvrir un litige avant la libération des fonds.
+          <p className="mt-6 text-center text-xs text-[#6b7f93]">
+            Le détail escrow (séquestre, litige, libération) est expliqué juste après →{' '}
+            <a href="#escrow" className="font-medium text-[#0b3b78] underline-offset-2 hover:underline">
+              Comment ça marche
+            </a>
           </p>
         </div>
 

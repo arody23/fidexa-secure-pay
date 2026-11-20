@@ -114,16 +114,16 @@ export function PlanCarousel({
         </div>
       )}
 
-      <div className="relative">
+      <div className="relative mx-auto w-full max-w-md">
         <button
           type="button"
           aria-label="Plan précédent"
           onClick={() => go(-1)}
           className={cn(
-            'absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border shadow-lg transition sm:-translate-x-3',
+            'absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border shadow-md transition sm:left-3 sm:h-10 sm:w-10',
             dark
-              ? 'border-white/20 bg-[#0b2f63] text-white hover:bg-[#0d3a75]'
-              : 'border-[#d7e3f0] bg-white text-[#0b3b78] hover:bg-[#f5f8fc]'
+              ? 'border-white/20 bg-[#0b2f63]/95 text-white hover:bg-[#0d3a75]'
+              : 'border-[#d7e3f0] bg-white/95 text-[#0b3b78] hover:bg-[#f5f8fc]'
           )}
         >
           <ChevronLeft className="h-5 w-5" />
@@ -133,10 +133,10 @@ export function PlanCarousel({
           aria-label="Plan suivant"
           onClick={() => go(1)}
           className={cn(
-            'absolute right-0 top-1/2 z-10 flex h-10 w-10 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border shadow-lg transition sm:translate-x-3',
+            'absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border shadow-md transition sm:right-3 sm:h-10 sm:w-10',
             dark
-              ? 'border-white/20 bg-[#0b2f63] text-white hover:bg-[#0d3a75]'
-              : 'border-[#d7e3f0] bg-white text-[#0b3b78] hover:bg-[#f5f8fc]'
+              ? 'border-white/20 bg-[#0b2f63]/95 text-white hover:bg-[#0d3a75]'
+              : 'border-[#d7e3f0] bg-white/95 text-[#0b3b78] hover:bg-[#f5f8fc]'
           )}
         >
           <ChevronRight className="h-5 w-5" />
@@ -144,7 +144,7 @@ export function PlanCarousel({
 
         <div
           className={cn(
-            'mx-auto max-w-md overflow-hidden rounded-3xl border p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] sm:p-9',
+            'w-full overflow-hidden rounded-3xl border px-5 py-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] sm:px-10 sm:py-8',
             dark
               ? 'border-white/15 bg-white/[0.07] backdrop-blur-md'
               : 'border-[#e2eaf3] bg-white'

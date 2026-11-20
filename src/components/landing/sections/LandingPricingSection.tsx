@@ -26,7 +26,7 @@ export function LandingPricingSection() {
           </p>
         </div>
 
-        <div className="mx-auto mt-12 max-w-lg">
+        <div className="mx-auto mt-12 w-full max-w-md overflow-x-clip sm:max-w-lg">
           <PlanCarousel
             variant="dark"
             initialPlanId="basique"

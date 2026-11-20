@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Headphones, Lock, Shield } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
 
@@ -31,26 +31,6 @@ export function LandingCtaSection() {
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
-
-        <div className="mt-16 border-t border-white/10 pt-8">
-          <ul className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-0">
-            {[
-              { icon: Shield, text: 'Transactions sécurisées' },
-              { icon: Lock, text: 'Fonds protégés jusqu’à validation' },
-              { icon: Headphones, text: 'Support réactif' },
-            ].map(({ icon: Icon, text }, i) => (
-              <li
-                key={text}
-                className={`flex items-center gap-2 px-5 text-xs text-white/55 sm:text-sm ${
-                  i > 0 ? 'sm:border-l sm:border-white/10' : ''
-                }`}
-              >
-                <Icon className="h-4 w-4 text-[#2BB673]" strokeWidth={1.75} />
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     </section>
   );

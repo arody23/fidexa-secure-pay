@@ -91,10 +91,6 @@ const FAQ = [
     a: `Le plan Basique est gratuit (${PLANS.basique.commission} % de commission). Essentiel (${PLANS.essentiel.priceMonthlyUsd} $/mois) et Premium (${PLANS.premium.priceMonthlyUsd} $/mois) baissent la commission et augmentent les limites. Paiement des abonnements en Mobile Money.`,
   },
   {
-    q: 'Comment payer un abonnement Essentiel ou Premium ?',
-    a: 'Depuis votre espace prestataire → Abonnement. Vous choisissez le plan, puis validez le paiement Mobile Money (USSD) sur votre téléphone. Aucune carte bancaire n’est requise.',
-  },
-  {
     q: 'Où est conservé l’argent en séquestre ?',
     a: 'Les fonds sont détenus par PawaPay, notre agrégateur de paiement agréé. FidexaPay ne conserve aucune somme : la plateforme orchestre uniquement le flux escrow, la validation et la libération vers le prestataire.',
   },
