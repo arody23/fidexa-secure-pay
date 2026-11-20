@@ -116,14 +116,19 @@ export async function activatePaidSubscription(
     .eq('id', opts.userId);
 
   if (opts.phone) {
+    const expiresLabel = new Date(periodEnd).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
     await dispatchNotificationEvent('subscription.purchased', {
       recipientPhone: opts.phone,
       idempotencyKey: `subscription.purchased:${opts.subscriptionId}`,
       variables: {
         plan_name: opts.plan,
-        cycle: opts.cycle,
+        cycle: opts.cycle === 'yearly' ? 'annuel' : 'mensuel',
         amount_usd: String(opts.amountUsd ?? planPriceUsd(opts.plan, opts.cycle)),
-        expires_at: periodEnd,
+        expires_at: expiresLabel,
       },
     });
   }

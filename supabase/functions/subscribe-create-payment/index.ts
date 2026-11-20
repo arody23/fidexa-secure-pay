@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
         status: 'pending',
         source: 'direct',
         payment_method: 'mobile_money',
+        momo_phone: predicted.phoneNumber,
         start_date: periodStart,
         end_date: periodEnd,
         period_start: periodStart,
@@ -104,11 +105,12 @@ Deno.serve(async (req) => {
       throw new Error(subErr?.message || 'Impossible de créer l’abonnement');
     }
 
+    const checkoutPage = `${origin}/abonnement/paiement/${subRow.id}`;
     const tx = await createKPayGatewayPayment({
       amount: charge.amount,
       externalId,
-      returnUrl: `${origin}/dashboard/subscriptions?sub=success&sid=${subRow.id}`,
-      cancelUrl: `${origin}/dashboard/subscriptions?sub=cancel&sid=${subRow.id}`,
+      returnUrl: `${checkoutPage}?result=success`,
+      cancelUrl: `${checkoutPage}?result=cancel`,
       description: `FidexaPay ${plan} (${cycle})`.slice(0, 500),
       provider: predicted.provider,
       phoneNumber: predicted.phoneNumber,
@@ -121,6 +123,7 @@ Deno.serve(async (req) => {
         amount_usd: String(amountUsd),
         api_amount: String(charge.amount),
         settlement_currency: charge.settlementCurrency,
+        momo_phone: predicted.phoneNumber,
       },
     });
 
@@ -132,6 +135,7 @@ Deno.serve(async (req) => {
       .from('subscriptions')
       .update({
         payment_ref: paymentRef,
+        checkout_url: checkoutUrl || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', subRow.id);
@@ -140,6 +144,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         subscriptionId: subRow.id,
+        statusPageUrl: checkoutPage,
         checkoutUrl: checkoutUrl || null,
         reference: paymentRef,
         paymentId,

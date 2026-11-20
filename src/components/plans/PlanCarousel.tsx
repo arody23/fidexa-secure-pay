@@ -33,40 +33,52 @@ const PLAN_THEME: Record<
     muted: string;
     title: string;
     feature: string;
+    savings: string;
+    iconWrap: string;
+    darkOnCard: boolean;
   }
 > = {
   basique: {
     Icon: Leaf,
-    accent: 'text-[#178c52]',
-    badge: 'bg-[#e8f8ef] text-[#178c52]',
-    card: 'border-[#cfe9db] bg-gradient-to-b from-[#f7fbf8] to-white',
-    check: 'bg-[#2bb673]',
-    price: 'text-[#0b2f63]',
-    muted: 'text-[#5c7188]',
-    title: 'text-[#0b2f63]',
-    feature: 'text-[#3d5168]',
+    accent: 'text-[#3d7a5a]',
+    badge: 'bg-[#eef6f1] text-[#3d7a5a]',
+    card: 'border-[#d8e5de] bg-gradient-to-b from-[#f7faf8] to-white',
+    check: 'bg-[#5a9a78]',
+    price: 'text-slate-900',
+    muted: 'text-slate-500',
+    title: 'text-slate-900',
+    feature: 'text-slate-600',
+    savings: 'bg-[#eef6f1] text-[#3d7a5a]',
+    iconWrap: 'bg-white shadow-sm ring-1 ring-black/5',
+    darkOnCard: false,
   },
   essentiel: {
     Icon: Sparkles,
-    accent: 'text-[#0b3b78]',
-    badge: 'bg-[#0b3b78] text-white',
-    card: 'border-[#0b3b78]/35 bg-gradient-to-b from-[#eef5ff] via-white to-white shadow-[0_20px_50px_-24px_rgba(11,59,120,.45)]',
-    check: 'bg-[#0b3b78]',
-    price: 'text-[#0b2f63]',
-    muted: 'text-[#5c7188]',
-    title: 'text-[#0b2f63]',
-    feature: 'text-[#3d5168]',
-  },
-  premium: {
-    Icon: Crown,
-    accent: 'text-[#c9a227]',
-    badge: 'bg-[#1a1520] text-[#f0d78c]',
-    card: 'border-[#2a2433] bg-gradient-to-br from-[#1a1520] via-[#241c2e] to-[#0f1624] text-white shadow-[0_24px_60px_-20px_rgba(0,0,0,.55)]',
-    check: 'bg-[#c9a227]',
+    accent: 'text-[#8eb6e8]',
+    badge: 'bg-white/15 text-white',
+    card: 'border-[#0b3b78]/40 bg-gradient-to-br from-[#0b2f63] via-[#0b3b78] to-[#082848] text-white shadow-[0_24px_60px_-28px_rgba(11,47,99,.55)]',
+    check: 'bg-[#2bb673]',
     price: 'text-white',
     muted: 'text-white/65',
     title: 'text-white',
     feature: 'text-white/85',
+    savings: 'bg-[#2bb673]/20 text-[#9de8c0]',
+    iconWrap: 'bg-white/10',
+    darkOnCard: true,
+  },
+  premium: {
+    Icon: Crown,
+    accent: 'text-[#9de8c0]',
+    badge: 'bg-[#145c3a] text-[#d8f5e6]',
+    card: 'border-[#1a5c3c]/35 bg-gradient-to-br from-[#145c3a] via-[#1a6b45] to-[#0f3d28] text-white shadow-[0_24px_60px_-24px_rgba(20,92,58,.5)]',
+    check: 'bg-[#6ce0a0]',
+    price: 'text-white',
+    muted: 'text-white/70',
+    title: 'text-white',
+    feature: 'text-white/90',
+    savings: 'bg-white/10 text-[#d8f5e6]',
+    iconWrap: 'bg-white/10',
+    darkOnCard: true,
   },
 };
 
@@ -109,6 +121,7 @@ export function PlanCarousel({
         ? 'USD / an'
         : 'USD / mois';
   const savings = yearlySavingsUsd(plan.id);
+  const onDark = theme.darkOnCard;
 
   const go = (dir: -1 | 1) => {
     setIndex((i) => (i + dir + plans.length) % plans.length);
@@ -123,7 +136,7 @@ export function PlanCarousel({
           <div
             className={cn(
               'inline-flex rounded-full p-1 text-xs font-semibold',
-              darkShell ? 'bg-white/10' : 'bg-[#eef3f9]'
+              darkShell ? 'bg-white/10' : 'bg-slate-200/70'
             )}
           >
             <button
@@ -134,10 +147,10 @@ export function PlanCarousel({
                 cycle === 'monthly'
                   ? darkShell
                     ? 'bg-[#2bb673] text-white'
-                    : 'bg-[#0b3b78] text-white'
+                    : 'bg-slate-900 text-white'
                   : darkShell
                     ? 'text-white/65'
-                    : 'text-[#5c7188]'
+                    : 'text-slate-500'
               )}
             >
               Mensuel
@@ -150,10 +163,10 @@ export function PlanCarousel({
                 cycle === 'yearly'
                   ? darkShell
                     ? 'bg-[#2bb673] text-white'
-                    : 'bg-[#0b3b78] text-white'
+                    : 'bg-slate-900 text-white'
                   : darkShell
                     ? 'text-white/65'
-                    : 'text-[#5c7188]'
+                    : 'text-slate-500'
               )}
             >
               Annuel
@@ -164,7 +177,7 @@ export function PlanCarousel({
                     ? 'bg-white/20 text-white'
                     : darkShell
                       ? 'bg-[#2bb673]/25 text-[#6ce0a0]'
-                      : 'bg-[#e8f8ef] text-[#178c52]'
+                      : 'bg-emerald-50 text-emerald-700'
                 )}
               >
                 −2 mois
@@ -183,7 +196,7 @@ export function PlanCarousel({
             'absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border shadow-md transition sm:left-3 sm:h-10 sm:w-10',
             darkShell
               ? 'border-white/20 bg-[#0b2f63]/95 text-white hover:bg-[#0d3a75]'
-              : 'border-[#d7e3f0] bg-white/95 text-[#0b3b78] hover:bg-[#f5f8fc]'
+              : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
           )}
         >
           <ChevronLeft className="h-5 w-5" />
@@ -196,7 +209,7 @@ export function PlanCarousel({
             'absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border shadow-md transition sm:right-3 sm:h-10 sm:w-10',
             darkShell
               ? 'border-white/20 bg-[#0b2f63]/95 text-white hover:bg-[#0d3a75]'
-              : 'border-[#d7e3f0] bg-white/95 text-[#0b3b78] hover:bg-[#f5f8fc]'
+              : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
           )}
         >
           <ChevronRight className="h-5 w-5" />
@@ -206,7 +219,7 @@ export function PlanCarousel({
           className={cn(
             'w-full overflow-hidden rounded-3xl border transition-colors',
             compact ? 'px-4 py-4 sm:px-8 sm:py-7' : 'px-5 py-5 sm:px-10 sm:py-8',
-            variant === 'dark' && plan.id !== 'premium'
+            variant === 'dark' && !onDark
               ? 'border-white/15 bg-white/[0.07] backdrop-blur-md'
               : theme.card
           )}
@@ -228,18 +241,21 @@ export function PlanCarousel({
                 <span
                   className={cn(
                     'flex h-8 w-8 items-center justify-center rounded-xl',
-                    plan.id === 'premium' ? 'bg-white/10' : 'bg-white shadow-sm ring-1 ring-black/5'
+                    theme.iconWrap
                   )}
                 >
                   <ThemeIcon
-                    className={cn('h-4 w-4', variant === 'dark' && plan.id !== 'premium' ? 'text-[#6ce0a0]' : theme.accent)}
+                    className={cn(
+                      'h-4 w-4',
+                      variant === 'dark' && !onDark ? 'text-[#6ce0a0]' : theme.accent
+                    )}
                     strokeWidth={1.75}
                   />
                 </span>
                 <p
                   className={cn(
                     'text-xs font-semibold uppercase tracking-[0.2em]',
-                    variant === 'dark' && plan.id !== 'premium' ? 'text-[#6ce0a0]' : theme.accent
+                    variant === 'dark' && !onDark ? 'text-[#6ce0a0]' : theme.accent
                   )}
                 >
                   {plan.name}
@@ -249,7 +265,7 @@ export function PlanCarousel({
                 className={cn(
                   'mt-2 font-semibold tracking-tight',
                   compact ? 'text-lg sm:text-2xl' : 'text-2xl',
-                  variant === 'dark' && plan.id !== 'premium' ? 'text-white' : theme.title
+                  variant === 'dark' && !onDark ? 'text-white' : theme.title
                 )}
               >
                 {plan.description}
@@ -275,7 +291,7 @@ export function PlanCarousel({
               <span
                 className={cn(
                   'mb-2 text-sm line-through opacity-50',
-                  variant === 'dark' && plan.id !== 'premium' ? 'text-white' : theme.muted
+                  variant === 'dark' && !onDark ? 'text-white' : theme.muted
                 )}
               >
                 ${savings.fullYearUsd}
@@ -285,7 +301,7 @@ export function PlanCarousel({
               className={cn(
                 'font-semibold tracking-tight',
                 compact ? 'text-4xl sm:text-5xl' : 'text-5xl sm:text-6xl',
-                variant === 'dark' && plan.id !== 'premium' ? 'text-white' : theme.price
+                variant === 'dark' && !onDark ? 'text-white' : theme.price
               )}
             >
               ${price}
@@ -293,7 +309,7 @@ export function PlanCarousel({
             <span
               className={cn(
                 'mb-1.5 text-sm',
-                variant === 'dark' && plan.id !== 'premium' ? 'text-white/55' : theme.muted
+                variant === 'dark' && !onDark ? 'text-white/55' : theme.muted
               )}
             >
               {priceSuffix}
@@ -301,19 +317,14 @@ export function PlanCarousel({
           </div>
 
           {cycle === 'yearly' && savings ? (
-            <p
-              className={cn(
-                'mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold',
-                plan.id === 'premium' ? 'bg-[#c9a227]/20 text-[#f0d78c]' : 'bg-[#e8f8ef] text-[#178c52]'
-              )}
-            >
+            <p className={cn('mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold', theme.savings)}>
               Économisez ${savings.savedUsd} · {savings.monthsFree} mois offerts
             </p>
           ) : (
             <p
               className={cn(
                 'mt-1.5 text-sm',
-                variant === 'dark' && plan.id !== 'premium' ? 'text-white/65' : theme.muted
+                variant === 'dark' && !onDark ? 'text-white/65' : theme.muted
               )}
             >
               Commission {plan.commission}&nbsp;% sur chaque transaction validée.
@@ -333,7 +344,7 @@ export function PlanCarousel({
                 key={f}
                 className={cn(
                   'flex items-start gap-2.5 text-sm',
-                  variant === 'dark' && plan.id !== 'premium' ? 'text-white/85' : theme.feature
+                  variant === 'dark' && !onDark ? 'text-white/85' : theme.feature
                 )}
               >
                 <span
@@ -342,7 +353,10 @@ export function PlanCarousel({
                     theme.check
                   )}
                 >
-                  <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                  <Check
+                    className={cn('h-3 w-3', onDark ? 'text-[#0a2418]' : 'text-white')}
+                    strokeWidth={3}
+                  />
                 </span>
                 {f}
               </li>
@@ -367,9 +381,13 @@ export function PlanCarousel({
               i === index
                 ? cn(
                     'w-7',
-                    p.id === 'premium' ? 'bg-[#c9a227]' : p.id === 'essentiel' ? 'bg-[#0b3b78]' : 'bg-[#2bb673]'
+                    p.id === 'premium'
+                      ? 'bg-[#1a6b45]'
+                      : p.id === 'essentiel'
+                        ? 'bg-[#0b3b78]'
+                        : 'bg-[#5a9a78]'
                   )
-                : cn('w-2', darkShell ? 'bg-white/30' : 'bg-[#c5d4e4]')
+                : cn('w-2', darkShell ? 'bg-white/30' : 'bg-slate-300')
             )}
           />
         ))}
@@ -377,7 +395,7 @@ export function PlanCarousel({
       <p
         className={cn(
           'mt-3 text-center text-xs',
-          darkShell ? 'text-white/45' : 'text-[#8a9bb0]'
+          darkShell ? 'text-white/45' : 'text-slate-400'
         )}
       >
         Glissez ou cliquez pour comparer les plans

@@ -17,6 +17,7 @@ import ClientOrder from "./pages/ClientOrder";
 import PaymentRedirect from "./pages/PaymentRedirect";
 import Profile from "./pages/Profile";
 import NewSubscriptions from "./pages/NewSubscriptions";
+import SubscribeCheckout from "./pages/SubscribeCheckout";
 import Withdrawal from "./pages/Withdrawal";
 import KYC from "./pages/KYC";
 import KYCSetup from "./pages/KYCSetup";
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="support" element={<Support />} />
               <Route path="feedback" element={<ProviderFeedback />} />
             </Route>
+          <Route path="/abonnement/paiement/:subscriptionId" element={<SubscribeCheckout />} />
           {/* Ancienne route /pay — page paiement client */}
           <Route path="/pay/:linkId" element={<ClientPayment />} />
           {/* Suivi commande (après paiement) */}

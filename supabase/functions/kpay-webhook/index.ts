@@ -63,6 +63,14 @@ async function handleSubscriptionPayment(
       .select('phone_number')
       .eq('id', uid)
       .maybeSingle();
+    const { data: subFull } = await supabase
+      .from('subscriptions')
+      .select('momo_phone')
+      .eq('id', sub.id)
+      .maybeSingle();
+    const notifyPhone =
+      String(metadata.momo_phone || subFull?.momo_phone || profile?.phone_number || '').trim() ||
+      null;
 
     await activatePaidSubscription(supabase, {
       subscriptionId: sub.id,
@@ -71,9 +79,9 @@ async function handleSubscriptionPayment(
       cycle: (sub.cycle === 'yearly' ? 'yearly' : cycle) as BillingCycle,
       paymentRef: reference || null,
       amountUsd: amountUsd || Number(sub.amount_usd) || 0,
-      phone: profile?.phone_number ?? null,
+      phone: notifyPhone,
     });
-    return { ok: true, activated: true };
+    return { ok: true, activated: true, notified: Boolean(notifyPhone) };
   }
 
   if (
