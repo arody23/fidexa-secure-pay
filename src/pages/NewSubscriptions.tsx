@@ -270,10 +270,12 @@ export default function NewSubscriptions() {
     : null;
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 pb-10">
+    <div className="mx-auto max-w-lg space-y-4 pb-4 sm:space-y-6 sm:pb-10">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#0b2f63]">Abonnement</h1>
-        <p className="mt-1 text-sm text-[#5c7188]">
+        <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">
+          Abonnement
+        </h1>
+        <p className="mt-1 text-xs text-[#5c7188] sm:text-sm">
           Plan actuel : <span className="font-semibold text-[#0b2f63]">{currentPlan.name}</span>
           {' · '}
           {current?.commission_rate ?? currentPlan.commission}&nbsp;% de commission
@@ -283,6 +285,7 @@ export default function NewSubscriptions() {
 
       <PlanCarousel
         variant="light"
+        compact
         currentPlanId={currentPlanId}
         billingCycle={billingCycle}
         onBillingCycleChange={setBillingCycle}
@@ -340,20 +343,23 @@ export default function NewSubscriptions() {
       />
 
       {showPaySheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4"
+          style={{ paddingBottom: 'max(1rem, calc(5.5rem + env(safe-area-inset-bottom)))' }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl sm:p-6">
             <h2 className="text-lg font-semibold text-[#0b2f63]">
               {showPaySheet.id === 'basique'
                 ? 'Activer Basique'
                 : `Payer ${showPaySheet.name}`}
             </h2>
-            <p className="mt-1 text-sm text-[#5c7188]">
-              {showPaySheet.id === 'basique'
-                ? 'Gratuit — commission 9 %. Aucun prélèvement Mobile Money.'
-                : `Paiement Mobile Money (USSD) · $${planPriceUsd(showPaySheet.id, billingCycle)} ${
-                    billingCycle === 'yearly' ? '/ an' : '/ mois'
-                  }`}
-            </p>
+            {showPaySheet.id === 'basique' ? (
+              <p className="mt-1 text-sm text-[#5c7188]">
+                Gratuit — commission 9 %. Aucun prélèvement.
+              </p>
+            ) : null}
 
             {showPaySheet.id !== 'basique' && (
               <div className="mt-4 space-y-2">
@@ -386,7 +392,7 @@ export default function NewSubscriptions() {
                   ? '…'
                   : showPaySheet.id === 'basique'
                     ? 'Confirmer'
-                    : 'Payer en Mobile Money'}
+                    : 'Payer'}
               </Button>
             </div>
           </div>

@@ -6,8 +6,11 @@ import {
   predictKPayProvider,
 } from '../_shared/kpay.ts';
 import {
+  commissionForPlan,
   normalizePlanId,
+  periodEndIso,
   planPriceUsd,
+  resolveCatalogPlanId,
   type BillingCycle,
   type PlanId,
 } from '../_shared/subscriptions.ts';
@@ -63,19 +66,36 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    const catalog = await resolveCatalogPlanId(supabase, plan as PlanId);
+    if (!catalog) {
+      throw new Error(
+        `Plan catalogue introuvable (${plan}). Vérifiez la table subscription_plans.`
+      );
+    }
+
+    const now = new Date();
+    const periodStart = now.toISOString();
+    const periodEnd = periodEndIso(cycle, now);
     const externalId = `fidexa-sub-${user.id}-${plan}-${Date.now()}`;
     const { data: subRow, error: subErr } = await supabase
       .from('subscriptions')
       .insert({
         user_id: user.id,
         provider_id: user.id,
+        plan_id: catalog.id,
+        plan_name: catalog.displayName,
         plan,
         cycle,
         amount_usd: amountUsd,
+        amount_paid: amountUsd,
+        commission_rate: commissionForPlan(plan as PlanId),
         status: 'pending',
         source: 'direct',
         payment_method: 'mobile_money',
-        period_start: new Date().toISOString(),
+        start_date: periodStart,
+        end_date: periodEnd,
+        period_start: periodStart,
+        period_end: periodEnd,
       })
       .select('id')
       .single();

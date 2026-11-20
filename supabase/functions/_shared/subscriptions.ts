@@ -42,6 +42,30 @@ export function periodEndIso(cycle: BillingCycle, from = new Date()): string {
 
 type Sb = ReturnType<typeof createClient>;
 
+/** Noms legacy dans `subscription_plans.name` */
+export function legacyPlanCatalogName(plan: PlanId): 'basic' | 'essential' | 'premium' {
+  if (plan === 'essentiel') return 'essential';
+  if (plan === 'premium') return 'premium';
+  return 'basic';
+}
+
+export async function resolveCatalogPlanId(
+  supabase: Sb,
+  plan: PlanId
+): Promise<{ id: string; displayName: string } | null> {
+  const name = legacyPlanCatalogName(plan);
+  const { data } = await supabase
+    .from('subscription_plans')
+    .select('id, display_name, name')
+    .eq('name', name)
+    .maybeSingle();
+  if (!data?.id) return null;
+  return {
+    id: String(data.id),
+    displayName: String(data.display_name || data.name || plan),
+  };
+}
+
 export async function activatePaidSubscription(
   supabase: Sb,
   opts: {

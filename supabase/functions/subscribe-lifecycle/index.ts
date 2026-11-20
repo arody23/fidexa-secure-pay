@@ -1,7 +1,14 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { dispatchNotificationEvent } from '../_shared/notifyDispatch.ts';
-import { notifySubscriptionExpired } from '../_shared/subscriptions.ts';
+import {
+  commissionForPlan,
+  normalizePlanId,
+  notifySubscriptionExpired,
+  periodEndIso,
+  resolveCatalogPlanId,
+  type PlanId,
+} from '../_shared/subscriptions.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -95,15 +102,25 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
+      const planId = normalizePlanId(profile.plan || 'essentiel');
+      const catalog = await resolveCatalogPlanId(supabase, planId as PlanId);
+      const now = new Date();
       await supabase.from('subscriptions').insert({
         user_id: user.id,
         provider_id: user.id,
-        plan: profile.plan || 'essentiel',
+        plan_id: catalog?.id ?? null,
+        plan_name: catalog?.displayName ?? planId,
+        plan: planId,
         amount_usd: sub?.amount_usd ?? 0,
+        amount_paid: 0,
+        commission_rate: commissionForPlan(planId as PlanId),
         status: 'pending',
         source: 'direct',
         payment_ref: `refund-req:${sub?.id || 'none'}:${Date.now()}`,
         payment_method: 'mobile_money',
+        start_date: now.toISOString(),
+        end_date: periodEndIso('monthly', now),
+        period_start: now.toISOString(),
       });
 
       if (profile.phone_number) {

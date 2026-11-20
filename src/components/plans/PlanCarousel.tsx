@@ -19,6 +19,8 @@ type Props = {
   renderAction?: (plan: PlanDefinition, cycle: BillingCycle) => React.ReactNode;
   /** Variante landing (fond sombre déjà fourni) ou dashboard */
   variant?: 'dark' | 'light';
+  /** Mode dashboard mobile : carte plus compacte */
+  compact?: boolean;
   className?: string;
   initialPlanId?: PlanId;
 };
@@ -30,6 +32,7 @@ export function PlanCarousel({
   onBillingCycleChange,
   renderAction,
   variant = 'dark',
+  compact = false,
   className,
   initialPlanId = 'essentiel',
 }: Props) {
@@ -67,8 +70,8 @@ export function PlanCarousel({
 
   return (
     <div className={cn('w-full', className)}>
-      {plan.priceMonthlyUsd > 0 && (
-        <div className="mb-5 flex justify-center">
+      {(plan.priceMonthlyUsd > 0 || compact) && (
+        <div className={cn('flex justify-center', compact ? 'mb-3' : 'mb-5')}>
           <div
             className={cn(
               'inline-flex rounded-full p-1 text-xs font-semibold',
@@ -144,7 +147,8 @@ export function PlanCarousel({
 
         <div
           className={cn(
-            'w-full overflow-hidden rounded-3xl border px-5 py-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] sm:px-10 sm:py-8',
+            'w-full overflow-hidden rounded-3xl border shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)]',
+            compact ? 'px-4 py-4 sm:px-8 sm:py-7' : 'px-5 py-5 sm:px-10 sm:py-8',
             dark
               ? 'border-white/15 bg-white/[0.07] backdrop-blur-md'
               : 'border-[#e2eaf3] bg-white'
@@ -162,7 +166,7 @@ export function PlanCarousel({
           }}
         >
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p
                 className={cn(
                   'text-xs font-semibold uppercase tracking-[0.2em]',
@@ -173,7 +177,8 @@ export function PlanCarousel({
               </p>
               <h3
                 className={cn(
-                  'mt-2 text-2xl font-semibold tracking-tight',
+                  'mt-1.5 font-semibold tracking-tight',
+                  compact ? 'text-lg sm:text-2xl' : 'text-2xl',
                   dark ? 'text-white' : 'text-[#0b2f63]'
                 )}
               >
@@ -201,29 +206,37 @@ export function PlanCarousel({
             ) : null}
           </div>
 
-          <div className="mt-7 flex items-end gap-2">
+          <div className={cn('flex items-end gap-2', compact ? 'mt-4' : 'mt-7')}>
             <span
               className={cn(
-                'text-5xl font-semibold tracking-tight sm:text-6xl',
+                'font-semibold tracking-tight',
+                compact ? 'text-4xl sm:text-5xl' : 'text-5xl sm:text-6xl',
                 dark ? 'text-white' : 'text-[#0b2f63]'
               )}
             >
               ${price}
             </span>
-            <span className={cn('mb-2 text-sm', dark ? 'text-white/55' : 'text-[#8a9bb0]')}>
+            <span className={cn('mb-1.5 text-sm', dark ? 'text-white/55' : 'text-[#8a9bb0]')}>
               {priceSuffix}
             </span>
           </div>
-          <p className={cn('mt-2 text-sm', dark ? 'text-white/65' : 'text-[#5c7188]')}>
+          <p className={cn('mt-1.5 text-sm', dark ? 'text-white/65' : 'text-[#5c7188]')}>
             Commission {plan.commission}&nbsp;% sur chaque transaction validée.
           </p>
 
-          <ul className="mt-7 space-y-3">
+          <ul
+            className={cn(
+              'space-y-2.5',
+              compact
+                ? 'mt-4 max-h-[28vh] overflow-y-auto pr-1 sm:max-h-none sm:overflow-visible'
+                : 'mt-7 space-y-3'
+            )}
+          >
             {plan.features.map((f) => (
               <li
                 key={f}
                 className={cn(
-                  'flex items-start gap-3 text-sm',
+                  'flex items-start gap-2.5 text-sm',
                   dark ? 'text-white/85' : 'text-[#3d5168]'
                 )}
               >
@@ -240,11 +253,13 @@ export function PlanCarousel({
             ))}
           </ul>
 
-          {renderAction ? <div className="mt-8">{renderAction(plan, cycle)}</div> : null}
+          {renderAction ? (
+            <div className={cn(compact ? 'mt-4' : 'mt-8')}>{renderAction(plan, cycle)}</div>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-5 flex items-center justify-center gap-2">
+      <div className={cn('flex items-center justify-center gap-2', compact ? 'mt-3' : 'mt-5')}>
         {plans.map((p, i) => (
           <button
             key={p.id}
