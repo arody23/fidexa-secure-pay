@@ -47,6 +47,9 @@ export type Database = {
           net_amount: number | null
           commission_amount: number | null
           commission_rate: number | null
+          plan_at_creation: string | null
+          client_fee_rate: number | null
+          client_fee_amount: number | null
           auto_release_at: string | null
           auto_validated: boolean | null
           started_at: string | null
@@ -84,6 +87,9 @@ export type Database = {
           net_amount?: number | null
           commission_amount?: number | null
           commission_rate?: number | null
+          plan_at_creation?: string | null
+          client_fee_rate?: number | null
+          client_fee_amount?: number | null
           auto_release_at?: string | null
           auto_validated?: boolean | null
           started_at?: string | null
@@ -121,6 +127,9 @@ export type Database = {
           net_amount?: number | null
           commission_amount?: number | null
           commission_rate?: number | null
+          plan_at_creation?: string | null
+          client_fee_rate?: number | null
+          client_fee_amount?: number | null
           auto_release_at?: string | null
           auto_validated?: boolean | null
           started_at?: string | null
@@ -145,6 +154,11 @@ export type Database = {
           country: string | null
           subscription_plan: string | null
           subscription_type: string | null
+          plan: string | null
+          plan_billing_cycle: string | null
+          plan_expires_at: string | null
+          plan_grace_until: string | null
+          override_max_transaction_usd: number | null
           commission_rate: number | null
           rating: number | null
           phone_number: string | null
@@ -169,6 +183,11 @@ export type Database = {
           country?: string | null
           subscription_plan?: string | null
           subscription_type?: string | null
+          plan?: string | null
+          plan_billing_cycle?: string | null
+          plan_expires_at?: string | null
+          plan_grace_until?: string | null
+          override_max_transaction_usd?: number | null
           commission_rate?: number | null
           rating?: number | null
           phone_number?: string | null
@@ -193,12 +212,65 @@ export type Database = {
           country?: string | null
           subscription_plan?: string | null
           subscription_type?: string | null
+          plan?: string | null
+          plan_billing_cycle?: string | null
+          plan_expires_at?: string | null
+          plan_grace_until?: string | null
+          override_max_transaction_usd?: number | null
           commission_rate?: number | null
           rating?: number | null
           phone_number?: string | null
           subscription_start_date?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          plan: string
+          cycle: string | null
+          amount_usd: number
+          status: string
+          payment_ref: string | null
+          paid_at: string | null
+          period_start: string | null
+          period_end: string | null
+          source: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan: string
+          cycle?: string | null
+          amount_usd?: number
+          status?: string
+          payment_ref?: string | null
+          paid_at?: string | null
+          period_start?: string | null
+          period_end?: string | null
+          source?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan?: string
+          cycle?: string | null
+          amount_usd?: number
+          status?: string
+          payment_ref?: string | null
+          paid_at?: string | null
+          period_start?: string | null
+          period_end?: string | null
+          source?: string | null
           created_at?: string
           updated_at?: string
         }
