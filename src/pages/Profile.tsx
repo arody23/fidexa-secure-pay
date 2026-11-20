@@ -12,6 +12,7 @@ import { useProvider } from '@/contexts/ProviderContext';
 import { COUNTRIES_DATA } from '@/lib/countriesData';
 import { ImageCropper } from '@/components/ImageCropper';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -39,6 +40,7 @@ export function Profile() {
     country: '',
     skills: '',
     currency: '',
+    whatsapp_marketing_opt_in: true,
   });
 
   useEffect(() => {
@@ -58,6 +60,8 @@ export function Profile() {
           country: data.country || '',
           skills: data.skills || '',
           currency: data.currency || '',
+          whatsapp_marketing_opt_in:
+            (data as { whatsapp_marketing_opt_in?: boolean }).whatsapp_marketing_opt_in !== false,
         });
       }
     } catch (err) {
@@ -145,6 +149,17 @@ export function Profile() {
       setError('');
 
       const updatedProfile = await updateUserProfile(formData);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('users')
+          .update({
+            whatsapp_marketing_opt_in: formData.whatsapp_marketing_opt_in,
+          })
+          .eq('id', user.id);
+      }
 
       if (updatedProfile) {
         setSuccess('Enregistré.');
@@ -355,6 +370,24 @@ export function Profile() {
             placeholder="Web Design, Consulting…"
           />
         </div>
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e2eaf3] bg-[#f7fafd] p-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-input"
+            checked={formData.whatsapp_marketing_opt_in}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                whatsapp_marketing_opt_in: e.target.checked,
+              }))
+            }
+          />
+          <span className="text-[#5c7188]">
+            Newsletter WhatsApp — offres, nouveautés et messages FidexaPay
+            (image, vidéo, liens).
+          </span>
+        </label>
 
         <Button
           onClick={handleSave}

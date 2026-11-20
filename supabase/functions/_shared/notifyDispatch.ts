@@ -111,6 +111,10 @@ export async function dispatchNotificationEvent(
       asString(payload.idempotencyKey) ||
       `event:${eventType}:${paymentLinkId || crypto.randomUUID()}`;
     const variables = (payload.variables as Record<string, unknown>) || {};
+    const extraMeta =
+      payload.metadata && typeof payload.metadata === 'object'
+        ? (payload.metadata as Record<string, unknown>)
+        : {};
     const jobs: unknown[] = [];
 
     if (recipientPhone) {
@@ -119,7 +123,7 @@ export async function dispatchNotificationEvent(
           eventType,
           recipientPhone,
           variables,
-          { source: 'edge', event_type: eventType },
+          { source: 'edge', event_type: eventType, ...extraMeta },
           `${keyBase}:recipient`
         )
       );

@@ -1,21 +1,52 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { getOAuthErrorMessage } from '@/lib/authErrors';
 import { DEFAULT_PLAN_ID, getCommissionRate } from '@/lib/plans';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config';
+import {
+  WORLD_DIAL_CODES,
+  composeE164,
+  countryFlagEmoji,
+  getWorldDial,
+  toNationalPhoneDigits,
+} from '@/lib/worldDialCodes';
 
 export default function SignUp() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [countryCode, setCountryCode] = useState('CD');
+  const [phoneNational, setPhoneNational] = useState('');
+  const [marketingOptIn, setMarketingOptIn] = useState(true);
+  const [countryQuery, setCountryQuery] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const dial = useMemo(() => getWorldDial(countryCode), [countryCode]);
+  const filteredCountries = useMemo(() => {
+    const q = countryQuery.trim().toLowerCase();
+    if (!q) return WORLD_DIAL_CODES;
+    return WORLD_DIAL_CODES.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        c.dial.includes(q)
+    );
+  }, [countryQuery]);
 
   async function handleGoogleAuth() {
     setError('');
@@ -44,71 +75,87 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      // Validate inputs
-      if (!fullName.trim()) {
-        setError('Le nom complet est requis');
-        setLoading(false);
-        return;
-      }
-
       if (!email.trim()) {
-        setError('L\'adresse email est requise');
-        setLoading(false);
+        setError("L'adresse email est requise");
         return;
       }
-
       if (password.length < 6) {
         setError('Le mot de passe doit contenir au moins 6 caractères');
-        setLoading(false);
+        return;
+      }
+      const phone = composeE164(dial.dial, phoneNational);
+      if (phone.replace(/\D/g, '').length < 9) {
+        setError('Indiquez un numéro WhatsApp valide');
         return;
       }
 
-      // Create auth user
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
+        options: {
+          data: {
+            country: countryCode,
+            phone_number: phone,
+            whatsapp_marketing_opt_in: marketingOptIn,
+          },
+        },
       });
 
       if (signUpError) {
-        console.error('Sign up error:', signUpError);
         setError(signUpError.message || 'Erreur lors de la création du compte');
         return;
       }
-
       if (!data?.user) {
         setError('Impossible de créer le compte');
         return;
       }
 
-      // Create user profile in users table
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert([
-          {
-            id: data.user.id,
-            email: email.trim().toLowerCase(),
-            full_name: fullName.trim(),
-            role: 'provider',
-            is_admin: false,
-            verified: false,
-            subscription_type: DEFAULT_PLAN_ID,
-            subscription_plan: DEFAULT_PLAN_ID,
-            subscription_status: 'active',
-            commission_rate: getCommissionRate(DEFAULT_PLAN_ID),
-          }
-        ]);
+      const { error: profileError } = await supabase.from('users').insert([
+        {
+          id: data.user.id,
+          email: email.trim().toLowerCase(),
+          full_name: null,
+          role: 'provider',
+          is_admin: false,
+          verified: false,
+          country: countryCode,
+          phone_number: phone,
+          whatsapp_marketing_opt_in: marketingOptIn,
+          subscription_type: DEFAULT_PLAN_ID,
+          subscription_plan: DEFAULT_PLAN_ID,
+          subscription_status: 'active',
+          commission_rate: getCommissionRate(DEFAULT_PLAN_ID),
+        },
+      ]);
 
       if (profileError) {
-        console.error('Profile creation error:', profileError);
-        // Show warning but still allow user to proceed
-        console.warn('Profil non créé, mais l\'utilisateur peut continuer');
+        console.warn('Profil non créé:', profileError.message);
       }
 
-      // Redirect to profile completion page
+      const session =
+        data.session ||
+        (await supabase.auth.getSession()).data.session;
+      if (session?.access_token) {
+        await fetch(`${SUPABASE_URL}/functions/v1/signup-welcome`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: SUPABASE_ANON_KEY ?? '',
+          },
+          body: JSON.stringify({
+            phone,
+            country: countryCode,
+            marketingOptIn,
+            origin: window.location.origin,
+          }),
+        }).catch(() => null);
+      }
+
       navigate('/dashboard/profile');
-    } catch (err: any) {
-      console.error('Sign up exception:', err);
-      setError(err?.message || 'Une erreur est survenue lors de l\'inscription');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Une erreur est survenue lors de l'inscription";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -131,21 +178,11 @@ export default function SignUp() {
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Nom Complet</label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                type="text"
-                placeholder="Jean Dupont"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input
+                id="email"
                 type="email"
-                placeholder="email@example.com"
+                placeholder="vous@exemple.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -153,8 +190,9 @@ export default function SignUp() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Mot de passe</label>
+              <Label htmlFor="password">Mot de passe</Label>
               <Input
+                id="password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
@@ -164,8 +202,77 @@ export default function SignUp() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Type de compte</label>
-              <div className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm">
+              <Label>Pays</Label>
+              <Select
+                value={countryCode}
+                onValueChange={(v) => {
+                  setCountryCode(v);
+                  setPhoneNational((prev) =>
+                    toNationalPhoneDigits(prev, getWorldDial(v).dial)
+                  );
+                }}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Choisir un pays" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <div className="sticky top-0 z-10 bg-popover p-2">
+                    <Input
+                      value={countryQuery}
+                      onChange={(e) => setCountryQuery(e.target.value)}
+                      placeholder="Rechercher un pays…"
+                      className="h-9"
+                    />
+                  </div>
+                  {filteredCountries.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      <span className="inline-flex items-center gap-2">
+                        <span aria-hidden>{countryFlagEmoji(c.code)}</span>
+                        {c.name} ({c.dial})
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Numéro WhatsApp</Label>
+              <div className="flex min-w-0 gap-2">
+                <span className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border border-input bg-muted/40 px-3 text-sm font-medium tabular-nums">
+                  <span aria-hidden>{countryFlagEmoji(countryCode)}</span>
+                  {dial.dial}
+                </span>
+                <Input
+                  id="phone"
+                  value={phoneNational}
+                  onChange={(e) =>
+                    setPhoneNational(toNationalPhoneDigits(e.target.value, dial.dial))
+                  }
+                  placeholder="Numéro local"
+                  inputMode="tel"
+                  className="h-11 min-w-0 flex-1"
+                  required
+                />
+              </div>
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-input"
+                checked={marketingOptIn}
+                onChange={(e) => setMarketingOptIn(e.target.checked)}
+              />
+              <span className="text-muted-foreground">
+                Recevoir les offres et actualités FidexaPay sur WhatsApp
+                (images, vidéos, liens — désactivable à tout moment).
+              </span>
+            </label>
+
+            <div className="space-y-2">
+              <Label>Type de compte</Label>
+              <div className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                 Prestataire
               </div>
             </div>
@@ -207,23 +314,15 @@ export default function SignUp() {
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Création en cours...' : 'Créer un compte'}
             </Button>
 
             <div className="text-center text-sm">
               <span className="text-muted-foreground">Déjà un compte ? </span>
-              <button
-                type="button"
-                onClick={() => navigate('/auth/signin')}
-                className="font-medium text-primary hover:underline"
-              >
+              <Link to="/auth/signin" className="font-medium text-primary hover:underline">
                 Se connecter
-              </button>
+              </Link>
             </div>
           </form>
         </CardContent>

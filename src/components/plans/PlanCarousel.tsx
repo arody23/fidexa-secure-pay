@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Sparkles, Crown, Leaf } from 'lucide-react';
+import { useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   getAllPlans,
@@ -14,17 +14,79 @@ type Props = {
   currentPlanId?: string | null;
   billingCycle?: BillingCycle;
   onBillingCycleChange?: (cycle: BillingCycle) => void;
-  renderAction?: (plan: PlanDefinition, cycle: BillingCycle) => React.ReactNode;
+  renderAction?: (plan: PlanDefinition, cycle: BillingCycle) => ReactNode;
   variant?: 'dark' | 'light';
   compact?: boolean;
   className?: string;
   initialPlanId?: PlanId;
 };
 
+type PlanMarkProps = { className?: string };
+
+/** Marque géométrique — plan Basique (bouclier simple). */
+function MarkBasique({ className }: PlanMarkProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 3.25 19.25 6.4v5.35c0 4.55-3.05 7.95-7.25 9.15-4.2-1.2-7.25-4.6-7.25-9.15V6.4L12 3.25Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Marque géométrique — plan Essentiel (bouclier + barre escrow). */
+function MarkEssentiel({ className }: PlanMarkProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 3.25 19.25 6.4v5.35c0 4.55-3.05 7.95-7.25 9.15-4.2-1.2-7.25-4.6-7.25-9.15V6.4L12 3.25Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.25 12h7.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Marque géométrique — plan Premium (bouclier + coche). */
+function MarkPremium({ className }: PlanMarkProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 3.25 19.25 6.4v5.35c0 4.55-3.05 7.95-7.25 9.15-4.2-1.2-7.25-4.6-7.25-9.15V6.4L12 3.25Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m8.6 12.1 2.2 2.2 4.6-4.6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const PLAN_MARK: Record<PlanId, (p: PlanMarkProps) => ReactElement> = {
+  basique: MarkBasique,
+  essentiel: MarkEssentiel,
+  premium: MarkPremium,
+};
+
 const PLAN_THEME: Record<
   PlanId,
   {
-    Icon: typeof Leaf;
     accent: string;
     badge: string;
     card: string;
@@ -39,7 +101,6 @@ const PLAN_THEME: Record<
   }
 > = {
   basique: {
-    Icon: Leaf,
     accent: 'text-[#3d7a5a]',
     badge: 'bg-[#eef6f1] text-[#3d7a5a]',
     card: 'border-[#d8e5de] bg-gradient-to-b from-[#f7faf8] to-white',
@@ -53,7 +114,6 @@ const PLAN_THEME: Record<
     darkOnCard: false,
   },
   essentiel: {
-    Icon: Sparkles,
     accent: 'text-[#8eb6e8]',
     badge: 'bg-white/15 text-white',
     card: 'border-[#0b3b78]/40 bg-gradient-to-br from-[#0b2f63] via-[#0b3b78] to-[#082848] text-white shadow-[0_24px_60px_-28px_rgba(11,47,99,.55)]',
@@ -67,7 +127,6 @@ const PLAN_THEME: Record<
     darkOnCard: true,
   },
   premium: {
-    Icon: Crown,
     accent: 'text-[#9de8c0]',
     badge: 'bg-[#145c3a] text-[#d8f5e6]',
     card: 'border-[#1a5c3c]/35 bg-gradient-to-br from-[#145c3a] via-[#1a6b45] to-[#0f3d28] text-white shadow-[0_24px_60px_-24px_rgba(20,92,58,.5)]',
@@ -82,7 +141,7 @@ const PLAN_THEME: Record<
   },
 };
 
-/** Carrousel type Meta One : un plan à la fois, styles distincts par offre. */
+/** Carrousel type Meta One : balayage, styles distincts par offre. */
 export function PlanCarousel({
   currentPlanId,
   billingCycle: controlledCycle,
@@ -100,6 +159,11 @@ export function PlanCarousel({
     return i >= 0 ? i : 1;
   });
   const [internalCycle, setInternalCycle] = useState<BillingCycle>('monthly');
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const lockAxis = useRef<'x' | 'y' | null>(null);
+
   const cycle = controlledCycle ?? internalCycle;
   const setCycle = (c: BillingCycle) => {
     onBillingCycleChange?.(c);
@@ -108,7 +172,7 @@ export function PlanCarousel({
 
   const plan = plans[index]!;
   const theme = PLAN_THEME[plan.id];
-  const ThemeIcon = theme.Icon;
+  const PlanMark = PLAN_MARK[plan.id];
   const isCurrent = plan.id === activeId;
   const price =
     cycle === 'yearly' && plan.priceYearlyUsd != null
@@ -122,12 +186,43 @@ export function PlanCarousel({
         : 'USD / mois';
   const savings = yearlySavingsUsd(plan.id);
   const onDark = theme.darkOnCard;
+  const darkShell = variant === 'dark';
 
   const go = (dir: -1 | 1) => {
     setIndex((i) => (i + dir + plans.length) % plans.length);
   };
 
-  const darkShell = variant === 'dark';
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+    lockAxis.current = null;
+    setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointerStart.current || !dragging) return;
+    const dx = e.clientX - pointerStart.current.x;
+    const dy = e.clientY - pointerStart.current.y;
+    if (!lockAxis.current) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      lockAxis.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    }
+    if (lockAxis.current !== 'x') return;
+    setDragX(Math.max(-88, Math.min(88, dx)));
+  };
+
+  const endDrag = () => {
+    if (!dragging) return;
+    if (lockAxis.current === 'x') {
+      if (dragX > 56) go(-1);
+      else if (dragX < -56) go(1);
+    }
+    pointerStart.current = null;
+    lockAxis.current = null;
+    setDragging(false);
+    setDragX(0);
+  };
 
   return (
     <div className={cn('w-full', className)}>
@@ -187,69 +282,39 @@ export function PlanCarousel({
         </div>
       )}
 
-      <div className="relative mx-auto w-full max-w-md">
-        <button
-          type="button"
-          aria-label="Plan précédent"
-          onClick={() => go(-1)}
-          className={cn(
-            'absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border shadow-md transition sm:left-3 sm:h-10 sm:w-10',
-            darkShell
-              ? 'border-white/20 bg-[#0b2f63]/95 text-white hover:bg-[#0d3a75]'
-              : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
-          )}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          aria-label="Plan suivant"
-          onClick={() => go(1)}
-          className={cn(
-            'absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border shadow-md transition sm:right-3 sm:h-10 sm:w-10',
-            darkShell
-              ? 'border-white/20 bg-[#0b2f63]/95 text-white hover:bg-[#0d3a75]'
-              : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
-          )}
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-
+      <div className="relative mx-auto w-full max-w-md touch-pan-y">
         <div
           className={cn(
-            'w-full overflow-hidden rounded-3xl border transition-colors',
+            'w-full select-none overflow-hidden rounded-3xl border transition-colors',
             compact ? 'px-4 py-4 sm:px-8 sm:py-7' : 'px-5 py-5 sm:px-10 sm:py-8',
             variant === 'dark' && !onDark
               ? 'border-white/15 bg-white/[0.07] backdrop-blur-md'
-              : theme.card
+              : theme.card,
+            dragging && lockAxis.current === 'x' ? 'cursor-grabbing' : 'cursor-grab'
           )}
-          onTouchStart={(e) => {
-            (e.currentTarget as HTMLElement & { _tx?: number })._tx = e.touches[0]?.clientX;
+          style={{
+            transform: dragX ? `translateX(${dragX * 0.22}px)` : undefined,
+            transition: dragging ? 'none' : 'transform 220ms ease',
           }}
-          onTouchEnd={(e) => {
-            const start = (e.currentTarget as HTMLElement & { _tx?: number })._tx;
-            const end = e.changedTouches[0]?.clientX;
-            if (start == null || end == null) return;
-            const dx = end - start;
-            if (dx > 48) go(-1);
-            if (dx < -48) go(1);
-          }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <span
                   className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-xl',
+                    'flex h-9 w-9 items-center justify-center rounded-xl',
                     theme.iconWrap
                   )}
                 >
-                  <ThemeIcon
+                  <PlanMark
                     className={cn(
-                      'h-4 w-4',
+                      'h-[18px] w-[18px]',
                       variant === 'dark' && !onDark ? 'text-[#6ce0a0]' : theme.accent
                     )}
-                    strokeWidth={1.75}
                   />
                 </span>
                 <p
@@ -398,7 +463,7 @@ export function PlanCarousel({
           darkShell ? 'text-white/45' : 'text-slate-400'
         )}
       >
-        Glissez ou cliquez pour comparer les plans
+        Balayez pour comparer les plans
       </p>
     </div>
   );

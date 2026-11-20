@@ -202,6 +202,11 @@ export function dialDigits(dial: string): string {
   return dial.replace(/\D/g, '');
 }
 
+export function getWorldDial(code?: string | null): WorldDialCode {
+  const c = String(code || 'CD').toUpperCase();
+  return WORLD_DIAL_CODES.find((row) => row.code === c) || WORLD_DIAL_CODES.find((row) => row.code === 'CD')!;
+}
+
 /** Retire l’indicatif (et le 0 local) pour n’afficher que le numéro national. */
 export function toNationalPhoneDigits(phone: string, dialOrPrefix: string): string {
   let d = phone.replace(/\D/g, '').replace(/^00/, '');

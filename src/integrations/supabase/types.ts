@@ -162,6 +162,7 @@ export type Database = {
           commission_rate: number | null
           rating: number | null
           phone_number: string | null
+          whatsapp_marketing_opt_in: boolean
           subscription_start_date: string | null
           subscription_end_date: string | null
           subscription_status: string | null
@@ -191,6 +192,7 @@ export type Database = {
           commission_rate?: number | null
           rating?: number | null
           phone_number?: string | null
+          whatsapp_marketing_opt_in?: boolean
           subscription_start_date?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
@@ -220,6 +222,7 @@ export type Database = {
           commission_rate?: number | null
           rating?: number | null
           phone_number?: string | null
+          whatsapp_marketing_opt_in?: boolean
           subscription_start_date?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null

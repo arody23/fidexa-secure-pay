@@ -7,7 +7,7 @@ import QRCode from 'qrcode';
 import pkg from 'whatsapp-web.js';
 import { debugLog } from '../lib/debugLog.js';
 
-const { Client, LocalAuth } = pkg;
+const { Client, LocalAuth, MessageMedia } = pkg;
 
 /** ack: -1 erreur, 0 pending, 1 serveur, 2 délivré, 3 lu */
 const ACK_SERVER = 1;
@@ -518,7 +518,12 @@ export class WhatsAppChannel {
     });
   }
 
-  async send(to, body) {
+  /**
+   * @param {string} to
+   * @param {string} body
+   * @param {{ mediaUrl?: string|null, mediaType?: string|null, buttonLabel?: string|null, buttonUrl?: string|null }} [opts]
+   */
+  async send(to, body, opts = {}) {
     if (!this.enabled) {
       return { ok: true, skipped: true, reason: 'whatsapp_disabled' };
     }
@@ -574,11 +579,22 @@ export class WhatsAppChannel {
     const sendStart = Date.now();
     let raw;
     try {
-      raw = await this.client.sendMessage(targetId, body, {
-        waitUntilMsgSent: true,
-        sendSeen: false,
-        linkPreview: false,
-      });
+      const mediaUrl = opts.mediaUrl ? String(opts.mediaUrl).trim() : '';
+      if (mediaUrl && MessageMedia) {
+        const media = await MessageMedia.fromUrl(mediaUrl, { unsafeMime: true });
+        raw = await this.client.sendMessage(targetId, media, {
+          caption: String(body).slice(0, 1024),
+          waitUntilMsgSent: true,
+          sendSeen: false,
+          linkPreview: Boolean(opts.buttonUrl),
+        });
+      } else {
+        raw = await this.client.sendMessage(targetId, body, {
+          waitUntilMsgSent: true,
+          sendSeen: false,
+          linkPreview: Boolean(opts.buttonUrl),
+        });
+      }
     } catch (err) {
       throw new Error(
         `Envoi WhatsApp impossible pour ${e164} via ${targetId}: ${

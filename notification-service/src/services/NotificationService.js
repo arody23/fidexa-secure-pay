@@ -153,11 +153,17 @@ export class NotificationService {
       ...variables,
     };
     const body = renderTemplate(template.body, enriched);
+    const meta = opts.metadata || {};
 
     try {
       const channel = this.channels[channelName];
       if (!channel) throw new Error(`Canal non supporté: ${channelName}`);
-      const result = await channel.send(recipientPhone, body);
+      const result = await channel.send(recipientPhone, body, {
+        mediaUrl: meta.media_url || meta.mediaUrl || null,
+        mediaType: meta.media_type || meta.mediaType || null,
+        buttonLabel: meta.button_label || meta.buttonLabel || null,
+        buttonUrl: meta.button_url || meta.buttonUrl || null,
+      });
       await this.log({
         event_type: eventType,
         channel: channelName,

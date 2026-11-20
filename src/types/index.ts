@@ -10,6 +10,7 @@ export interface UserProfile {
   phone_number?: string;
   country?: string;
   currency?: string;
+  whatsapp_marketing_opt_in?: boolean;
   subscription_plan: 'basique' | 'essentiel' | 'premium' | 'basic' | 'essential' | 'standard';
   commission_rate: number;
   kyc_status: 'pending' | 'verified' | 'rejected' | 'not_submitted';
