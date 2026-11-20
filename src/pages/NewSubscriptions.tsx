@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,11 +11,14 @@ import {
   getPlan,
   normalizePlanId,
   planPriceUsd,
+  yearlySavingsUsd,
   type BillingCycle,
   type PlanDefinition,
   type PlanId,
 } from '@/lib/plans';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config';
+import { getKPayCountry } from '@/lib/kpayProviders';
+import { composeE164, countryFlagEmoji, toNationalPhoneDigits } from '@/lib/worldDialCodes';
 
 interface UserPlanRow {
   plan: string | null;
@@ -36,8 +39,13 @@ export default function NewSubscriptions() {
   const [paying, setPaying] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [refunding, setRefunding] = useState(false);
-  const [momoPhone, setMomoPhone] = useState('');
+  const [momoNational, setMomoNational] = useState('');
   const [showPaySheet, setShowPaySheet] = useState<PlanDefinition | null>(null);
+
+  const providerCountry = useMemo(
+    () => getKPayCountry(current?.country || 'CD'),
+    [current?.country]
+  );
 
   useEffect(() => {
     loadData();
@@ -75,10 +83,12 @@ export default function NewSubscriptions() {
         .eq('id', user.id)
         .maybeSingle();
       if (data) {
-        setCurrent(data as UserPlanRow);
-        setMomoPhone((data.phone_number || '').replace(/\D/g, ''));
-        if (data.plan_billing_cycle === 'yearly' || data.plan_billing_cycle === 'monthly') {
-          setBillingCycle(data.plan_billing_cycle);
+        const row = data as UserPlanRow;
+        setCurrent(row);
+        const prefix = getKPayCountry(row.country || 'CD').phonePrefix;
+        setMomoNational(toNationalPhoneDigits(row.phone_number || '', prefix));
+        if (row.plan_billing_cycle === 'yearly' || row.plan_billing_cycle === 'monthly') {
+          setBillingCycle(row.plan_billing_cycle);
         }
       }
     } finally {
@@ -130,11 +140,11 @@ export default function NewSubscriptions() {
       await activateBasique();
       return;
     }
-    const phone = momoPhone.replace(/\D/g, '');
-    if (phone.length < 9) {
+    const phone = composeE164(providerCountry.phonePrefix, momoNational);
+    if (phone.replace(/\D/g, '').length < 9) {
       toast({
         title: 'Numéro Mobile Money requis',
-        description: 'Indiquez le numéro qui recevra la demande USSD.',
+        description: 'Indiquez le numéro local (sans retaper l’indicatif).',
         variant: 'destructive',
       });
       return;
@@ -205,7 +215,7 @@ export default function NewSubscriptions() {
       if (!res.ok) throw new Error(data.error || 'Annulation impossible');
       toast({
         title: 'Abonnement annulé',
-        description: data.message || 'Vous repassez sur Basique à la fin de la période en cours.',
+        description: data.message || 'Vous êtes repassé sur le plan Basique.',
       });
       await loadData();
     } catch (err) {
@@ -268,20 +278,31 @@ export default function NewSubscriptions() {
         year: 'numeric',
       })
     : null;
+  const savingsHint = yearlySavingsUsd(
+    currentPlanId === 'basique' ? 'essentiel' : currentPlanId
+  );
 
   return (
     <div className="mx-auto max-w-lg space-y-4 pb-4 sm:space-y-6 sm:pb-10">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight text-[#0b2f63] sm:text-2xl">
-          Abonnement
+      <section className="overflow-hidden rounded-3xl border border-[#d7e3f0] bg-gradient-to-br from-[#0b2f63] via-[#0b3b78] to-[#082848] p-5 text-white shadow-[0_20px_50px_-28px_rgba(11,47,99,.55)] sm:p-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6ce0a0]">
+          Espace abonnement
+        </p>
+        <h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
+          Choisissez le rythme de votre activité
         </h1>
-        <p className="mt-1 text-xs text-[#5c7188] sm:text-sm">
-          Plan actuel : <span className="font-semibold text-[#0b2f63]">{currentPlan.name}</span>
+        <p className="mt-2 text-sm text-white/70">
+          Plan actuel : <span className="font-semibold text-white">{currentPlan.name}</span>
           {' · '}
           {current?.commission_rate ?? currentPlan.commission}&nbsp;% de commission
           {expiresLabel ? ` · jusqu’au ${expiresLabel}` : ''}
         </p>
-      </div>
+        {savingsHint ? (
+          <p className="mt-3 inline-flex rounded-full bg-[#2bb673]/20 px-3 py-1 text-xs font-semibold text-[#6ce0a0]">
+            Annuel = 2 mois offerts (−${savingsHint.savedUsd})
+          </p>
+        ) : null}
+      </section>
 
       <PlanCarousel
         variant="light"
@@ -295,7 +316,7 @@ export default function NewSubscriptions() {
           const amount = planPriceUsd(plan.id, cycle);
           if (isCurrent && plan.id === 'basique') {
             return (
-              <div className="h-12 w-full rounded-xl border border-[#d7e3f0] bg-[#f7fafd] text-center text-sm font-medium leading-[3rem] text-[#5c7188]">
+              <div className="h-12 w-full rounded-xl border border-[#cfe9db] bg-[#f7fbf8] text-center text-sm font-medium leading-[3rem] text-[#178c52]">
                 Plan actuel
               </div>
             );
@@ -303,14 +324,20 @@ export default function NewSubscriptions() {
           if (isCurrent) {
             return (
               <div className="space-y-2">
-                <div className="h-12 w-full rounded-xl border border-[#d7e3f0] bg-[#f7fafd] text-center text-sm font-medium leading-[3rem] text-[#5c7188]">
+                <div
+                  className={`h-12 w-full rounded-xl text-center text-sm font-medium leading-[3rem] ${
+                    plan.id === 'premium'
+                      ? 'border border-white/15 bg-white/10 text-white/80'
+                      : 'border border-[#d7e3f0] bg-[#f7fafd] text-[#5c7188]'
+                  }`}
+                >
                   Plan actuel · ${amount}
                   {cycle === 'yearly' ? '/an' : '/mois'}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
-                    className="h-11"
+                    className={`h-11 ${plan.id === 'premium' ? 'border-white/20 bg-transparent text-white hover:bg-white/10' : ''}`}
                     disabled={canceling}
                     onClick={cancelSubscription}
                   >
@@ -318,7 +345,7 @@ export default function NewSubscriptions() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-11"
+                    className={`h-11 ${plan.id === 'premium' ? 'border-white/20 bg-transparent text-white hover:bg-white/10' : ''}`}
                     disabled={refunding}
                     onClick={requestRefund}
                   >
@@ -330,7 +357,13 @@ export default function NewSubscriptions() {
           }
           return (
             <Button
-              className="h-12 w-full rounded-xl bg-[#0b3b78] text-base font-semibold text-white hover:bg-[#0a3266]"
+              className={`h-12 w-full rounded-xl text-base font-semibold ${
+                plan.id === 'premium'
+                  ? 'bg-[#c9a227] text-[#1a1520] hover:bg-[#d4b03a]'
+                  : plan.id === 'essentiel'
+                    ? 'bg-[#0b3b78] text-white hover:bg-[#0a3266]'
+                    : 'bg-[#2bb673] text-white hover:bg-[#24a367]'
+              }`}
               size="lg"
               onClick={() => setShowPaySheet(plan)}
             >
@@ -359,18 +392,40 @@ export default function NewSubscriptions() {
               <p className="mt-1 text-sm text-[#5c7188]">
                 Gratuit — commission 9 %. Aucun prélèvement.
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-1 text-sm text-[#5c7188]">
+                ${planPriceUsd(showPaySheet.id, billingCycle)}
+                {billingCycle === 'yearly' ? ' / an' : ' / mois'}
+                {billingCycle === 'yearly' && yearlySavingsUsd(showPaySheet.id)
+                  ? ` · ${yearlySavingsUsd(showPaySheet.id)!.monthsFree} mois offerts`
+                  : ''}
+              </p>
+            )}
 
             {showPaySheet.id !== 'basique' && (
               <div className="mt-4 space-y-2">
                 <Label htmlFor="momo">Numéro Mobile Money</Label>
-                <Input
-                  id="momo"
-                  value={momoPhone}
-                  onChange={(e) => setMomoPhone(e.target.value)}
-                  placeholder="Ex. 2438…"
-                  inputMode="tel"
-                />
+                <div className="flex min-w-0 gap-2">
+                  <span className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border border-input bg-[#f6f9fd] px-3 text-sm font-medium tabular-nums text-[#0b3b78]">
+                    <span aria-hidden>{countryFlagEmoji(providerCountry.code)}</span>
+                    {providerCountry.phonePrefix}
+                  </span>
+                  <Input
+                    id="momo"
+                    value={momoNational}
+                    onChange={(e) =>
+                      setMomoNational(
+                        toNationalPhoneDigits(e.target.value, providerCountry.phonePrefix)
+                      )
+                    }
+                    placeholder="812 345 678"
+                    inputMode="tel"
+                    className="h-11 min-w-0 flex-1"
+                  />
+                </div>
+                <p className="text-[11px] text-[#8a9bb0]">
+                  Indicatif {providerCountry.name} prérempli — saisissez uniquement le numéro local.
+                </p>
               </div>
             )}
 

@@ -232,6 +232,22 @@ export function planPriceUsd(
   return plan.priceMonthlyUsd;
 }
 
+/** Annuel = 10× mensuel (2 mois offerts). */
+export function yearlySavingsUsd(planId: string | null | undefined): {
+  fullYearUsd: number;
+  yearlyUsd: number;
+  savedUsd: number;
+  monthsFree: number;
+} | null {
+  const plan = getPlan(planId);
+  if (plan.priceMonthlyUsd <= 0 || plan.priceYearlyUsd == null) return null;
+  const fullYearUsd = plan.priceMonthlyUsd * 12;
+  const yearlyUsd = plan.priceYearlyUsd;
+  const savedUsd = Math.max(0, fullYearUsd - yearlyUsd);
+  const monthsFree = plan.priceMonthlyUsd > 0 ? Math.round(savedUsd / plan.priceMonthlyUsd) : 0;
+  return { fullYearUsd, yearlyUsd, savedUsd, monthsFree };
+}
+
 /**
  * Plafond transaction effectif : override admin KYC prioritaire, sinon plafond du plan.
  */
