@@ -37,6 +37,7 @@ import AdminNotifications from "./pages/Admin/MessageTemplates";
 import AdminWhatsApp from "./pages/Admin/WhatsApp";
 import AdminFeedback from "./pages/Admin/Feedback";
 import AdminExchangeRates from "./pages/Admin/ExchangeRates";
+import AdminSubscriptions from "./pages/Admin/Subscriptions";
 import { ExchangeRatesProvider } from "./contexts/ExchangeRatesContext";
 import ProviderOrders from "./pages/ProviderOrders";
 import ProviderFeedback from "./pages/ProviderFeedback";
@@ -114,6 +115,7 @@ const App = () => (
             <Route path="support" element={<AdminSupport />} />
             <Route path="escrow" element={<AdminEscrow />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
+            <Route path="subscriptions" element={<AdminSubscriptions />} />
             <Route path="notifications" element={<AdminNotifications />} />
             <Route path="whatsapp" element={<AdminWhatsApp />} />
             <Route path="feedback" element={<AdminFeedback />} />

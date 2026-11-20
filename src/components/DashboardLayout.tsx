@@ -12,6 +12,7 @@ import {
   MessageCircle,
   PlayCircle,
   Plus,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/dashboard/withdrawal", label: "Retraits", icon: Wallet },
   { href: "/dashboard/transactions", label: "Transactions", icon: Receipt },
   { href: "/dashboard/support", label: "Support", icon: MessageCircle },
+  { href: "/dashboard/subscriptions", label: "Abonnement", icon: Crown },
   { href: "/dashboard/profile", label: "Profil", icon: User },
 ];
 

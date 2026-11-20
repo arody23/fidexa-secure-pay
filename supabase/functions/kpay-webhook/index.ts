@@ -5,8 +5,95 @@ import {
   verifyWebhookSignature,
 } from '../_shared/kpay.ts';
 import { dispatchNotificationEvent } from '../_shared/notifyDispatch.ts';
+import {
+  activatePaidSubscription,
+  normalizePlanId,
+  type BillingCycle,
+} from '../_shared/subscriptions.ts';
 
 type SupabaseClient = ReturnType<typeof createClient>;
+
+async function handleSubscriptionPayment(
+  supabase: SupabaseClient,
+  eventType: string,
+  event: Record<string, unknown>
+) {
+  const metadata = (event.metadata as Record<string, unknown>) ?? {};
+  const subscriptionId = String(metadata.subscription_id || '');
+  const reference = String(event.reference || '');
+  const status = String(event.status || '').toUpperCase();
+  const userId = String(metadata.user_id || '');
+  const plan = normalizePlanId(String(metadata.plan || 'essentiel'));
+  const cycle = (metadata.cycle === 'yearly' ? 'yearly' : 'monthly') as BillingCycle;
+  const amountUsd = Number(metadata.amount_usd || 0);
+
+  let subId = subscriptionId;
+  if (!subId && reference) {
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('id, user_id, plan, cycle, amount_usd')
+      .eq('payment_ref', reference)
+      .maybeSingle();
+    if (data) {
+      subId = data.id;
+    }
+  }
+
+  if (!subId) {
+    return { ok: true, skipped: true, reason: 'subscription_not_found' };
+  }
+
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('id, user_id, plan, cycle, amount_usd, status')
+    .eq('id', subId)
+    .maybeSingle();
+
+  if (!sub) {
+    return { ok: true, skipped: true, reason: 'subscription_row_missing' };
+  }
+
+  if (eventType === 'payment.completed' || status === 'COMPLETED') {
+    if (sub.status === 'paid') {
+      return { ok: true, already: true };
+    }
+    const uid = userId || sub.user_id;
+    const { data: profile } = await supabase
+      .from('users')
+      .select('phone_number')
+      .eq('id', uid)
+      .maybeSingle();
+
+    await activatePaidSubscription(supabase, {
+      subscriptionId: sub.id,
+      userId: uid,
+      plan: normalizePlanId(sub.plan || plan),
+      cycle: (sub.cycle === 'yearly' ? 'yearly' : cycle) as BillingCycle,
+      paymentRef: reference || null,
+      amountUsd: amountUsd || Number(sub.amount_usd) || 0,
+      phone: profile?.phone_number ?? null,
+    });
+    return { ok: true, activated: true };
+  }
+
+  if (
+    eventType === 'payment.failed' ||
+    eventType === 'payment.cancelled' ||
+    status === 'FAILED' ||
+    status === 'CANCELLED'
+  ) {
+    await supabase
+      .from('subscriptions')
+      .update({
+        status: 'failed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sub.id);
+    return { ok: true, failed: true };
+  }
+
+  return { ok: true };
+}
 
 /** Montant client-facing : toujours la devise commande, jamais le montant opérateur (ex. CDF). */
 function formatNotifyMoney(value: unknown): string {
@@ -534,6 +621,13 @@ Deno.serve(async (req) => {
     }
 
     if (eventType.startsWith('payment.')) {
+      const meta = (event.metadata as Record<string, unknown> | undefined) ?? {};
+      if (meta.type === 'subscription' || meta.subscription_id) {
+        const result = await handleSubscriptionPayment(supabase, eventType, event);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       const result = await handlePaymentEvent(supabase, eventType, event);
       return new Response(JSON.stringify(result), {
         headers: { 'Content-Type': 'application/json' },

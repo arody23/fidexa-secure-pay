@@ -72,7 +72,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   basique: {
     id: 'basique',
     name: 'Basique',
-    description: 'Pour démarrer sans abonnement',
+    description: 'Gratuit pour démarrer',
     priceMonthlyUsd: 0,
     priceYearlyUsd: null,
     commission: 9,

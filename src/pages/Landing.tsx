@@ -17,7 +17,8 @@ import {
 import { LandingUseCasesSection } from '@/components/landing/sections/LandingUseCasesSection';
 import { LandingWhySection } from '@/components/landing/sections/LandingWhySection';
 import Seo from '@/components/Seo';
-import { MVP_SUBSCRIPTION, SITE } from '@/config/site';
+import { SITE } from '@/config/site';
+import { PLANS } from '@/lib/plans';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -87,7 +88,11 @@ const FAQ = [
   },
   {
     q: 'Combien coûte FidexaPay ?',
-    a: `Le compte prestataire est gratuit. Commission ${MVP_SUBSCRIPTION.commission} % uniquement sur les transactions validées (plan Basique).`,
+    a: `Le plan Basique est gratuit (${PLANS.basique.commission} % de commission). Essentiel (${PLANS.essentiel.priceMonthlyUsd} $/mois) et Premium (${PLANS.premium.priceMonthlyUsd} $/mois) baissent la commission et augmentent les limites. Paiement des abonnements en Mobile Money.`,
+  },
+  {
+    q: 'Comment payer un abonnement Essentiel ou Premium ?',
+    a: 'Depuis votre espace prestataire → Abonnement. Vous choisissez le plan, puis validez le paiement Mobile Money (USSD) sur votre téléphone. Aucune carte bancaire n’est requise.',
   },
   {
     q: 'Où est conservé l’argent en séquestre ?',

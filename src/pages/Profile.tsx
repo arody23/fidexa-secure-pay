@@ -367,23 +367,11 @@ export function Profile() {
       </section>
 
       <div className="overflow-hidden rounded-2xl border border-[#e2eaf3] bg-white shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
-        <button
-          type="button"
-          onClick={() => navigate('/dashboard/subscriptions')}
-          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[#f7fafd]"
-        >
-          <div className="leading-none">
-            <p className="text-sm font-semibold text-[#0b2f63]">Abonnement</p>
-            <p className="mt-1 text-[11px] text-[#8a9bb0]">Plan et commission</p>
-          </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-[#0b3b78]" />
-        </button>
-
         {profile && profile.kyc_status !== 'verified' && (
           <button
             type="button"
             onClick={() => navigate('/dashboard/kyc')}
-            className="flex w-full items-center justify-between gap-3 border-t border-[#eef3f9] px-4 py-3 text-left transition-colors hover:bg-[#f7fafd]"
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[#f7fafd]"
           >
             <div className="leading-none">
               <p className="text-sm font-semibold text-[#0b2f63]">Vérification d’identité</p>
