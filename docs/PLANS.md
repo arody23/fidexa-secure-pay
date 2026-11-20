@@ -36,9 +36,11 @@ UI : libellés « Basique / Essentiel / Premium ». DB : IDs FR `basique|essenti
 
 ## Table `subscriptions` (historique)
 
-`user_id`, `plan`, `cycle`, `amount_usd`, `status` (`pending|paid|failed|expired`), `payment_ref`, `paid_at`, `period_start`, `period_end`, `source` (`direct|deducted_from_earnings`).
+Étend la table legacy déjà en prod (`provider_id`, `plan_name`, …) avec :
 
-Lecture RLS : le prestataire voit ses lignes. Écriture : service role (Edge Functions) — checkout abonnement = prompt ultérieur.
+`user_id`, `plan`, `cycle`, `amount_usd`, `status`, `payment_ref`, `paid_at`, `period_start`, `period_end`, `source` (`direct|deducted_from_earnings`).
+
+`user_id` est rétrofillé depuis `provider_id`. Lecture RLS : le prestataire voit ses lignes. Écriture : service role (Edge Functions).
 
 ## Colonnes lien (`payment_links`)
 

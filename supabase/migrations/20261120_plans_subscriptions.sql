@@ -107,27 +107,92 @@ WHERE plan = 'premium'
 
 -- ---------------------------------------------------------------------------
 -- 4) Historique abonnements
+-- Table legacy `subscriptions` (provider_id, plan_name, …) déjà en prod :
+-- on l’étend non destructivement au modèle plans (user_id, plan, cycle, …).
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  plan TEXT NOT NULL CHECK (plan IN ('basique', 'essentiel', 'premium')),
-  cycle TEXT CHECK (cycle IS NULL OR cycle IN ('monthly', 'yearly')),
-  amount_usd NUMERIC(12,2) NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending', 'paid', 'failed', 'expired')),
-  payment_ref TEXT,
-  paid_at TIMESTAMPTZ,
-  period_start TIMESTAMPTZ,
-  period_end TIMESTAMPTZ,
-  source TEXT
-    CHECK (source IS NULL OR source IN ('direct', 'deducted_from_earnings')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.subscriptions
+  ADD COLUMN IF NOT EXISTS provider_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS plan TEXT,
+  ADD COLUMN IF NOT EXISTS cycle TEXT,
+  ADD COLUMN IF NOT EXISTS amount_usd NUMERIC(12,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS payment_ref TEXT,
+  ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS period_start TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS period_end TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS source TEXT,
+  ADD COLUMN IF NOT EXISTS plan_name TEXT,
+  ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS amount_paid NUMERIC(12,2),
+  ADD COLUMN IF NOT EXISTS payment_method TEXT,
+  ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,2);
+
+-- Rétrofill depuis le schéma legacy
+UPDATE public.subscriptions
+SET user_id = COALESCE(user_id, provider_id)
+WHERE user_id IS NULL AND provider_id IS NOT NULL;
+
+UPDATE public.subscriptions
+SET plan = CASE lower(COALESCE(plan, plan_name, 'basique'))
+  WHEN 'essential' THEN 'essentiel'
+  WHEN 'essentiel' THEN 'essentiel'
+  WHEN 'standard' THEN 'premium'
+  WHEN 'premium' THEN 'premium'
+  WHEN 'basic' THEN 'basique'
+  WHEN 'basique' THEN 'basique'
+  ELSE 'basique'
+END
+WHERE plan IS NULL OR plan NOT IN ('basique', 'essentiel', 'premium');
+
+UPDATE public.subscriptions
+SET
+  amount_usd = COALESCE(amount_usd, amount_paid, 0),
+  period_start = COALESCE(period_start, start_date),
+  period_end = COALESCE(period_end, end_date)
+WHERE TRUE;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'subscriptions_plan_check'
+  ) THEN
+    ALTER TABLE public.subscriptions
+      ADD CONSTRAINT subscriptions_plan_check
+      CHECK (plan IS NULL OR plan IN ('basique', 'essentiel', 'premium'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'subscriptions_cycle_check'
+  ) THEN
+    ALTER TABLE public.subscriptions
+      ADD CONSTRAINT subscriptions_cycle_check
+      CHECK (cycle IS NULL OR cycle IN ('monthly', 'yearly'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'subscriptions_source_check'
+  ) THEN
+    ALTER TABLE public.subscriptions
+      ADD CONSTRAINT subscriptions_source_check
+      CHECK (
+        source IS NULL
+        OR source IN ('direct', 'deducted_from_earnings')
+      );
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id
   ON public.subscriptions (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_provider_id
+  ON public.subscriptions (provider_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status
   ON public.subscriptions (status);
 
@@ -138,9 +203,8 @@ CREATE POLICY subscriptions_select_own
   ON public.subscriptions
   FOR SELECT
   TO authenticated
-  USING (auth.uid() = user_id);
+  USING (auth.uid() = COALESCE(user_id, provider_id));
 
-DROP POLICY IF EXISTS subscriptions_service_all ON public.subscriptions;
 -- Pas de INSERT/UPDATE client direct : Edge Functions (service role) uniquement.
 
 -- ---------------------------------------------------------------------------

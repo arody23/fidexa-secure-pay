@@ -231,46 +231,67 @@ export type Database = {
       subscriptions: {
         Row: {
           id: string
-          user_id: string
-          plan: string
+          user_id: string | null
+          provider_id: string | null
+          plan: string | null
+          plan_name: string | null
           cycle: string | null
-          amount_usd: number
-          status: string
+          amount_usd: number | null
+          amount_paid: number | null
+          status: string | null
           payment_ref: string | null
+          payment_method: string | null
           paid_at: string | null
           period_start: string | null
           period_end: string | null
+          start_date: string | null
+          end_date: string | null
           source: string | null
+          commission_rate: number | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          user_id: string
-          plan: string
+          user_id?: string | null
+          provider_id?: string | null
+          plan?: string | null
+          plan_name?: string | null
           cycle?: string | null
-          amount_usd?: number
-          status?: string
+          amount_usd?: number | null
+          amount_paid?: number | null
+          status?: string | null
           payment_ref?: string | null
+          payment_method?: string | null
           paid_at?: string | null
           period_start?: string | null
           period_end?: string | null
+          start_date?: string | null
+          end_date?: string | null
           source?: string | null
+          commission_rate?: number | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          user_id?: string
-          plan?: string
+          user_id?: string | null
+          provider_id?: string | null
+          plan?: string | null
+          plan_name?: string | null
           cycle?: string | null
-          amount_usd?: number
-          status?: string
+          amount_usd?: number | null
+          amount_paid?: number | null
+          status?: string | null
           payment_ref?: string | null
+          payment_method?: string | null
           paid_at?: string | null
           period_start?: string | null
           period_end?: string | null
+          start_date?: string | null
+          end_date?: string | null
           source?: string | null
+          commission_rate?: number | null
           created_at?: string
           updated_at?: string
         }
