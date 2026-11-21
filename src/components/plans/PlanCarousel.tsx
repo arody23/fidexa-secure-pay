@@ -163,6 +163,8 @@ export function PlanCarousel({
   const [dragging, setDragging] = useState(false);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const lockAxis = useRef<'x' | 'y' | null>(null);
+  const dragXRef = useRef(0);
+  const draggingRef = useRef(false);
 
   const cycle = controlledCycle ?? internalCycle;
   const setCycle = (c: BillingCycle) => {
@@ -192,36 +194,73 @@ export function PlanCarousel({
     setIndex((i) => (i + dir + plans.length) % plans.length);
   };
 
+  const resetDrag = () => {
+    pointerStart.current = null;
+    lockAxis.current = null;
+    draggingRef.current = false;
+    dragXRef.current = 0;
+    setDragging(false);
+    setDragX(0);
+  };
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('button, a, input, textarea, select, label')) return;
     pointerStart.current = { x: e.clientX, y: e.clientY };
     lockAxis.current = null;
+    draggingRef.current = true;
+    dragXRef.current = 0;
     setDragging(true);
-    e.currentTarget.setPointerCapture(e.pointerId);
+    setDragX(0);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!pointerStart.current || !dragging) return;
+    if (!pointerStart.current || !draggingRef.current) return;
     const dx = e.clientX - pointerStart.current.x;
     const dy = e.clientY - pointerStart.current.y;
     if (!lockAxis.current) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      lockAxis.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      lockAxis.current = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+      if (lockAxis.current === 'y') {
+        // Laisse le scroll vertical natif
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+        resetDrag();
+        return;
+      }
     }
     if (lockAxis.current !== 'x') return;
-    setDragX(Math.max(-88, Math.min(88, dx)));
+    e.preventDefault();
+    const next = Math.max(-120, Math.min(120, dx));
+    dragXRef.current = next;
+    setDragX(next);
   };
 
-  const endDrag = () => {
-    if (!dragging) return;
-    if (lockAxis.current === 'x') {
-      if (dragX > 56) go(-1);
-      else if (dragX < -56) go(1);
+  const endDrag = (e?: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    const dx = dragXRef.current;
+    const axis = lockAxis.current;
+    if (e) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
-    pointerStart.current = null;
-    lockAxis.current = null;
-    setDragging(false);
-    setDragX(0);
+    if (axis === 'x') {
+      if (dx > 48) go(-1);
+      else if (dx < -48) go(1);
+    }
+    resetDrag();
   };
 
   return (
@@ -282,19 +321,20 @@ export function PlanCarousel({
         </div>
       )}
 
-      <div className="relative mx-auto w-full max-w-md touch-pan-y">
+      <div className="relative mx-auto w-full max-w-md">
         <div
           className={cn(
-            'w-full select-none overflow-hidden rounded-3xl border transition-colors',
+            'w-full select-none overflow-hidden rounded-3xl border transition-colors touch-pan-y',
             compact ? 'px-4 py-4 sm:px-8 sm:py-7' : 'px-5 py-5 sm:px-10 sm:py-8',
             variant === 'dark' && !onDark
               ? 'border-white/15 bg-white/[0.07] backdrop-blur-md'
               : theme.card,
-            dragging && lockAxis.current === 'x' ? 'cursor-grabbing' : 'cursor-grab'
+            dragging ? 'cursor-grabbing' : 'cursor-grab'
           )}
           style={{
-            transform: dragX ? `translateX(${dragX * 0.22}px)` : undefined,
+            transform: dragX ? `translate3d(${dragX * 0.28}px, 0, 0)` : undefined,
             transition: dragging ? 'none' : 'transform 220ms ease',
+            touchAction: 'pan-y',
           }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
