@@ -180,6 +180,65 @@ export async function buildKPayProviderAmount(
  * Montant pour l'API KPay (GATEWAY / withdraw).
  * KPay déduit la devise du provider ; zone CFA → montant entier XAF/XOF 1:1.
  */
+/**
+ * Convertit un montant USD vers la devise opérateur via les taux admin (`exchange_rates`).
+ * Utilisé pour les abonnements MoMo (pas le taux figé XAF=600).
+ */
+export async function buildKPayAmountFromAdminRates(
+  supabase: ReturnType<typeof createClient>,
+  amountUsd: number,
+  settlementCurrency: string,
+  opts?: { minAmount?: number }
+): Promise<{
+  amount: number;
+  settlementCurrency: string;
+  originalAmount: number;
+  originalCurrency: 'USD';
+  conversionMode: 'admin-rate';
+  unitsPerUsd: number;
+}> {
+  const n = Number(amountUsd);
+  const minAmount = opts?.minAmount ?? 50;
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`Montant invalide pour KPay: ${amountUsd}`);
+  }
+
+  let settle = String(settlementCurrency || 'XAF').toUpperCase();
+  if (settle === 'FCFA') settle = 'XAF';
+
+  const candidates =
+    settle === 'XAF' || settle === 'XOF'
+      ? [settle, 'FCFA', settle === 'XAF' ? 'XOF' : 'XAF']
+      : [settle];
+
+  let units = UNITS_PER_USD[settle] ?? UNITS_PER_USD.XAF;
+  const { data: rows } = await supabase
+    .from('exchange_rates')
+    .select('currency, units_per_usd')
+    .in('currency', candidates);
+
+  for (const code of candidates) {
+    const row = (rows || []).find(
+      (r) => String(r.currency).toUpperCase() === code
+    );
+    const v = Number(row?.units_per_usd);
+    if (Number.isFinite(v) && v > 0) {
+      units = v;
+      break;
+    }
+  }
+
+  const localAmount = Math.max(minAmount, Math.round(n * units));
+  return {
+    amount: localAmount,
+    settlementCurrency: settle,
+    originalAmount: n,
+    originalCurrency: 'USD',
+    conversionMode: 'admin-rate',
+    unitsPerUsd: units,
+  };
+}
+
 export function buildKPayAmount(
   amount: number,
   currency?: string | null,

@@ -1,8 +1,9 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
-  buildKPayAmount,
+  buildKPayAmountFromAdminRates,
   corsHeaders,
   createKPayGatewayPayment,
+  currencyForKPayProvider,
   predictKPayProvider,
 } from '../_shared/kpay.ts';
 import {
@@ -59,11 +60,17 @@ Deno.serve(async (req) => {
     }
 
     const amountUsd = planPriceUsd(plan as PlanId, cycle);
-    const charge = buildKPayAmount(amountUsd, 'USD', { minAmount: 50 });
     const predicted = await predictKPayProvider(phoneNumber);
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+    const settlementCurrency = currencyForKPayProvider(predicted.provider);
+    const charge = await buildKPayAmountFromAdminRates(
+      supabase,
+      amountUsd,
+      settlementCurrency,
+      { minAmount: 50 }
     );
 
     const catalog = await resolveCatalogPlanId(supabase, plan as PlanId);
@@ -123,6 +130,8 @@ Deno.serve(async (req) => {
         amount_usd: String(amountUsd),
         api_amount: String(charge.amount),
         settlement_currency: charge.settlementCurrency,
+        units_per_usd: String(charge.unitsPerUsd),
+        conversion_mode: charge.conversionMode,
         momo_phone: predicted.phoneNumber,
       },
     });

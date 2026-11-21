@@ -10,8 +10,6 @@ import {
   AlertCircle,
   Bell,
   Shield,
-  FileText,
-  Cookie,
   Trash2,
   LifeBuoy,
   ChevronRight,
@@ -22,9 +20,8 @@ import { loadUserProfile, updateUserProfile, uploadUserAvatar } from '@/lib/user
 import { useProvider } from '@/contexts/ProviderContext';
 import { COUNTRIES_DATA } from '@/lib/countriesData';
 import { ImageCropper } from '@/components/ImageCropper';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { SITE } from '@/config/site';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -436,39 +433,6 @@ export function Profile() {
           </div>
           <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
         </button>
-
-        <Link
-          to={SITE.legal.privacy}
-          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 transition-colors hover:bg-[#f7fafd]"
-        >
-          <div className="flex items-center gap-3">
-            <Shield className="h-4 w-4 text-[#0b3b78]" />
-            <p className="text-sm font-semibold text-[#0b2f63]">Confidentialité</p>
-          </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
-        </Link>
-
-        <Link
-          to={SITE.legal.terms}
-          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 transition-colors hover:bg-[#f7fafd]"
-        >
-          <div className="flex items-center gap-3">
-            <FileText className="h-4 w-4 text-[#0b3b78]" />
-            <p className="text-sm font-semibold text-[#0b2f63]">Conditions d’utilisation</p>
-          </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
-        </Link>
-
-        <Link
-          to={SITE.legal.cookies}
-          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 transition-colors hover:bg-[#f7fafd]"
-        >
-          <div className="flex items-center gap-3">
-            <Cookie className="h-4 w-4 text-[#0b3b78]" />
-            <p className="text-sm font-semibold text-[#0b2f63]">Cookies</p>
-          </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
-        </Link>
 
         <button
           type="button"
