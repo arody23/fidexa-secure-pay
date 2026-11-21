@@ -17,6 +17,7 @@ import AuthLayout from '@/components/layout/AuthLayout';
 import { getOAuthErrorMessage } from '@/lib/authErrors';
 import { DEFAULT_PLAN_ID, getCommissionRate } from '@/lib/plans';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config';
+import { COVERAGE_COUNTRIES } from '@/lib/kpayProviders';
 import {
   WORLD_DIAL_CODES,
   composeE164,
@@ -29,16 +30,18 @@ export default function SignUp() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [countryCode, setCountryCode] = useState('CD');
+  /** Pays d’activité Fidexa (couverture uniquement). */
+  const [businessCountry, setBusinessCountry] = useState('CD');
+  /** Indicatif WhatsApp (tous pays). */
+  const [dialCountry, setDialCountry] = useState('CD');
   const [phoneNational, setPhoneNational] = useState('');
-  const [marketingOptIn, setMarketingOptIn] = useState(true);
-  const [countryQuery, setCountryQuery] = useState('');
+  const [dialQuery, setDialQuery] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const dial = useMemo(() => getWorldDial(countryCode), [countryCode]);
-  const filteredCountries = useMemo(() => {
-    const q = countryQuery.trim().toLowerCase();
+  const dial = useMemo(() => getWorldDial(dialCountry), [dialCountry]);
+  const filteredDials = useMemo(() => {
+    const q = dialQuery.trim().toLowerCase();
     if (!q) return WORLD_DIAL_CODES;
     return WORLD_DIAL_CODES.filter(
       (c) =>
@@ -46,7 +49,7 @@ export default function SignUp() {
         c.code.toLowerCase().includes(q) ||
         c.dial.includes(q)
     );
-  }, [countryQuery]);
+  }, [dialQuery]);
 
   async function handleGoogleAuth() {
     setError('');
@@ -94,9 +97,9 @@ export default function SignUp() {
         password,
         options: {
           data: {
-            country: countryCode,
+            country: businessCountry,
             phone_number: phone,
-            whatsapp_marketing_opt_in: marketingOptIn,
+            whatsapp_marketing_opt_in: true,
           },
         },
       });
@@ -118,9 +121,9 @@ export default function SignUp() {
           role: 'provider',
           is_admin: false,
           verified: false,
-          country: countryCode,
+          country: businessCountry,
           phone_number: phone,
-          whatsapp_marketing_opt_in: marketingOptIn,
+          whatsapp_marketing_opt_in: true,
           subscription_type: DEFAULT_PLAN_ID,
           subscription_plan: DEFAULT_PLAN_ID,
           subscription_status: 'active',
@@ -132,9 +135,7 @@ export default function SignUp() {
         console.warn('Profil non créé:', profileError.message);
       }
 
-      const session =
-        data.session ||
-        (await supabase.auth.getSession()).data.session;
+      const session = data.session || (await supabase.auth.getSession()).data.session;
       if (session?.access_token) {
         await fetch(`${SUPABASE_URL}/functions/v1/signup-welcome`, {
           method: 'POST',
@@ -145,8 +146,8 @@ export default function SignUp() {
           },
           body: JSON.stringify({
             phone,
-            country: countryCode,
-            marketingOptIn,
+            country: businessCountry,
+            marketingOptIn: true,
             origin: window.location.origin,
           }),
         }).catch(() => null);
@@ -154,7 +155,8 @@ export default function SignUp() {
 
       navigate('/dashboard/profile');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Une erreur est survenue lors de l'inscription";
+      const message =
+        err instanceof Error ? err.message : "Une erreur est survenue lors de l'inscription";
       setError(message);
     } finally {
       setLoading(false);
@@ -202,33 +204,29 @@ export default function SignUp() {
             </div>
 
             <div className="space-y-2">
-              <Label>Pays</Label>
+              <Label>Pays d’activité</Label>
               <Select
-                value={countryCode}
+                value={businessCountry}
                 onValueChange={(v) => {
-                  setCountryCode(v);
-                  setPhoneNational((prev) =>
-                    toNationalPhoneDigits(prev, getWorldDial(v).dial)
-                  );
+                  setBusinessCountry(v);
+                  const covered = COVERAGE_COUNTRIES.find((c) => c.code === v);
+                  if (covered) {
+                    setDialCountry(v);
+                    setPhoneNational((prev) =>
+                      toNationalPhoneDigits(prev, covered.phonePrefix)
+                    );
+                  }
                 }}
               >
                 <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Choisir un pays" />
+                  <SelectValue placeholder="Pays couvert" />
                 </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  <div className="sticky top-0 z-10 bg-popover p-2">
-                    <Input
-                      value={countryQuery}
-                      onChange={(e) => setCountryQuery(e.target.value)}
-                      placeholder="Rechercher un pays…"
-                      className="h-9"
-                    />
-                  </div>
-                  {filteredCountries.map((c) => (
+                <SelectContent>
+                  {COVERAGE_COUNTRIES.map((c) => (
                     <SelectItem key={c.code} value={c.code}>
                       <span className="inline-flex items-center gap-2">
                         <span aria-hidden>{countryFlagEmoji(c.code)}</span>
-                        {c.name} ({c.dial})
+                        {c.name}
                       </span>
                     </SelectItem>
                   ))}
@@ -239,36 +237,52 @@ export default function SignUp() {
             <div className="space-y-2">
               <Label htmlFor="phone">Numéro WhatsApp</Label>
               <div className="flex min-w-0 gap-2">
-                <span className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border border-input bg-muted/40 px-3 text-sm font-medium tabular-nums">
-                  <span aria-hidden>{countryFlagEmoji(countryCode)}</span>
-                  {dial.dial}
-                </span>
+                <Select
+                  value={dialCountry}
+                  onValueChange={(v) => {
+                    setDialCountry(v);
+                    setPhoneNational((prev) =>
+                      toNationalPhoneDigits(prev, getWorldDial(v).dial)
+                    );
+                  }}
+                >
+                  <SelectTrigger className="h-11 w-[7.5rem] shrink-0 gap-1 px-2.5 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                    <span className="inline-flex min-w-0 items-center gap-1 text-sm font-medium tabular-nums">
+                      <span aria-hidden>{countryFlagEmoji(dialCountry)}</span>
+                      {dial.dial}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72 w-[min(100vw-2rem,20rem)]">
+                    <div className="sticky top-0 z-10 bg-popover p-2">
+                      <Input
+                        value={dialQuery}
+                        onChange={(e) => setDialQuery(e.target.value)}
+                        placeholder="Rechercher…"
+                        className="h-9"
+                      />
+                    </div>
+                    {filteredDials.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        <span className="inline-flex items-center gap-2">
+                          <span aria-hidden>{countryFlagEmoji(c.code)}</span>
+                          {c.name} ({c.dial})
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   id="phone"
                   value={phoneNational}
                   onChange={(e) =>
                     setPhoneNational(toNationalPhoneDigits(e.target.value, dial.dial))
                   }
-                  placeholder="Numéro local"
                   inputMode="tel"
                   className="h-11 min-w-0 flex-1"
                   required
                 />
               </div>
             </div>
-
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-input"
-                checked={marketingOptIn}
-                onChange={(e) => setMarketingOptIn(e.target.checked)}
-              />
-              <span className="text-muted-foreground">
-                Recevoir les offres et actualités FidexaPay sur WhatsApp
-                (images, vidéos, liens — désactivable à tout moment).
-              </span>
-            </label>
 
             <div className="space-y-2">
               <Label>Type de compte</Label>

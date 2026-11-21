@@ -4,15 +4,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Save, AlertCircle, ArrowRight } from 'lucide-react';
+import {
+  Camera,
+  Save,
+  AlertCircle,
+  Bell,
+  Shield,
+  FileText,
+  Cookie,
+  Trash2,
+  LifeBuoy,
+  ChevronRight,
+} from 'lucide-react';
 import { VerifiedBadge } from '@/components/brand/VerifiedBadge';
 import { UserProfile } from '@/types/index';
 import { loadUserProfile, updateUserProfile, uploadUserAvatar } from '@/lib/userService';
 import { useProvider } from '@/contexts/ProviderContext';
 import { COUNTRIES_DATA } from '@/lib/countriesData';
 import { ImageCropper } from '@/components/ImageCropper';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { SITE } from '@/config/site';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -32,6 +54,12 @@ export function Profile() {
   const [uploading, setUploading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [showCropper, setShowCropper] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [waMarketing, setWaMarketing] = useState(true);
+  const [savingNotif, setSavingNotif] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -40,7 +68,6 @@ export function Profile() {
     country: '',
     skills: '',
     currency: '',
-    whatsapp_marketing_opt_in: true,
   });
 
   useEffect(() => {
@@ -60,9 +87,10 @@ export function Profile() {
           country: data.country || '',
           skills: data.skills || '',
           currency: data.currency || '',
-          whatsapp_marketing_opt_in:
-            (data as { whatsapp_marketing_opt_in?: boolean }).whatsapp_marketing_opt_in !== false,
         });
+        setWaMarketing(
+          (data as { whatsapp_marketing_opt_in?: boolean }).whatsapp_marketing_opt_in !== false
+        );
       }
     } catch (err) {
       console.error('Error loading profile:', err);
@@ -149,17 +177,6 @@ export function Profile() {
       setError('');
 
       const updatedProfile = await updateUserProfile(formData);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('users')
-          .update({
-            whatsapp_marketing_opt_in: formData.whatsapp_marketing_opt_in,
-          })
-          .eq('id', user.id);
-      }
 
       if (updatedProfile) {
         setSuccess('Enregistré.');
@@ -371,24 +388,6 @@ export function Profile() {
           />
         </div>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e2eaf3] bg-[#f7fafd] p-3 text-sm">
-          <input
-            type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded border-input"
-            checked={formData.whatsapp_marketing_opt_in}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                whatsapp_marketing_opt_in: e.target.checked,
-              }))
-            }
-          />
-          <span className="text-[#5c7188]">
-            Newsletter WhatsApp — offres, nouveautés et messages FidexaPay
-            (image, vidéo, liens).
-          </span>
-        </label>
-
         <Button
           onClick={handleSave}
           disabled={saving}
@@ -404,22 +403,209 @@ export function Profile() {
           <button
             type="button"
             onClick={() => navigate('/dashboard/kyc')}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[#f7fafd]"
+            className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 text-left transition-colors hover:bg-[#f7fafd]"
           >
-            <div className="leading-none">
-              <p className="text-sm font-semibold text-[#0b2f63]">Vérification d’identité</p>
-              <p className="mt-1 text-[11px] text-[#8a9bb0]">
-                {profile.kyc_status === 'pending'
-                  ? 'En cours d’examen'
-                  : profile.kyc_status === 'rejected'
-                    ? 'Nouvelle soumission'
-                    : 'Requis pour les retraits'}
-              </p>
+            <div className="flex items-center gap-3">
+              <Shield className="h-4 w-4 text-[#0b3b78]" />
+              <div className="leading-none">
+                <p className="text-sm font-semibold text-[#0b2f63]">Vérification d’identité</p>
+                <p className="mt-1 text-[11px] text-[#8a9bb0]">
+                  {profile.kyc_status === 'pending'
+                    ? 'En cours d’examen'
+                    : profile.kyc_status === 'rejected'
+                      ? 'Nouvelle soumission'
+                      : 'Requis pour les retraits'}
+                </p>
+              </div>
             </div>
-            <ArrowRight className="h-4 w-4 shrink-0 text-[#0b3b78]" />
+            <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={() => setNotifOpen(true)}
+          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 text-left transition-colors hover:bg-[#f7fafd]"
+        >
+          <div className="flex items-center gap-3">
+            <Bell className="h-4 w-4 text-[#0b3b78]" />
+            <div>
+              <p className="text-sm font-semibold text-[#0b2f63]">Notifications</p>
+              <p className="mt-0.5 text-[11px] text-[#8a9bb0]">WhatsApp, offres, alertes</p>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
+        </button>
+
+        <Link
+          to={SITE.legal.privacy}
+          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 transition-colors hover:bg-[#f7fafd]"
+        >
+          <div className="flex items-center gap-3">
+            <Shield className="h-4 w-4 text-[#0b3b78]" />
+            <p className="text-sm font-semibold text-[#0b2f63]">Confidentialité</p>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
+        </Link>
+
+        <Link
+          to={SITE.legal.terms}
+          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 transition-colors hover:bg-[#f7fafd]"
+        >
+          <div className="flex items-center gap-3">
+            <FileText className="h-4 w-4 text-[#0b3b78]" />
+            <p className="text-sm font-semibold text-[#0b2f63]">Conditions d’utilisation</p>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
+        </Link>
+
+        <Link
+          to={SITE.legal.cookies}
+          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 transition-colors hover:bg-[#f7fafd]"
+        >
+          <div className="flex items-center gap-3">
+            <Cookie className="h-4 w-4 text-[#0b3b78]" />
+            <p className="text-sm font-semibold text-[#0b2f63]">Cookies</p>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => navigate('/dashboard/support')}
+          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 text-left transition-colors hover:bg-[#f7fafd]"
+        >
+          <div className="flex items-center gap-3">
+            <LifeBuoy className="h-4 w-4 text-[#0b3b78]" />
+            <p className="text-sm font-semibold text-[#0b2f63]">Aide & support</p>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setDeleteConfirm('');
+            setDeleteOpen(true);
+          }}
+          className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-rose-50"
+        >
+          <div className="flex items-center gap-3">
+            <Trash2 className="h-4 w-4 text-rose-600" />
+            <p className="text-sm font-semibold text-rose-700">Supprimer mon compte</p>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-rose-400" />
+        </button>
       </div>
+
+      <Dialog open={notifOpen} onOpenChange={setNotifOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Notifications</DialogTitle>
+            <DialogDescription>
+              Gérez les messages WhatsApp FidexaPay. Activé automatiquement à l’inscription.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-[#e2eaf3] px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-[#0b2f63]">Newsletter WhatsApp</p>
+              <p className="mt-0.5 text-xs text-[#8a9bb0]">
+                Offres, nouveautés, images et liens
+              </p>
+            </div>
+            <Switch
+              checked={waMarketing}
+              disabled={savingNotif}
+              onCheckedChange={async (checked) => {
+                setWaMarketing(checked);
+                setSavingNotif(true);
+                try {
+                  const {
+                    data: { user },
+                  } = await supabase.auth.getUser();
+                  if (!user) return;
+                  await supabase
+                    .from('users')
+                    .update({ whatsapp_marketing_opt_in: checked })
+                    .eq('id', user.id);
+                  setSuccess(checked ? 'Newsletter activée.' : 'Newsletter désactivée.');
+                  setTimeout(() => setSuccess(''), 3000);
+                } catch {
+                  setWaMarketing(!checked);
+                  setError('Impossible de mettre à jour.');
+                } finally {
+                  setSavingNotif(false);
+                }
+              }}
+            />
+          </div>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setNotifOpen(false);
+              navigate('/dashboard/notifications');
+            }}
+          >
+            Voir mes notifications
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Supprimer mon compte</DialogTitle>
+            <DialogDescription>
+              Action définitive. Tapez <strong>SUPPRIMER</strong> pour confirmer.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder="SUPPRIMER"
+            className="h-11"
+          />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting || deleteConfirm.trim().toUpperCase() !== 'SUPPRIMER'}
+              onClick={async () => {
+                try {
+                  setDeleting(true);
+                  const {
+                    data: { session },
+                  } = await supabase.auth.getSession();
+                  if (!session?.access_token) throw new Error('Session expirée');
+                  const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${session.access_token}`,
+                      apikey: SUPABASE_ANON_KEY ?? '',
+                    },
+                    body: JSON.stringify({ confirm: 'SUPPRIMER' }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'Suppression impossible');
+                  await supabase.auth.signOut();
+                  navigate('/auth/signin');
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Suppression impossible');
+                  setDeleteOpen(false);
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? 'Suppression…' : 'Supprimer définitivement'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {imageToCrop && (
         <ImageCropper
