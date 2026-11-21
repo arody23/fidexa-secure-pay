@@ -259,11 +259,8 @@ export default function SignUp() {
                     );
                   }}
                 >
-                  <SelectTrigger className="h-11 w-[7.75rem] shrink-0 gap-1.5 px-2.5 [&>svg]:h-3.5 [&>svg]:w-3.5">
-                    <span className="inline-flex min-w-0 items-center gap-1.5 text-sm font-medium tabular-nums">
-                      <FlagImg code={dialCountry} />
-                      {dial.dial}
-                    </span>
+                  <SelectTrigger className="h-11 w-[5.75rem] shrink-0 px-2.5 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                    <span className="text-sm font-medium tabular-nums">{dial.dial}</span>
                   </SelectTrigger>
                   <SelectContent className="max-h-72 w-[min(100vw-2rem,20rem)]">
                     <div className="sticky top-0 z-10 bg-popover p-2">
