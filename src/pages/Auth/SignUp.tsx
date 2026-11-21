@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { getOAuthErrorMessage } from '@/lib/authErrors';
 import { DEFAULT_PLAN_ID, getCommissionRate } from '@/lib/plans';
@@ -25,6 +25,7 @@ import {
   getWorldDial,
   toNationalPhoneDigits,
 } from '@/lib/worldDialCodes';
+import { cn } from '@/lib/utils';
 
 function FlagImg({ code, className }: { code: string; className?: string }) {
   return (
@@ -39,10 +40,43 @@ function FlagImg({ code, className }: { code: string; className?: string }) {
   );
 }
 
+type StrengthLevel = {
+  score: 0 | 1 | 2 | 3 | 4;
+  label: string;
+  barClass: string;
+  textClass: string;
+};
+
+function getPasswordStrength(password: string): StrengthLevel {
+  if (!password) {
+    return { score: 0, label: '', barClass: 'bg-muted', textClass: 'text-muted-foreground' };
+  }
+  let score = 0;
+  if (password.length >= 6) score += 1;
+  if (password.length >= 10) score += 1;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+  const level = Math.min(4, score) as 0 | 1 | 2 | 3 | 4;
+  if (level <= 1) {
+    return { score: level || 1, label: 'Faible', barClass: 'bg-rose-500', textClass: 'text-rose-600' };
+  }
+  if (level === 2) {
+    return { score: 2, label: 'Moyen', barClass: 'bg-amber-500', textClass: 'text-amber-600' };
+  }
+  if (level === 3) {
+    return { score: 3, label: 'Fort', barClass: 'bg-emerald-500', textClass: 'text-emerald-600' };
+  }
+  return { score: 4, label: 'Très fort', barClass: 'bg-emerald-600', textClass: 'text-emerald-700' };
+}
+
 export default function SignUp() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   /** Pays d’activité Fidexa (couverture uniquement). */
   const [businessCountry, setBusinessCountry] = useState('CD');
   /** Indicatif WhatsApp (tous pays). */
@@ -53,6 +87,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
 
   const dial = useMemo(() => getWorldDial(dialCountry), [dialCountry]);
+  const strength = useMemo(() => getPasswordStrength(password), [password]);
   const filteredDials = useMemo(() => {
     const q = dialQuery.trim().toLowerCase();
     if (!q) return WORLD_DIAL_CODES;
@@ -97,6 +132,14 @@ export default function SignUp() {
       }
       if (password.length < 6) {
         setError('Le mot de passe doit contenir au moins 6 caractères');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Les mots de passe ne correspondent pas');
+        return;
+      }
+      if (strength.score < 2) {
+        setError('Choisissez un mot de passe plus robuste (majuscule, chiffre…)');
         return;
       }
       const phone = composeE164(dial.dial, phoneNational);
@@ -206,14 +249,73 @@ export default function SignUp() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="pr-10"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {password ? (
+                <div className="space-y-1.5 pt-0.5">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4].map((step) => (
+                      <div
+                        key={step}
+                        className={cn(
+                          'h-1.5 flex-1 rounded-full transition-colors',
+                          strength.score >= step ? strength.barClass : 'bg-muted'
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <p className={cn('text-xs font-medium', strength.textClass)}>
+                    Sécurité : {strength.label}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirm ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="pr-10"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  aria-label={
+                    showConfirm ? 'Masquer la confirmation' : 'Afficher la confirmation'
+                  }
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {confirmPassword && password !== confirmPassword ? (
+                <p className="text-xs text-rose-600">Les mots de passe ne correspondent pas</p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
