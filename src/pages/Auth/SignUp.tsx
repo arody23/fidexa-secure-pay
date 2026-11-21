@@ -21,10 +21,23 @@ import { COVERAGE_COUNTRIES } from '@/lib/kpayProviders';
 import {
   WORLD_DIAL_CODES,
   composeE164,
-  countryFlagEmoji,
+  countryFlagSrc,
   getWorldDial,
   toNationalPhoneDigits,
 } from '@/lib/worldDialCodes';
+
+function FlagImg({ code, className }: { code: string; className?: string }) {
+  return (
+    <img
+      src={countryFlagSrc(code)}
+      alt=""
+      width={20}
+      height={14}
+      className={className ?? 'h-3.5 w-5 shrink-0 rounded-[2px] object-cover'}
+      loading="lazy"
+    />
+  );
+}
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -204,7 +217,7 @@ export default function SignUp() {
             </div>
 
             <div className="space-y-2">
-              <Label>Pays d’activité</Label>
+              <Label>Pays</Label>
               <Select
                 value={businessCountry}
                 onValueChange={(v) => {
@@ -219,13 +232,13 @@ export default function SignUp() {
                 }}
               >
                 <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Pays couvert" />
+                  <SelectValue placeholder="Choisir un pays" />
                 </SelectTrigger>
                 <SelectContent>
                   {COVERAGE_COUNTRIES.map((c) => (
                     <SelectItem key={c.code} value={c.code}>
                       <span className="inline-flex items-center gap-2">
-                        <span aria-hidden>{countryFlagEmoji(c.code)}</span>
+                        <FlagImg code={c.code} />
                         {c.name}
                       </span>
                     </SelectItem>
@@ -246,9 +259,9 @@ export default function SignUp() {
                     );
                   }}
                 >
-                  <SelectTrigger className="h-11 w-[7.5rem] shrink-0 gap-1 px-2.5 [&>svg]:h-3.5 [&>svg]:w-3.5">
-                    <span className="inline-flex min-w-0 items-center gap-1 text-sm font-medium tabular-nums">
-                      <span aria-hidden>{countryFlagEmoji(dialCountry)}</span>
+                  <SelectTrigger className="h-11 w-[7.75rem] shrink-0 gap-1.5 px-2.5 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                    <span className="inline-flex min-w-0 items-center gap-1.5 text-sm font-medium tabular-nums">
+                      <FlagImg code={dialCountry} />
                       {dial.dial}
                     </span>
                   </SelectTrigger>
@@ -264,7 +277,7 @@ export default function SignUp() {
                     {filteredDials.map((c) => (
                       <SelectItem key={c.code} value={c.code}>
                         <span className="inline-flex items-center gap-2">
-                          <span aria-hidden>{countryFlagEmoji(c.code)}</span>
+                          <FlagImg code={c.code} />
                           {c.name} ({c.dial})
                         </span>
                       </SelectItem>
