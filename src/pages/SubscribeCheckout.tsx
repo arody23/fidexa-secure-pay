@@ -245,8 +245,6 @@ export default function SubscribeCheckout() {
 
           <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-400">
             Ne fermez pas cette page pendant la validation Mobile Money.
-            <br />
-            Le webhook Fidexa active votre abonnement dès confirmation.
           </p>
         </main>
       </div>
