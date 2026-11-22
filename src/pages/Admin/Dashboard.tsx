@@ -13,7 +13,9 @@ import {
   Wallet,
   Globe2,
   Lock,
+  Crown,
 } from 'lucide-react';
+import { getPlan, normalizePlanId } from '@/lib/plans';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -109,6 +111,18 @@ export default function AdminDashboard() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [subscribers, setSubscribers] = useState<
+    {
+      id: string;
+      full_name: string | null;
+      email: string;
+      plan: string | null;
+      plan_billing_cycle: string | null;
+      plan_expires_at: string | null;
+      subscription_status: string | null;
+      amount_usd: number | null;
+    }[]
+  >([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -138,7 +152,7 @@ export default function AdminDashboard() {
     try {
       setError('');
 
-      const [usersResult, disputesResult, linksResult] = await Promise.all([
+      const [usersResult, disputesResult, linksResult, subsUsersResult] = await Promise.all([
         supabase.from('users').select('id, verified, kyc_status, role, is_admin'),
         supabase.from('disputes').select('id', { count: 'exact' }).eq('status', 'open'),
         supabase
@@ -147,6 +161,14 @@ export default function AdminDashboard() {
             'id, amount, status, order_status, is_paid, escrow_released, refunded, created_at, provider_id, commission_amount'
           )
           .order('created_at', { ascending: false }),
+        supabase
+          .from('users')
+          .select(
+            'id, full_name, email, plan, plan_billing_cycle, plan_expires_at, subscription_status, role, is_admin'
+          )
+          .not('plan', 'is', null)
+          .neq('plan', 'basique')
+          .order('plan_expires_at', { ascending: true }),
       ]);
 
       const allUsers = (usersResult.data || []).filter(
@@ -228,6 +250,56 @@ export default function AdminDashboard() {
             created_at: link.created_at,
           };
         })
+      );
+
+      const paidUsers = ((subsUsersResult.data || []) as {
+        id: string;
+        full_name: string | null;
+        email: string;
+        plan: string | null;
+        plan_billing_cycle: string | null;
+        plan_expires_at: string | null;
+        subscription_status: string | null;
+        role?: string | null;
+        is_admin?: boolean | null;
+      }[]).filter((u) => !u.is_admin && u.role !== 'admin');
+
+      const userIds = paidUsers.map((u) => u.id);
+      let amountByUser: Record<string, number> = {};
+      if (userIds.length) {
+        const { data: paidSubs } = await supabase
+          .from('subscriptions')
+          .select('user_id, amount_usd, status, created_at')
+          .in('user_id', userIds)
+          .in('status', ['paid', 'active'])
+          .order('created_at', { ascending: false });
+        for (const row of paidSubs || []) {
+          const uid = String(row.user_id || '');
+          if (uid && amountByUser[uid] == null && row.amount_usd != null) {
+            amountByUser[uid] = Number(row.amount_usd);
+          }
+        }
+      }
+
+      setSubscribers(
+        paidUsers.map((u) => ({
+          id: u.id,
+          full_name: u.full_name,
+          email: u.email,
+          plan: u.plan,
+          plan_billing_cycle: u.plan_billing_cycle,
+          plan_expires_at: u.plan_expires_at,
+          subscription_status: u.subscription_status,
+          amount_usd:
+            amountByUser[u.id] ??
+            (normalizePlanId(u.plan) === 'premium'
+              ? u.plan_billing_cycle === 'yearly'
+                ? 690
+                : 69
+              : u.plan_billing_cycle === 'yearly'
+                ? 290
+                : 29),
+        }))
       );
     } catch (err) {
       console.error('Error loading dashboard:', err);
@@ -441,6 +513,79 @@ export default function AdminDashboard() {
           );
         })}
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-amber-600" />
+              Abonnements prestataires
+            </CardTitle>
+            <CardDescription>
+              Plans payants actifs — type, montant et date d’expiration
+            </CardDescription>
+          </div>
+          <Badge variant="secondary">{subscribers.length}</Badge>
+        </CardHeader>
+        <CardContent>
+          {subscribers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun abonnement payant pour le moment.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead>
+                  <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="pb-2 font-medium">Prestataire</th>
+                    <th className="pb-2 font-medium">Plan</th>
+                    <th className="pb-2 font-medium">Cycle</th>
+                    <th className="pb-2 font-medium">Montant</th>
+                    <th className="pb-2 font-medium">Expire</th>
+                    <th className="pb-2 font-medium">Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscribers.map((s) => {
+                    const plan = getPlan(s.plan);
+                    const expired =
+                      s.plan_expires_at && new Date(s.plan_expires_at).getTime() < Date.now();
+                    return (
+                      <tr key={s.id} className="border-b border-border/60 last:border-0">
+                        <td className="py-3 pr-3">
+                          <p className="font-medium text-foreground">
+                            {s.full_name || '—'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{s.email}</p>
+                        </td>
+                        <td className="py-3 pr-3">{plan.name}</td>
+                        <td className="py-3 pr-3">
+                          {s.plan_billing_cycle === 'yearly' ? 'Annuel' : 'Mensuel'}
+                        </td>
+                        <td className="py-3 pr-3 tabular-nums">
+                          {s.amount_usd != null ? `$${s.amount_usd}` : '—'}
+                        </td>
+                        <td className="py-3 pr-3">
+                          {s.plan_expires_at
+                            ? new Date(s.plan_expires_at).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })
+                            : '—'}
+                        </td>
+                        <td className="py-3">
+                          <Badge variant={expired ? 'destructive' : 'secondary'}>
+                            {expired ? 'expiré' : s.subscription_status || 'actif'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

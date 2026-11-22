@@ -7,13 +7,20 @@ import {
   CheckCircle2,
   AlertTriangle,
   QrCode,
+  Webhook,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { adminNotify } from '@/lib/adminNotify';
+import { supabase } from '@/integrations/supabase/client';
 
 type WhatsAppStatus = {
   engine?: string;
@@ -41,6 +48,16 @@ type LogRow = {
   created_at: string;
 };
 
+type WebhookRow = {
+  id: string;
+  name: string;
+  url: string;
+  events: string[] | null;
+  is_active: boolean;
+  last_triggered_at: string | null;
+  last_status: number | null;
+};
+
 /**
  * Admin — connexion WhatsApp via whatsapp-web.js (QR), logs et paramètres.
  */
@@ -51,6 +68,11 @@ export default function AdminWhatsApp() {
   const [wa, setWa] = useState<WhatsAppStatus | null>(null);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [hooks, setHooks] = useState<WebhookRow[]>([]);
+  const [hookName, setHookName] = useState('');
+  const [hookUrl, setHookUrl] = useState('');
+  const [hookEvents, setHookEvents] = useState('payment.completed,subscription.purchased');
+  const [hookBusy, setHookBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -72,14 +94,23 @@ export default function AdminWhatsApp() {
     }
   }, []);
 
+  const loadHooks = useCallback(async () => {
+    const { data } = await supabase
+      .from('webhook_endpoints')
+      .select('id, name, url, events, is_active, last_triggered_at, last_status')
+      .order('created_at', { ascending: false });
+    setHooks((data as WebhookRow[]) || []);
+  }, []);
+
   useEffect(() => {
     refresh();
+    void loadHooks();
     const id = window.setInterval(() => {
       // Poll QR / statut toutes les 3s tant que pas ready
       refresh();
     }, 3000);
     return () => window.clearInterval(id);
-  }, [refresh]);
+  }, [refresh, loadHooks]);
 
   const reconnect = async () => {
     try {
@@ -302,6 +333,120 @@ export default function AdminWhatsApp() {
                       {new Date(l.created_at).toLocaleString('fr-FR')}
                     </p>
                     {l.error && <p className="mt-1 text-xs text-destructive">{l.error}</p>}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Webhook className="h-5 w-5" />
+                Webhooks avancés
+              </CardTitle>
+              <CardDescription>
+                Gérés dans le panel admin Fidexa (pas dans OpenWA). OpenWA / whatsapp-web.js sert
+                uniquement à la session QR. Ici : endpoints sortants pour vos systèmes (paiement,
+                abonnement…). Activez / désactivez / ajoutez librement.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label>Nom</Label>
+                  <Input value={hookName} onChange={(e) => setHookName(e.target.value)} placeholder="CRM" />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>URL</Label>
+                  <Input
+                    value={hookUrl}
+                    onChange={(e) => setHookUrl(e.target.value)}
+                    placeholder="https://…"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Événements (séparés par virgule)</Label>
+                <Input value={hookEvents} onChange={(e) => setHookEvents(e.target.value)} />
+              </div>
+              <Button
+                disabled={hookBusy}
+                onClick={async () => {
+                  if (!hookName.trim() || !hookUrl.trim()) {
+                    toast({ title: 'Nom et URL requis', variant: 'destructive' });
+                    return;
+                  }
+                  try {
+                    setHookBusy(true);
+                    const events = hookEvents
+                      .split(',')
+                      .map((e) => e.trim())
+                      .filter(Boolean);
+                    const { error: insErr } = await supabase.from('webhook_endpoints').insert({
+                      name: hookName.trim(),
+                      url: hookUrl.trim(),
+                      events,
+                      is_active: true,
+                    });
+                    if (insErr) throw insErr;
+                    setHookName('');
+                    setHookUrl('');
+                    toast({ title: 'Webhook ajouté' });
+                    await loadHooks();
+                  } catch (err) {
+                    toast({
+                      title: 'Erreur',
+                      description: err instanceof Error ? err.message : 'Impossible',
+                      variant: 'destructive',
+                    });
+                  } finally {
+                    setHookBusy(false);
+                  }
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter
+              </Button>
+
+              <div className="space-y-2">
+                {hooks.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Aucun webhook configuré.</p>
+                )}
+                {hooks.map((h) => (
+                  <div
+                    key={h.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">{h.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{h.url}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {(h.events || []).join(', ') || '—'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={h.is_active}
+                        onCheckedChange={async (checked) => {
+                          await supabase
+                            .from('webhook_endpoints')
+                            .update({ is_active: checked, updated_at: new Date().toISOString() })
+                            .eq('id', h.id);
+                          await loadHooks();
+                        }}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={async () => {
+                          await supabase.from('webhook_endpoints').delete().eq('id', h.id);
+                          await loadHooks();
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

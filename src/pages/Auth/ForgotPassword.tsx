@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import AuthLayout from '@/components/layout/AuthLayout';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -18,10 +18,20 @@ export default function ForgotPassword() {
     setError('');
     setLoading(true);
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/password-reset-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_ANON_KEY ?? '',
+          Authorization: `Bearer ${SUPABASE_ANON_KEY ?? ''}`,
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          origin: window.location.origin,
+        }),
       });
-      if (resetError) throw resetError;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Envoi impossible');
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Envoi impossible');
@@ -36,14 +46,16 @@ export default function ForgotPassword() {
         <CardHeader>
           <CardTitle>Mot de passe oublié</CardTitle>
           <CardDescription>
-            Entrez votre email — nous vous enverrons un lien de réinitialisation.
+            Entrez l’email de votre compte — le lien de réinitialisation arrive sur
+            WhatsApp (numéro enregistré sur votre profil).
           </CardDescription>
         </CardHeader>
         <CardContent>
           {sent ? (
             <div className="space-y-4 text-center">
               <p className="text-sm text-muted-foreground">
-                Si un compte existe pour <strong>{email}</strong>, vous recevrez un email sous peu.
+                Si un compte existe pour <strong>{email}</strong> avec un numéro WhatsApp,
+                vous recevrez le lien sous peu.
               </p>
               <Button asChild variant="outline" className="w-full">
                 <Link to="/auth/signin">Retour à la connexion</Link>
@@ -65,7 +77,7 @@ export default function ForgotPassword() {
                 required
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Envoi…' : 'Envoyer le lien'}
+                {loading ? 'Envoi…' : 'Recevoir le lien sur WhatsApp'}
               </Button>
               <Link
                 to="/auth/signin"
