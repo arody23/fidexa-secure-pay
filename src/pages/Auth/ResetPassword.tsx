@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,22 +9,67 @@ import AuthLayout from '@/components/layout/AuthLayout';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
+  const [verifying, setVerifying] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
+    let cancelled = false;
+
+    async function bootstrap() {
+      setVerifying(true);
+      setError('');
+
+      try {
+        const tokenHash = searchParams.get('token_hash');
+        const type = searchParams.get('type');
+
+        if (tokenHash && type === 'recovery') {
+          const { error: otpError } = await supabase.auth.verifyOtp({
+            type: 'recovery',
+            token_hash: tokenHash,
+          });
+          if (otpError) throw otpError;
+          if (!cancelled) setReady(true);
+          return;
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && !cancelled) {
+          setReady(true);
+          return;
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'Lien invalide ou expiré. Demandez un nouveau lien WhatsApp.'
+          );
+        }
+      } finally {
+        if (!cancelled) setVerifying(false);
+      }
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) setReady(true);
+      if (session && !cancelled) {
+        setReady(true);
+        setVerifying(false);
+      }
     });
-    return () => subscription.unsubscribe();
-  }, []);
+
+    void bootstrap();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,14 +94,29 @@ export default function ResetPassword() {
     }
   }
 
-  if (!ready) {
+  if (verifying) {
     return (
       <AuthLayout>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Ouvrez le lien reçu par email pour réinitialiser votre mot de passe.
-            <Link to="/auth/forgot-password" className="mt-4 block text-primary">
-              Renvoyer un lien
+            Vérification du lien WhatsApp…
+          </CardContent>
+        </Card>
+      </AuthLayout>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <AuthLayout>
+        <Card>
+          <CardContent className="space-y-4 py-8 text-center text-sm text-muted-foreground">
+            <p>
+              {error ||
+                'Ouvrez le lien reçu sur WhatsApp pour réinitialiser votre mot de passe.'}
+            </p>
+            <Link to="/auth/forgot-password" className="block text-primary">
+              Renvoyer un lien WhatsApp
             </Link>
           </CardContent>
         </Card>

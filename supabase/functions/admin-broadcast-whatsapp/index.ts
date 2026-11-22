@@ -15,21 +15,21 @@ function nextRunIso(automation: Automation, from = new Date()): string | null {
   return d.toISOString();
 }
 
-function normalizeMarketingPhone(phone: string): string | null {
+function digitsOnlyPhone(phone: string): string | null {
   let digits = String(phone || '').replace(/\D/g, '');
   if (!digits) return null;
   if (digits.startsWith('00')) digits = digits.slice(2);
-
-  // Congo-Brazzaville (+242) and RDC (+243) numbers are often saved with a
-  // national trunk 0 after the country code. Canonicalize for dedupe/send.
-  if ((digits.startsWith('2420') || digits.startsWith('2430')) && digits.length >= 12) {
-    digits = `${digits.slice(0, 3)}${digits.slice(4)}`;
-  } else if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
-    const local = digits.slice(1);
-    digits = local.startsWith('6') ? `242${local}` : `243${local}`;
-  }
-
   return digits.length >= 9 ? digits : null;
+}
+
+/** Canonical key for dedupe — Congo trunk 0 after CC collapses to same identity. */
+function canonicalPhoneKey(phone: string): string | null {
+  const digits = digitsOnlyPhone(phone);
+  if (!digits) return null;
+  if ((digits.startsWith('2420') || digits.startsWith('2430')) && digits.length >= 12) {
+    return `${digits.slice(0, 3)}${digits.slice(4)}`;
+  }
+  return digits;
 }
 
 function uniqueTargetsByPhone(
@@ -40,10 +40,12 @@ function uniqueTargetsByPhone(
 
   for (const row of recipients || []) {
     if (!row.phone_number || row.is_admin === true || row.role === 'admin') continue;
-    const normalized = normalizeMarketingPhone(row.phone_number);
-    if (!normalized || seen.has(normalized)) continue;
-    seen.add(normalized);
-    targets.push({ id: row.id, phone_number: row.phone_number, normalized_phone: normalized });
+    const sendPhone = digitsOnlyPhone(row.phone_number);
+    const key = canonicalPhoneKey(row.phone_number);
+    if (!sendPhone || !key || seen.has(key)) continue;
+    seen.add(key);
+    // Keep stored Congo form (2420…) for OpenWA chat resolution; dedupe by canonical key.
+    targets.push({ id: row.id, phone_number: row.phone_number, normalized_phone: sendPhone });
   }
 
   return targets;

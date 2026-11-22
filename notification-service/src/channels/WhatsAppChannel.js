@@ -199,17 +199,47 @@ export class WhatsAppChannel {
   }
 
   normalizePhone(phone) {
+    const candidates = this.phoneCandidates(phone);
+    if (!candidates.length) throw new Error('Numéro WhatsApp invalide');
+    return candidates[0];
+  }
+
+  /**
+   * Congo (+242/+243) profiles often keep a trunk 0 after the country code.
+   * Try stored form first, then E.164 without trunk 0 (and the reverse).
+   */
+  phoneCandidates(phone) {
     let digits = String(phone || '').replace(/\D/g, '');
-    if (!digits) throw new Error('Numéro WhatsApp invalide');
+    if (!digits) return [];
     if (digits.startsWith('00')) digits = digits.slice(2);
-    if ((digits.startsWith('2420') || digits.startsWith('2430')) && digits.length >= 12) {
-      digits = `${digits.slice(0, 3)}${digits.slice(4)}`;
-    } else if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
+
+    const out = [];
+    const push = (value) => {
+      if (value && value.length >= 9 && !out.includes(value)) out.push(value);
+    };
+
+    if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
       const local = digits.slice(1);
-      // Congo-Brazzaville mobile numbers commonly start with 06 locally.
-      digits = local.startsWith('6') ? `242${local}` : `243${local}`;
+      push(local.startsWith('6') ? `2420${local}` : `2430${local}`);
+      push(local.startsWith('6') ? `242${local}` : `243${local}`);
+      return out;
     }
-    return digits;
+
+    push(digits);
+
+    if ((digits.startsWith('2420') || digits.startsWith('2430')) && digits.length >= 12) {
+      push(`${digits.slice(0, 3)}${digits.slice(4)}`);
+    } else if (
+      (digits.startsWith('242') || digits.startsWith('243')) &&
+      digits.length >= 11 &&
+      digits.length <= 12 &&
+      !digits.startsWith('2420') &&
+      !digits.startsWith('2430')
+    ) {
+      push(`${digits.slice(0, 3)}0${digits.slice(3)}`);
+    }
+
+    return out;
   }
 
   formatE164(digits) {
@@ -576,46 +606,69 @@ export class WhatsAppChannel {
       throw new Error('Message WhatsApp vide');
     }
 
-    const digits = this.normalizePhone(to);
-    const e164 = this.formatE164(digits);
+    const candidates = this.phoneCandidates(to);
+    if (!candidates.length) throw new Error('Numéro WhatsApp invalide');
+
     // #region agent log
     debugLog(
       'WhatsAppChannel.js:send',
       'send entry',
-      { cc: digits.slice(0, 3), digitLen: digits.length },
+      { cc: candidates[0].slice(0, 3), digitLen: candidates[0].length, variants: candidates.length },
       'H5',
       (line) => this.pushLog('info', line)
     );
     // #endregion
-    const selfWid = this.info?.wid || this.client.info?.wid?.user || null;
-    if (selfWid && digits === String(selfWid).replace(/\D/g, '')) {
-      this.pushLog('info', `envoi vers soi-même (${e164}) — chat « Message à vous-même »`);
-    }
 
     // getNumberId peut retourner un @lid, qui confirme que le compte existe,
     // mais Client.sendMessage de whatsapp-web.js attend le JID téléphone
     // standard. Le @lid reste donc un signal de résolution, pas une cible.
+    let digits = candidates[0];
+    let e164 = this.formatE164(digits);
     let targetId = null;
-    try {
-      const numberId = await this.client.getNumberId(digits);
-      if (!numberId) {
-        throw new Error(`Numéro non WhatsApp: ${e164}`);
+    let lastResolveError = null;
+
+    for (const candidate of candidates) {
+      const candidateE164 = this.formatE164(candidate);
+      try {
+        const numberId = await this.client.getNumberId(candidate);
+        if (!numberId) {
+          lastResolveError = new Error(`Numéro non WhatsApp: ${candidateE164}`);
+          continue;
+        }
+        const resolvedId =
+          numberId._serialized ||
+          (numberId.user && numberId.server ? `${numberId.user}@${numberId.server}` : null);
+        if (!resolvedId) {
+          lastResolveError = new Error(`Identifiant WhatsApp introuvable: ${candidateE164}`);
+          continue;
+        }
+        digits = candidate;
+        e164 = candidateE164;
+        targetId = `${candidate}@c.us`;
+        this.pushLog('info', `compte WA trouvé ${e164} → ${resolvedId}; envoi via ${targetId}`);
+        break;
+      } catch (err) {
+        lastResolveError =
+          err instanceof Error
+            ? err
+            : new Error(`Impossible de résoudre ${candidateE164}: ${err}`);
       }
-      const resolvedId =
-        numberId._serialized ||
-        (numberId.user && numberId.server ? `${numberId.user}@${numberId.server}` : null);
-      if (!resolvedId) {
-        throw new Error(`Identifiant WhatsApp introuvable: ${e164}`);
+    }
+
+    if (!targetId) {
+      if (lastResolveError && String(lastResolveError.message || '').includes('non WhatsApp')) {
+        throw lastResolveError;
       }
-      targetId = `${digits}@c.us`;
-      this.pushLog('info', `compte WA trouvé ${e164} → ${resolvedId}; envoi via ${targetId}`);
-    } catch (err) {
-      if (String(err.message || '').includes('non WhatsApp')) throw err;
       throw new Error(
         `Impossible de résoudre le compte WhatsApp pour ${e164}: ${
-          err instanceof Error ? err.message : err
+          lastResolveError instanceof Error ? lastResolveError.message : lastResolveError
         }`
       );
+    }
+
+    const selfWid = this.info?.wid || this.client.info?.wid?.user || null;
+    if (selfWid && digits === String(selfWid).replace(/\D/g, '')) {
+      this.pushLog('info', `envoi vers soi-même (${e164}) — chat « Message à vous-même »`);
     }
 
     const sendStart = Date.now();

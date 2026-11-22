@@ -6,6 +6,16 @@ import { dispatchNotificationEvent } from '../_shared/notifyDispatch.ts';
  * Génère un lien de récupération Supabase et l’envoie sur WhatsApp
  * (au lieu de l’email Gmail).
  */
+
+function digitsOnlyPhone(phone: string): string | null {
+  let digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  // Keep Congo trunk-0 form as stored (2420…) — OpenWA resolves existing chats that way.
+  // The notification worker also tries the E.164 variant without the 0.
+  return digits.length >= 9 ? digits : null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -28,41 +38,39 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { data: profile } = await admin
-      .from('users')
-      .select('id, phone_number, email, full_name')
-      .eq('email', email)
-      .maybeSingle();
-
     // Réponse neutre (pas d’énumération de comptes)
     const neutral = {
       success: true,
       message: 'Si un compte existe, un lien WhatsApp a été envoyé.',
     };
 
-    if (!profile?.phone_number) {
+    // Lookup case-insensitive: ilike exact email
+    const { data: profile } = await admin
+      .from('users')
+      .select('id, phone_number, email, full_name')
+      .ilike('email', email)
+      .maybeSingle();
+
+    const phone = digitsOnlyPhone(profile?.phone_number || '');
+    if (!profile?.id || !phone) {
+      console.warn('[password-reset-whatsapp] no profile/phone for request');
       return new Response(JSON.stringify(neutral), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const phone = String(profile.phone_number).replace(/\D/g, '');
-    if (phone.length < 9) {
-      return new Response(JSON.stringify(neutral), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const accountEmail = String(profile.email || email).trim().toLowerCase();
 
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: 'recovery',
-      email,
+      email: accountEmail,
       options: {
         redirectTo: `${origin}/auth/reset-password`,
       },
     });
 
     if (linkErr || !linkData) {
-      console.error('generateLink', linkErr);
+      console.error('[password-reset-whatsapp] generateLink', linkErr);
       return new Response(JSON.stringify(neutral), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -72,26 +80,46 @@ Deno.serve(async (req) => {
       action_link?: string;
       hashed_token?: string;
     } | null;
-    let resetLink = properties?.action_link || '';
-    if (!resetLink && properties?.hashed_token) {
-      resetLink = `${origin}/auth/reset-password#access_token=${properties.hashed_token}&type=recovery`;
-    }
+
+    // Prefer an app-owned PKCE-compatible link (token_hash) so WhatsApp opens
+    // the SPA directly — action_link often fails redirect allowlists / PKCE.
+    const hashedToken = properties?.hashed_token || '';
+    const resetLink = hashedToken
+      ? `${origin}/auth/reset-password?token_hash=${encodeURIComponent(hashedToken)}&type=recovery`
+      : properties?.action_link || '';
+
     if (!resetLink) {
+      console.error('[password-reset-whatsapp] empty reset link');
       return new Response(JSON.stringify(neutral), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    await dispatchNotificationEvent('auth.password_reset', {
+    const dispatch = await dispatchNotificationEvent('auth.password_reset', {
       recipientPhone: phone,
       idempotencyKey: `auth.password_reset:${profile.id}:${Date.now()}`,
       variables: {
         reset_link: resetLink,
-        email,
+        email: accountEmail,
+      },
+      metadata: {
+        profile_id: profile.id,
+        source: 'password-reset-whatsapp',
       },
     });
 
-    return new Response(JSON.stringify({ ...neutral, channel: 'whatsapp' }), {
+    if (!dispatch.ok) {
+      console.error('[password-reset-whatsapp] dispatch failed', dispatch.error);
+      return new Response(
+        JSON.stringify({ error: 'Envoi WhatsApp temporairement indisponible. Réessayez.' }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify({ ...neutral, channel: 'whatsapp', queued: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
