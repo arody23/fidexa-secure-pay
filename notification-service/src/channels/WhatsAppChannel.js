@@ -202,15 +202,57 @@ export class WhatsAppChannel {
     let digits = String(phone || '').replace(/\D/g, '');
     if (!digits) throw new Error('Numéro WhatsApp invalide');
     if (digits.startsWith('00')) digits = digits.slice(2);
-    // CD souvent saisi en 0XXXXXXXXX → préfixe 243
-    if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
-      digits = `243${digits.slice(1)}`;
+    if ((digits.startsWith('2420') || digits.startsWith('2430')) && digits.length >= 12) {
+      digits = `${digits.slice(0, 3)}${digits.slice(4)}`;
+    } else if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
+      const local = digits.slice(1);
+      // Congo-Brazzaville mobile numbers commonly start with 06 locally.
+      digits = local.startsWith('6') ? `242${local}` : `243${local}`;
     }
     return digits;
   }
 
   formatE164(digits) {
     return `+${String(digits || '').replace(/\D/g, '')}`;
+  }
+
+  filenameFromUrl(mediaUrl, mediaType = 'file') {
+    try {
+      const pathname = new URL(mediaUrl).pathname;
+      const filename = decodeURIComponent(pathname.split('/').filter(Boolean).pop() || '');
+      if (filename) return filename;
+    } catch {
+      /* ignore */
+    }
+    return `campaign-${Date.now()}.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
+  }
+
+  mimeFromType(mediaType) {
+    if (mediaType === 'video') return 'video/mp4';
+    if (mediaType === 'document') return 'application/octet-stream';
+    return 'image/jpeg';
+  }
+
+  async fetchMediaBuffer(mediaUrl, mediaType) {
+    const response = await fetch(mediaUrl, { redirect: 'follow' });
+    if (!response.ok) {
+      throw new Error(`media_fetch_${response.status}`);
+    }
+    const mimeType =
+      response.headers.get('content-type')?.split(';')[0]?.trim() ||
+      this.mimeFromType(mediaType);
+    const data = Buffer.from(await response.arrayBuffer()).toString('base64');
+    return new MessageMedia(mimeType, data, this.filenameFromUrl(mediaUrl, mediaType));
+  }
+
+  async createMessageMedia(mediaUrl, mediaType) {
+    try {
+      return await MessageMedia.fromUrl(mediaUrl, { unsafeMime: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.pushLog('warn', `MessageMedia.fromUrl failed, fallback fetch: ${message}`);
+      return this.fetchMediaBuffer(mediaUrl, mediaType);
+    }
   }
 
   /**
@@ -581,12 +623,12 @@ export class WhatsAppChannel {
     try {
       const mediaUrl = opts.mediaUrl ? String(opts.mediaUrl).trim() : '';
       if (mediaUrl && MessageMedia) {
-        const media = await MessageMedia.fromUrl(mediaUrl, { unsafeMime: true });
+        const media = await this.createMessageMedia(mediaUrl, opts.mediaType || 'image');
         raw = await this.client.sendMessage(targetId, media, {
           caption: String(body).slice(0, 1024),
           waitUntilMsgSent: true,
           sendSeen: false,
-          linkPreview: Boolean(opts.buttonUrl),
+          linkPreview: false,
         });
       } else {
         raw = await this.client.sendMessage(targetId, body, {

@@ -191,13 +191,27 @@ export class OpenWaChannel {
     let digits = String(phone || '').replace(/\D/g, '');
     if (!digits) throw new Error('Numéro WhatsApp invalide');
     if (digits.startsWith('00')) digits = digits.slice(2);
-    if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
-      digits = `243${digits.slice(1)}`;
+    if ((digits.startsWith('2420') || digits.startsWith('2430')) && digits.length >= 12) {
+      digits = `${digits.slice(0, 3)}${digits.slice(4)}`;
+    } else if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
+      const local = digits.slice(1);
+      digits = local.startsWith('6') ? `242${local}` : `243${local}`;
     }
     return digits;
   }
 
-  async send(to, body) {
+  filenameFromUrl(mediaUrl, mediaType = 'file') {
+    try {
+      const pathname = new URL(mediaUrl).pathname;
+      const filename = decodeURIComponent(pathname.split('/').filter(Boolean).pop() || '');
+      if (filename) return filename;
+    } catch {
+      /* ignore */
+    }
+    return `campaign.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
+  }
+
+  async send(to, body, opts = {}) {
     if (!this.enabled) return { ok: true, skipped: true, reason: 'whatsapp_disabled' };
     if (!body || !String(body).trim()) throw new Error('Message WhatsApp vide');
 
@@ -207,14 +221,31 @@ export class OpenWaChannel {
     }
 
     const digits = this.normalizePhone(to);
-    const result = await this.request(
-      `/api/sessions/${encodeURIComponent(this.sessionId)}/messages/send-text`,
-      {
-        method: 'POST',
-        body: { chatId: `${digits}@c.us`, text: String(body) },
-        timeoutMs: 30000,
-      }
-    );
+    const chatId = `${digits}@c.us`;
+    const mediaUrl = opts.mediaUrl ? String(opts.mediaUrl).trim() : '';
+    const result = mediaUrl
+      ? await this.request(
+          `/api/sessions/${encodeURIComponent(this.sessionId)}/messages/send-media`,
+          {
+            method: 'POST',
+            body: {
+              chatId,
+              mediaUrl,
+              mediaType: opts.mediaType || 'image',
+              filename: this.filenameFromUrl(mediaUrl, opts.mediaType || 'image'),
+              caption: String(body).slice(0, 1024),
+            },
+            timeoutMs: 60000,
+          }
+        )
+      : await this.request(
+          `/api/sessions/${encodeURIComponent(this.sessionId)}/messages/send-text`,
+          {
+            method: 'POST',
+            body: { chatId, text: String(body) },
+            timeoutMs: 30000,
+          }
+        );
 
     if (!result?.messageId) {
       throw new Error('OpenWA a accepté une réponse sans messageId');
@@ -225,9 +256,10 @@ export class OpenWaChannel {
       ok: true,
       id: result.messageId,
       to: `+${digits}`,
-      chatId: `${digits}@c.us`,
+      chatId,
       acceptedAt: result.timestamp || null,
       transport: 'openwa',
+      media: Boolean(mediaUrl),
     };
   }
 }

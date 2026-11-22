@@ -38,7 +38,7 @@ process.on('message', async (msg) => {
       return;
     }
     if (type === 'send') {
-      const data = await wa.send(msg.to, msg.body);
+      const data = await wa.send(msg.to, msg.body, msg.opts || {});
       process.send?.({ id, ok: true, data });
       return;
     }

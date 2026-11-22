@@ -5,7 +5,6 @@ import {
   Megaphone,
   Image as ImageIcon,
   Upload,
-  ExternalLink,
   CalendarClock,
   RefreshCw,
 } from 'lucide-react';
@@ -508,35 +507,22 @@ export default function AdminNotifications() {
                     {headline || waTitle || 'Votre visuel de campagne'}
                   </div>
                 )}
-                {(headline || waTitle || buttonUrl) && (
-                  <div className="border-b border-white/10 bg-[#152028] px-3 py-2">
-                    <p className="line-clamp-2 text-sm font-semibold text-white/95">
-                      {headline || waTitle || 'Titre du lien'}
-                    </p>
-                    <p className="mt-0.5 text-[11px] uppercase tracking-wide text-white/40">
-                      {previewHost}
-                    </p>
-                  </div>
-                )}
                 <div className="space-y-2 px-3 py-3">
                   <p className="text-sm font-bold text-white">
-                    {headline || waTitle || 'Titre du message'}
+                    *{headline || waTitle || 'Titre du message'}*
                   </p>
                   <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-white/80">
                     {waMessage ||
                       'Le corps du message apparaîtra ici. Ajoutez une description claire pour convertir.'}
                   </p>
+                  {(buttonLabel || buttonUrl) && (
+                    <p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-[#53bdeb]">
+                      👉 {buttonLabel || 'Ouvrir'}
+                      {buttonUrl ? `\n${buttonUrl}` : ''}
+                    </p>
+                  )}
                   <p className="text-right text-[10px] text-white/35">aperçu</p>
                 </div>
-                {(buttonLabel || buttonUrl) && (
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-center gap-2 border-t border-white/10 bg-[#1f2c34] py-3 text-sm font-medium text-[#53bdeb]"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    {buttonLabel || 'Ouvrir'}
-                  </button>
-                )}
               </div>
             </CardContent>
           </Card>

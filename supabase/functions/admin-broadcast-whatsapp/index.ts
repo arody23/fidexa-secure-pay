@@ -4,6 +4,7 @@ import { dispatchNotificationEvent } from '../_shared/notifyDispatch.ts';
 
 type Audience = 'opted_in' | 'all_providers' | 'one';
 type Automation = 'none' | 'daily' | 'weekly' | 'monthly';
+type Target = { id: string; phone_number: string; normalized_phone: string };
 
 function nextRunIso(automation: Automation, from = new Date()): string | null {
   if (!automation || automation === 'none') return null;
@@ -12,6 +13,40 @@ function nextRunIso(automation: Automation, from = new Date()): string | null {
   else if (automation === 'weekly') d.setDate(d.getDate() + 7);
   else if (automation === 'monthly') d.setMonth(d.getMonth() + 1);
   return d.toISOString();
+}
+
+function normalizeMarketingPhone(phone: string): string | null {
+  let digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('00')) digits = digits.slice(2);
+
+  // Congo-Brazzaville (+242) and RDC (+243) numbers are often saved with a
+  // national trunk 0 after the country code. Canonicalize for dedupe/send.
+  if ((digits.startsWith('2420') || digits.startsWith('2430')) && digits.length >= 12) {
+    digits = `${digits.slice(0, 3)}${digits.slice(4)}`;
+  } else if (digits.startsWith('0') && digits.length >= 9 && digits.length <= 10) {
+    const local = digits.slice(1);
+    digits = local.startsWith('6') ? `242${local}` : `243${local}`;
+  }
+
+  return digits.length >= 9 ? digits : null;
+}
+
+function uniqueTargetsByPhone(
+  recipients: { id: string; phone_number: string; role?: string | null; is_admin?: boolean | null }[]
+): Target[] {
+  const seen = new Set<string>();
+  const targets: Target[] = [];
+
+  for (const row of recipients || []) {
+    if (!row.phone_number || row.is_admin === true || row.role === 'admin') continue;
+    const normalized = normalizeMarketingPhone(row.phone_number);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    targets.push({ id: row.id, phone_number: row.phone_number, normalized_phone: normalized });
+  }
+
+  return targets;
 }
 
 async function queueCampaign(
@@ -25,7 +60,7 @@ async function queueCampaign(
     mediaType: string;
     buttonLabel: string | null;
     buttonUrl: string | null;
-    targets: { id: string; phone_number: string }[];
+    targets: Target[];
   }
 ) {
   const composed = opts.headline
@@ -40,10 +75,9 @@ async function queueCampaign(
 
   let queued = 0;
   for (const row of opts.targets) {
-    const phone = String(row.phone_number).replace(/\D/g, '');
     const result = await dispatchNotificationEvent('marketing.campaign', {
-      recipientPhone: phone,
-      idempotencyKey: `marketing.campaign:${opts.campaignId}:${row.id}:${Date.now()}`,
+      recipientPhone: row.normalized_phone,
+      idempotencyKey: `marketing.campaign:${opts.campaignId}:${row.normalized_phone}`,
       variables: {
         message: composed,
         cta_block: ctaBlock,
@@ -57,6 +91,7 @@ async function queueCampaign(
         media_type: opts.mediaUrl ? opts.mediaType : 'none',
         button_label: opts.buttonLabel,
         button_url: opts.buttonUrl,
+        profile_id: row.id,
       },
     });
     if (result.ok) queued += 1;
@@ -127,13 +162,14 @@ Deno.serve(async (req) => {
           query = query.eq('whatsapp_marketing_opt_in', true);
         }
         const { data: recipients } = await query;
-        const targets = (recipients || []).filter(
-          (r) =>
-            r.phone_number &&
-            String(r.phone_number).replace(/\D/g, '').length >= 9 &&
-            r.is_admin !== true &&
-            r.role !== 'admin'
-        ) as { id: string; phone_number: string }[];
+        const targets = uniqueTargetsByPhone(
+          (recipients || []) as {
+            id: string;
+            phone_number: string;
+            role?: string | null;
+            is_admin?: boolean | null;
+          }[]
+        );
 
         const queued = await queueCampaign(admin, {
           campaignId: camp.id,
@@ -201,13 +237,14 @@ Deno.serve(async (req) => {
     const { data: recipients, error: recErr } = await query;
     if (recErr) throw new Error(recErr.message);
 
-    const targets = (recipients || []).filter(
-      (r) =>
-        r.phone_number &&
-        String(r.phone_number).replace(/\D/g, '').length >= 9 &&
-        r.is_admin !== true &&
-        r.role !== 'admin'
-    ) as { id: string; phone_number: string }[];
+    const targets = uniqueTargetsByPhone(
+      (recipients || []) as {
+        id: string;
+        phone_number: string;
+        role?: string | null;
+        is_admin?: boolean | null;
+      }[]
+    );
 
     const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
     const scheduleInFuture =
