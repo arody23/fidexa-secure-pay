@@ -9,6 +9,7 @@ import type { UserProfile } from '@/types/index';
 import { loadUserProfile } from '@/lib/userService';
 import { COUNTRIES_DATA, getCurrencyByCountry, getMobileMoneyProviders } from '@/lib/countriesData';
 import { useProvider } from '@/contexts/ProviderContext';
+import { useAppSecurity } from '@/contexts/AppSecurityContext';
 import { formatAmount as formatCurrencyAmount, normalizeCurrency } from '@/lib/currency';
 import {
   fetchProviderWallet,
@@ -41,6 +42,7 @@ interface WalletState {
 
 export function Withdrawal() {
   const { currency: providerCurrency } = useProvider();
+  const { settings, requireSensitiveUnlock } = useAppSecurity();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [wallet, setWallet] = useState<WalletState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,6 +103,11 @@ export function Withdrawal() {
 
   const handleSubmit = async () => {
     if (!profile) return;
+
+    if (!(await requireSensitiveUnlock())) {
+      setError('Déverrouillez FidexaPay pour confirmer cette opération.');
+      return;
+    }
 
     if (!profile.country) {
       setError('Renseignez votre pays dans le profil.');
@@ -173,7 +180,9 @@ export function Withdrawal() {
         <div className="rounded-2xl border border-[#e2eaf3] bg-white p-4 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
           <p className="text-xs font-medium text-[#8a9bb0]">Disponible</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums leading-none text-[#0b3b78]">
-            {formatCurrencyAmount(wallet.available_balance, wallet.currency || currency)}
+            <span className={settings.hideSensitiveInfo ? 'sensitive-blur' : undefined}>
+              {formatCurrencyAmount(wallet.available_balance, wallet.currency || currency)}
+            </span>
           </p>
           <p className="mt-2 text-[11px] leading-snug text-[#8a9bb0]">
             Min. {formatCurrencyAmount(minAmount, currency)} · Max.{' '}
@@ -293,7 +302,9 @@ export function Withdrawal() {
               <div key={w.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                 <div className="min-w-0">
                   <p className="font-semibold tabular-nums text-[#0b2f63]">
-                    {formatCurrencyAmount(w.amount, w.currency || currency)}
+                    <span className={settings.hideSensitiveInfo ? 'sensitive-blur' : undefined}>
+                      {formatCurrencyAmount(w.amount, w.currency || currency)}
+                    </span>
                   </p>
                   <p className="truncate text-xs text-[#5c7188]">
                     {w.mobile_money_provider || 'Mobile Money'} ·{' '}

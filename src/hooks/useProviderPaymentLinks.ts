@@ -2,10 +2,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProvider } from '@/contexts/ProviderContext';
 
+const paymentLinksCache = new Map<string, Record<string, unknown>[]>();
+
 export function useProviderPaymentLinks<T = Record<string, unknown>>() {
   const { profile } = useProvider();
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedRows = profile?.id ? paymentLinksCache.get(profile.id) : undefined;
+  const [data, setData] = useState<T[]>((cachedRows as T[]) ?? []);
+  const [loading, setLoading] = useState(!cachedRows);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -23,13 +26,21 @@ export function useProviderPaymentLinks<T = Record<string, unknown>>() {
       return;
     }
 
-    setData((rows ?? []) as T[]);
+    const nextRows = rows ?? [];
+    paymentLinksCache.set(profile.id, nextRows as Record<string, unknown>[]);
+    setData(nextRows as T[]);
     setError(null);
     setLoading(false);
   }, [profile?.id]);
 
   useEffect(() => {
     if (!profile?.id) return;
+
+    const cached = paymentLinksCache.get(profile.id);
+    if (cached) {
+      setData(cached as T[]);
+      setLoading(false);
+    }
 
     // Do not flip loading on realtime refresh — keep current data on screen
     void fetchData();

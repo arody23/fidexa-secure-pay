@@ -9,8 +9,23 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
   },
   plugins: {
+    StatusBar: {
+      overlaysWebView: false,
+      style: 'DARK',
+      backgroundColor: '#FFFFFF',
+    },
     SplashScreen: {
-      launchAutoHide: true,
+      launchAutoHide: false,
+      backgroundColor: '#FFFFFF',
+      androidSplashResourceName: 'splash',
+      showSpinner: false,
+      splashFullScreen: false,
+      splashImmersive: false,
+    },
+    Keyboard: {
+      resize: 'native',
+      resizeOnFullScreen: false,
+      autoBackdropColor: 'dom',
     },
   },
 };

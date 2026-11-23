@@ -30,7 +30,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         }}
       />
 
-      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 py-10">
+      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 pb-[max(2.5rem,var(--safe-bottom))] pt-[max(2.5rem,var(--safe-top))]">
         <Link to="/" className="mb-8">
           <Logo variant="white" />
         </Link>

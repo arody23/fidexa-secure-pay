@@ -4,6 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { AppSecurityProvider } from "./contexts/AppSecurityContext";
+import AppLockOverlay from "@/components/AppLockOverlay";
+import NativeAppShell from "@/components/NativeAppShell";
 import CookieConsent from "@/components/layout/CookieConsent";
 import PwaInstallPrompt from "@/components/layout/PwaInstallPrompt";
 import Dashboard from "./pages/Dashboard";
@@ -24,6 +27,7 @@ import Withdrawal from "./pages/Withdrawal";
 import KYC from "./pages/KYC";
 import KYCSetup from "./pages/KYCSetup";
 import Support from "./pages/Support";
+import SecurityPrivacy from "./pages/SecurityPrivacy";
 import NotFound from "./pages/NotFound";
 import { ProtectedAdminRoute } from "./components/ProtectedAdminRoute";
 import AdminDashboard from "./pages/Admin/Dashboard";
@@ -65,7 +69,10 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <AppSecurityProvider>
       <TooltipProvider>
+        <NativeAppShell />
+        <AppLockOverlay />
         <Toaster />
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -101,6 +108,7 @@ const App = () => (
               <Route path="subscriptions" element={<NewSubscriptions />} />
               <Route path="withdrawal" element={<Withdrawal />} />
               <Route path="support" element={<Support />} />
+              <Route path="security" element={<SecurityPrivacy />} />
               <Route path="feedback" element={<ProviderFeedback />} />
             </Route>
           <Route path="/abonnement/paiement/:subscriptionId" element={<SubscribeCheckout />} />
@@ -132,6 +140,7 @@ const App = () => (
       </ExchangeRatesProvider>
       </BrowserRouter>
     </TooltipProvider>
+    </AppSecurityProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

@@ -18,6 +18,7 @@ import {
 import StatusBadge, { OrderStatus } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useProvider } from "@/contexts/ProviderContext";
+import { useAppSecurity } from "@/contexts/AppSecurityContext";
 import { useProviderPaymentLinks } from "@/hooks/useProviderPaymentLinks";
 import { formatAmount, convertAmount } from "@/lib/currency";
 import { isActivelyInEscrow } from "@/lib/escrowConfig";
@@ -54,9 +55,11 @@ interface Stats {
 function RecentLinksSection({
   paymentLinks,
   currency,
+  hideSensitiveInfo,
 }: {
   paymentLinks: PaymentLink[];
   currency: string;
+  hideSensitiveInfo: boolean;
 }) {
   const [showArchive, setShowArchive] = useState(false);
   const recent = paymentLinks.slice(0, 4);
@@ -93,7 +96,7 @@ function RecentLinksSection({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <p className="text-sm font-semibold tabular-nums text-[#0b2f63]">
+                  <p className={`text-sm font-semibold tabular-nums text-[#0b2f63] ${hideSensitiveInfo ? 'sensitive-blur' : ''}`}>
                     {formatAmount(
                       convertAmount(link.amount, link.currency || currency, currency),
                       currency
@@ -137,6 +140,7 @@ function RecentLinksSection({
 
 const Dashboard = () => {
   const { currency, profile } = useProvider();
+  const { settings } = useAppSecurity();
   const { data: rawLinks, loading } = useProviderPaymentLinks();
   const [disputedLinkIds, setDisputedLinkIds] = useState<Set<string>>(new Set());
 
@@ -247,10 +251,23 @@ const Dashboard = () => {
     };
   }, [paymentLinks, disputedLinkIds, currency]);
 
-  if (loading) {
+  const sensitiveClass = settings.hideSensitiveInfo ? "sensitive-blur" : undefined;
+
+  if (loading && rawLinks.length === 0) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0b3b78] border-t-transparent" />
+      <div className="space-y-4">
+        <div className="h-5 w-32 animate-pulse rounded-full bg-[#dbe6f2]" />
+        <div className="h-8 w-48 animate-pulse rounded-full bg-[#dbe6f2]" />
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="h-40 animate-pulse rounded-2xl bg-[#dbe6f2]" />
+          <div className="h-28 animate-pulse rounded-2xl bg-white" />
+          <div className="h-28 animate-pulse rounded-2xl bg-white" />
+        </section>
+        <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-24 animate-pulse rounded-xl bg-white" />
+          ))}
+        </section>
       </div>
     );
   }
@@ -273,7 +290,7 @@ const Dashboard = () => {
           <div>
             <p className="text-xs font-medium text-white/60">Fonds libérés</p>
             <p className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
-              {formatAmount(stats.monthlyVolume, currency)}
+              <span className={sensitiveClass}>{formatAmount(stats.monthlyVolume, currency)}</span>
             </p>
           </div>
           <Link
@@ -290,7 +307,7 @@ const Dashboard = () => {
             <Shield className="h-4 w-4 text-[#0b3b78]" strokeWidth={1.75} />
           </div>
           <p className="mt-1.5 text-xl font-semibold tabular-nums text-[#0b2f63]">
-            {formatAmount(stats.escrowHeld, currency)}
+            <span className={sensitiveClass}>{formatAmount(stats.escrowHeld, currency)}</span>
           </p>
           <p className="mt-0.5 text-[11px] text-[#8a9bb0]">{stats.paidCount} paiements reçus</p>
         </div>
@@ -349,7 +366,7 @@ const Dashboard = () => {
             <p className="text-[11px] font-medium text-[#8a9bb0]">Ticket moyen</p>
           </div>
           <p className="mt-1.5 text-xl font-semibold tabular-nums leading-none text-[#0b2f63]">
-            {formatAmount(stats.avgTicket, currency)}
+            <span className={sensitiveClass}>{formatAmount(stats.avgTicket, currency)}</span>
           </p>
         </div>
         <div className="rounded-xl border border-[#e2eaf3] bg-white p-3 shadow-[0_1px_2px_rgba(11,59,120,0.04)]">
@@ -378,7 +395,11 @@ const Dashboard = () => {
         </Link>
       </section>
 
-      <RecentLinksSection paymentLinks={paymentLinks} currency={currency} />
+      <RecentLinksSection
+        paymentLinks={paymentLinks}
+        currency={currency}
+        hideSensitiveInfo={settings.hideSensitiveInfo}
+      />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Bell,
   Shield,
+  ShieldCheck,
   Trash2,
   LifeBuoy,
   ChevronRight,
@@ -147,7 +148,7 @@ export function Profile() {
         setSuccess('Photo mise à jour.');
         setTimeout(async () => {
           await loadProfile();
-          window.location.reload();
+          await refreshProfile();
         }, 500);
       } else {
         setError('Échec du téléchargement.');
@@ -429,6 +430,21 @@ export function Profile() {
             <div>
               <p className="text-sm font-semibold text-[#0b2f63]">Notifications</p>
               <p className="mt-0.5 text-[11px] text-[#8a9bb0]">WhatsApp, offres, alertes</p>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate('/dashboard/security')}
+          className="flex w-full items-center justify-between gap-3 border-b border-[#eef3f9] px-4 py-3.5 text-left transition-colors hover:bg-[#f7fafd]"
+        >
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="h-4 w-4 text-[#0b3b78]" />
+            <div>
+              <p className="text-sm font-semibold text-[#0b2f63]">Sécurité et confidentialité</p>
+              <p className="mt-0.5 text-[11px] text-[#8a9bb0]">Biométrie, PIN, données sensibles</p>
             </div>
           </div>
           <ChevronRight className="h-4 w-4 shrink-0 text-[#8a9bb0]" />
