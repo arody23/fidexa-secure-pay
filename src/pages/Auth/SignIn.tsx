@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { getOAuthErrorMessage } from '@/lib/authErrors';
+import { signInWithGoogle } from '@/lib/googleOAuth';
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -81,13 +82,10 @@ export default function SignIn() {
     setError('');
     setLoading(true);
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/dashboard` },
-      });
-      if (oauthError) setError(getOAuthErrorMessage(oauthError.message));
+      await signInWithGoogle('signin');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur Google');
+      const message = err instanceof Error ? err.message : 'Erreur Google';
+      setError(getOAuthErrorMessage(message));
     } finally {
       setLoading(false);
     }

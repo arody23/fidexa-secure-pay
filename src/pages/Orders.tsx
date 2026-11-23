@@ -15,6 +15,7 @@ import { formatAmount, convertAmount } from "@/lib/currency";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getPublicPaymentUrl } from "@/lib/native";
 
 interface Order {
   id: string;
@@ -90,7 +91,7 @@ const Orders = () => {
   });
 
   const copyOrderLink = async (linkId: string) => {
-    const url = `${window.location.origin}/pay/${linkId}`;
+    const url = getPublicPaymentUrl(linkId);
     const ok = await copyToClipboard(url);
     setCopiedId(ok ? linkId : null);
     setTimeout(() => setCopiedId(null), 2000);

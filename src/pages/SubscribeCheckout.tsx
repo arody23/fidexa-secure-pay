@@ -85,7 +85,11 @@ export default function SubscribeCheckout() {
     if (resultHint === 'success' || resultHint === 'cancel') return;
     setGatewayOpened(true);
     const t = window.setTimeout(() => {
-      window.location.assign(data.checkoutUrl!);
+      void (async () => {
+        const { isNativeApp, openExternalUrl } = await import('@/lib/native');
+        if (isNativeApp()) await openExternalUrl(data.checkoutUrl!);
+        else window.location.assign(data.checkoutUrl!);
+      })();
     }, 900);
     return () => window.clearTimeout(t);
   }, [uiStatus, data?.checkoutUrl, gatewayOpened, resultHint]);
@@ -212,7 +216,13 @@ export default function SubscribeCheckout() {
               {uiStatus === 'pending' && data?.checkoutUrl ? (
                 <Button
                   className="h-12 w-full rounded-xl bg-slate-900 text-white hover:bg-slate-800"
-                  onClick={() => window.location.assign(data.checkoutUrl!)}
+                  onClick={() => {
+                    void (async () => {
+                      const { isNativeApp, openExternalUrl } = await import('@/lib/native');
+                      if (isNativeApp()) await openExternalUrl(data.checkoutUrl!);
+                      else window.location.assign(data.checkoutUrl!);
+                    })();
+                  }}
                 >
                   Continuer le paiement
                   <ExternalLink className="ml-2 h-4 w-4" />

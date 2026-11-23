@@ -27,7 +27,7 @@ export default function ForgotPassword() {
         },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
-          origin: window.location.origin,
+          origin: (await import('@/lib/native')).getPublicWebOrigin(),
         }),
       });
       const data = await res.json().catch(() => ({}));

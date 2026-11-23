@@ -12,6 +12,7 @@ import { useProviderPaymentLinks } from '@/hooks/useProviderPaymentLinks';
 import { formatAmount } from '@/lib/currency';
 import { copyToClipboard } from '@/lib/clipboard';
 import { uploadSupportAttachment } from '@/lib/orderSupport';
+import { getPublicPaymentUrl } from '@/lib/native';
 
 interface Order {
   id: string;
@@ -37,7 +38,7 @@ export default function ProviderOrders() {
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
   const copyPaymentLink = async (linkId: string) => {
-    const url = `${window.location.origin}/pay/${linkId}`;
+    const url = getPublicPaymentUrl(linkId);
     const ok = await copyToClipboard(url);
     setCopiedLinkId(ok ? linkId : null);
     setTimeout(() => setCopiedLinkId(null), 2000);

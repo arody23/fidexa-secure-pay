@@ -6,8 +6,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import CookieConsent from "@/components/layout/CookieConsent";
 import PwaInstallPrompt from "@/components/layout/PwaInstallPrompt";
-import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
+import NativeHomeRedirect from "./components/NativeHomeRedirect";
+import NativeClientLinkGate from "./components/NativeClientLinkGate";
+import { isNativeApp } from "./lib/native";
 import CreatePaymentLink from "./pages/CreatePaymentLink";
 import Orders from "./pages/Orders";
 import Transactions from "./pages/Transactions";
@@ -47,6 +49,7 @@ import SignIn from "./pages/Auth/SignIn";
 import SignUp from "./pages/Auth/SignUp";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import ResetPassword from "./pages/Auth/ResetPassword";
+import AuthCallback from "./pages/Auth/AuthCallback";
 import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
 import TermsOfService from "./pages/Legal/TermsOfService";
 import CookiePolicy from "./pages/Legal/CookiePolicy";
@@ -67,14 +70,15 @@ const App = () => (
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <ExchangeRatesProvider>
-            <CookieConsent />
-            <PwaInstallPrompt />
+            {!isNativeApp() && <CookieConsent />}
+            {!isNativeApp() && <PwaInstallPrompt />}
             <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<NativeHomeRedirect />} />
             <Route path="/auth/signin" element={<SignIn />} />
             <Route path="/auth/signup" element={<SignUp />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/legal/confidentialite" element={<PrivacyPolicy />} />
             <Route path="/legal/conditions" element={<TermsOfService />} />
             <Route path="/legal/cookies" element={<CookiePolicy />} />
@@ -100,12 +104,11 @@ const App = () => (
               <Route path="feedback" element={<ProviderFeedback />} />
             </Route>
           <Route path="/abonnement/paiement/:subscriptionId" element={<SubscribeCheckout />} />
-          {/* Ancienne route /pay — page paiement client */}
-          <Route path="/pay/:linkId" element={<ClientPayment />} />
-          {/* Suivi commande (après paiement) */}
-          <Route path="/order/:linkId" element={<ClientOrder />} />
-          <Route path="/avis/:audience" element={<PublicFeedback />} />
-          <Route path="/avis" element={<PublicFeedback />} />
+          {/* Client journeys stay on the public web; Android opens them externally */}
+          <Route path="/pay/:linkId" element={isNativeApp() ? <NativeClientLinkGate /> : <ClientPayment />} />
+          <Route path="/order/:linkId" element={isNativeApp() ? <NativeClientLinkGate /> : <ClientOrder />} />
+          <Route path="/avis/:audience" element={isNativeApp() ? <NativeClientLinkGate /> : <PublicFeedback />} />
+          <Route path="/avis" element={isNativeApp() ? <NativeClientLinkGate /> : <PublicFeedback />} />
           <Route path="/admin" element={<ProtectedAdminRoute />}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />

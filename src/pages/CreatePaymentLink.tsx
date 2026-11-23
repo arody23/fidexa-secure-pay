@@ -11,6 +11,7 @@ import { copyToClipboard } from "@/lib/clipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeCurrency } from "@/lib/currency";
 import { getKPayCountry, COVERAGE_COUNTRIES } from "@/lib/kpayProviders";
+import { getPublicPaymentUrl, openExternalUrl } from "@/lib/native";
 
 const CreatePaymentLink = () => {
   const { toast } = useToast();
@@ -28,7 +29,7 @@ const CreatePaymentLink = () => {
     countryCode: "BJ",
   });
 
-  const generatedLink = `${window.location.origin}/pay/${linkId}`;
+  const generatedLink = getPublicPaymentUrl(linkId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,13 +112,13 @@ const CreatePaymentLink = () => {
 
     switch (platform) {
       case "whatsapp":
-        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+        void openExternalUrl(`https://wa.me/?text=${encodeURIComponent(message)}`);
         break;
       case "email":
-        window.open(`mailto:?subject=Lien de paiement FidexaPay&body=${encodeURIComponent(message)}`, "_blank");
+        void openExternalUrl(`mailto:?subject=Lien de paiement FidexaPay&body=${encodeURIComponent(message)}`);
         break;
       case "sms":
-        window.open(`sms:?body=${encodeURIComponent(message)}`, "_blank");
+        void openExternalUrl(`sms:?body=${encodeURIComponent(message)}`);
         break;
     }
   };

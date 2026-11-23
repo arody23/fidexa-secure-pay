@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { startNativeAuthDeepLinks } from '@/lib/deepLinkAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -17,7 +18,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
+    void startNativeAuthDeepLinks();
+
+    // Get initial session (Preferences on native / localStorage on web)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);

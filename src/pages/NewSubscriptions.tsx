@@ -19,6 +19,7 @@ import {
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config';
 import { getKPayCountry } from '@/lib/kpayProviders';
 import { composeE164, countryFlagEmoji, toNationalPhoneDigits } from '@/lib/worldDialCodes';
+import { useNavigate } from 'react-router-dom';
 
 interface UserPlanRow {
   plan: string | null;
@@ -31,17 +32,21 @@ interface UserPlanRow {
   country: string | null;
 }
 
-/** Ouvre le checkout hors coque dashboard / PWA (nouvel onglet navigateur). */
-function openOutsideApp(url: string) {
-  const absolute = new URL(url, window.location.origin).toString();
-  const win = window.open(absolute, '_blank', 'noopener,noreferrer');
-  if (!win) {
-    window.location.assign(absolute);
+/** Web keeps the existing external status tab; native keeps provider status inside the app. */
+async function openProviderStatus(url: string, navigate: (to: string) => void) {
+  const { getPublicWebOrigin, isNativeApp, openExternalUrl } = await import('@/lib/native');
+  const absolute = new URL(url, getPublicWebOrigin()).toString();
+  if (isNativeApp()) {
+    const parsed = new URL(absolute);
+    navigate(`${parsed.pathname}${parsed.search}${parsed.hash}`);
+    return;
   }
+  await openExternalUrl(absolute);
 }
 
 export default function NewSubscriptions() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [current, setCurrent] = useState<UserPlanRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
@@ -158,7 +163,7 @@ export default function NewSubscriptions() {
           planId: plan.id,
           cycle,
           phoneNumber: phone,
-          origin: window.location.origin,
+          origin: (await import('@/lib/native')).getPublicWebOrigin(),
         }),
       });
       const data = await res.json();
@@ -167,10 +172,10 @@ export default function NewSubscriptions() {
       setShowPaySheet(null);
       const statusUrl =
         data.statusPageUrl || `/abonnement/paiement/${data.subscriptionId}`;
-      openOutsideApp(statusUrl);
+      await openProviderStatus(statusUrl, navigate);
       toast({
-        title: 'Page de paiement ouverte',
-        description: 'Suivez le statut (en attente, reçu ou échoué) dans le nouvel onglet.',
+        title: 'Page de paiement prête',
+        description: 'Suivez le statut (en attente, reçu ou échoué) depuis votre espace FidexaPay.',
       });
       await loadData();
     } catch (err) {

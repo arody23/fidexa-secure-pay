@@ -6,6 +6,12 @@ import { Bell, CheckCircle, AlertCircle, Clock, DollarSign, MessageSquare, Check
 import { useNavigate } from 'react-router-dom';
 import { isPushSupported, isPushEnabled, subscribeToPush } from '@/lib/webPush';
 import { useToast } from '@/hooks/use-toast';
+import { isNativeApp } from '@/lib/native';
+import {
+  checkNativeNotificationPermission,
+  requestNativeNotificationPermission,
+  type NativeNotificationPermission,
+} from '@/lib/nativeNotifications';
 
 interface Notification {
   id: string;
@@ -26,17 +32,43 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushActive, setPushActive] = useState(false);
+  const [nativePermission, setNativePermission] = useState<NativeNotificationPermission>('unknown');
   const [userId, setUserId] = useState<string | null>(null);
+  const nativeApp = isNativeApp();
 
   const refreshPushState = useCallback(async () => {
+    if (nativeApp) {
+      setPushActive(false);
+      setNativePermission(await checkNativeNotificationPermission());
+      return;
+    }
     if (!isPushSupported()) {
       setPushActive(false);
       return;
     }
     setPushActive(await isPushEnabled());
-  }, []);
+  }, [nativeApp]);
 
   async function enablePush() {
+    if (nativeApp) {
+      setPushLoading(true);
+      try {
+        const permission = await requestNativeNotificationPermission();
+        setNativePermission(permission);
+        toast({
+          title: permission === 'granted' ? 'Notifications autorisées' : 'Autorisation non accordée',
+          description:
+            permission === 'granted'
+              ? 'Android peut afficher les notifications FidexaPay sur cet appareil.'
+              : 'Autorisez les notifications dans les paramètres Android de l’application.',
+          variant: permission === 'granted' ? 'default' : 'destructive',
+        });
+      } finally {
+        setPushLoading(false);
+      }
+      return;
+    }
+
     if (!isPushSupported()) {
       toast({
         title: 'Non supporté',
@@ -205,7 +237,8 @@ export default function Notifications() {
           Notifications
         </h1>
         <div className="flex flex-wrap justify-end gap-2">
-          {isPushSupported() && (
+          {/* Web only — native Android uses system permission, no web-push toggle */}
+          {!nativeApp && isPushSupported() ? (
             <Button
               variant={pushActive ? 'outline' : 'secondary'}
               size="sm"
@@ -224,7 +257,7 @@ export default function Notifications() {
                 'Activer push'
               )}
             </Button>
-          )}
+          ) : null}
           {unreadCount > 0 && (
             <Button
               variant="outline"

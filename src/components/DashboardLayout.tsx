@@ -22,6 +22,7 @@ import PushNotificationPrompt from "@/components/layout/PushNotificationPrompt";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { clearProviderCache } from "@/contexts/ProviderContext";
+import { isNativeApp } from "@/lib/native";
 
 const navItems = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -51,6 +52,20 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Android 13+: ask system notification permission once (no web-push UI in-app)
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { isNativeApp } = await import('@/lib/native');
+      if (!isNativeApp() || cancelled) return;
+      const { requestNativeNotificationPermission } = await import('@/lib/nativeNotifications');
+      await requestNativeNotificationPermission();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -195,7 +210,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
       )}
 
       <main className="min-h-[100dvh] overflow-x-hidden pt-14 sm:pt-16 lg:ml-[17rem] lg:pt-0">
-        <PushNotificationPrompt />
+        {!isNativeApp() && <PushNotificationPrompt />}
         <div className="mx-auto w-full max-w-6xl p-3 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:p-4 lg:p-6 lg:pb-6">
           {children}
         </div>

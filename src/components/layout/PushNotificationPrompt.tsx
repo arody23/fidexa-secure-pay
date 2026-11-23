@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { isPushSupported, subscribeToPush } from '@/lib/webPush';
 import { useToast } from '@/hooks/use-toast';
+import { isNativeApp } from '@/lib/native';
 
 const DISMISS_KEY = 'fidexapay_push_prompt_dismissed';
 const SESSION_DISMISS_KEY = 'fidexapay_push_prompt_session';
@@ -15,6 +16,7 @@ export default function PushNotificationPrompt() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (isNativeApp()) return;
     if (!isPushSupported()) return;
     if (localStorage.getItem(DISMISS_KEY) === 'permanent') return;
     if (sessionStorage.getItem(SESSION_DISMISS_KEY)) return;
@@ -112,7 +114,7 @@ export default function PushNotificationPrompt() {
     }
   };
 
-  if (!visible) return null;
+  if (isNativeApp() || !visible) return null;
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-[89] md:bottom-6 md:left-auto md:right-6 md:max-w-sm">

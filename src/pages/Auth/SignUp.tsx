@@ -15,6 +15,7 @@ import {
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { getOAuthErrorMessage } from '@/lib/authErrors';
+import { signInWithGoogle } from '@/lib/googleOAuth';
 import { DEFAULT_PLAN_ID, getCommissionRate } from '@/lib/plans';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config';
 import { COVERAGE_COUNTRIES } from '@/lib/kpayProviders';
@@ -103,18 +104,10 @@ export default function SignUp() {
     setError('');
     setLoading(true);
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard/profile`,
-        },
-      });
-      if (oauthError) {
-        setError(getOAuthErrorMessage(oauthError.message || 'Erreur lors de la connexion Google'));
-      }
+      await signInWithGoogle('signup');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erreur Google';
-      setError(message);
+      setError(getOAuthErrorMessage(message || 'Erreur lors de la connexion Google'));
     } finally {
       setLoading(false);
     }
@@ -204,7 +197,7 @@ export default function SignUp() {
             phone,
             country: businessCountry,
             marketingOptIn: true,
-            origin: window.location.origin,
+            origin: (await import('@/lib/native')).getPublicWebOrigin(),
           }),
         }).catch(() => null);
       }
